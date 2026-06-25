@@ -1,17 +1,24 @@
 # TTNS BUTT
 
-TTNS-specific fork of [BUTT](https://github.com/romansavrulin/butt) (Broadcast Using This Tool) — a cross-platform Icecast/Shoutcast streaming client.
+TTNS-specific fork of [BUTT](https://github.com/romansavrulin/butt) (Broadcast Using This Tool) — a cross-platform Icecast/Shoutcast streaming client for live DJ / presenter use.
 
-## Upstream
+| | |
+|---|---|
+| **Upstream** | [romansavrulin/butt](https://github.com/romansavrulin/butt) (mirror of [SourceForge butt](https://sourceforge.net/projects/butt/)) |
+| **This fork** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
+| **Base version** | butt 0.1.16 |
+| **License** | GPL-2.0 (`COPYING`) |
 
-| Remote   | Repository |
-|----------|------------|
-| `origin` | https://github.com/dom-robinson/ttns-butt (this fork) |
+The upstream user manual is in `README`. TTNS fork notes and changelog: `README.TTNS.md`, `CHANGELOG.md`.
+
+## Git remotes
+
+| Remote | Repository |
+|--------|------------|
+| `origin` | https://github.com/dom-robinson/ttns-butt |
 | `upstream` | https://github.com/romansavrulin/butt |
 
-Upstream is a mirror of the official BUTT project on [SourceForge](https://sourceforge.net/projects/butt/). This tree is based on **butt 0.1.16**.
-
-To pull upstream changes:
+Pull upstream changes:
 
 ```bash
 git fetch upstream
@@ -20,22 +27,44 @@ git merge upstream/master
 
 ## Build (macOS)
 
-Install dependencies with Homebrew:
+### Dependencies
 
 ```bash
-brew install fltk portaudio lame libvorbis libogg flac opus libsamplerate fdk-aac pkg-config
+brew install fltk portaudio lame libvorbis libogg flac opus libsamplerate fdk-aac pkg-config autoconf automake libtool
 ```
 
-From the project root:
+### Compile
 
 ```bash
 ./configure
 make
 ```
 
-The Xcode project under `xcode/` can also be used on macOS.
+Binary: `src/butt`
 
-See `INSTALL` and `README` for Linux and Windows builds.
+`./configure` detects Homebrew on Apple Silicon (`/opt/homebrew`) and Intel Macs (`/usr/local`). On macOS, C++ sources build as Objective-C++ (required for Cocoa window helpers in FLTK).
+
+### Run
+
+```bash
+./src/butt
+```
+
+First launch creates `~/.buttrc`. See upstream `README` for streaming setup.
+
+### Alternative: Xcode
+
+An Xcode project lives under `xcode/`. It bundles older static libraries and may need deployment-target updates on current Xcode; **autotools is the supported TTNS build path on macOS for now.**
+
+## Development
+
+Regenerate autotools after editing `configure.ac` or `Makefile.am`:
+
+```bash
+autoreconf -fi
+./configure
+make clean && make
+```
 
 ## Planned TTNS customizations
 
@@ -45,8 +74,6 @@ See `INSTALL` and `README` for Linux and Windows builds.
 - [ ] Simplified first-run setup for TTNS DJs
 - [ ] macOS build/signing pipeline for distribution to presenters
 
-Track implementation in this repo; upstream manual remains in `README`.
+## Linux / Windows
 
-## License
-
-GPL-2.0 — see `COPYING`.
+See `INSTALL` and upstream `README`. This fork has not yet been validated on those platforms.

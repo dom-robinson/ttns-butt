@@ -4,6 +4,7 @@ config.status
 config.log
 autom4te.cache/
 .deps/
+.dirstamp
 *.o
 *.lo
 *.la
@@ -11,6 +12,7 @@ autom4te.cache/
 *.so
 *.dylib
 stamp-h1
+*~
 
 # macOS / Xcode
 .DS_Store
@@ -18,6 +20,7 @@ xcuserdata/
 *.xcuserstate
 build/
 DerivedData/
+xcode/build/
 
 # Built binary
 butt

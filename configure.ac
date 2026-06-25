@@ -10,9 +10,16 @@ AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CXX
+AC_PROG_OBJCXX
 AC_PROG_CC
 
-LDFLAGS="$LDFLAGS -L/usr/local/lib"
+if test -d /opt/homebrew/include; then
+  CPPFLAGS="$CPPFLAGS -I/opt/homebrew/include"
+  LDFLAGS="$LDFLAGS -L/opt/homebrew/lib"
+fi
+if test -d /usr/local/lib; then
+  LDFLAGS="$LDFLAGS -L/usr/local/lib"
+fi
 
 # Checks for libraries.
 AC_CHECK_LIB([ogg], [ogg_stream_init], [],
@@ -84,6 +91,8 @@ AC_C_INLINE
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([gethostbyaddr gethostbyname memset pow select socket strchr strdup strpbrk strrchr strstr])
+
+AM_CONDITIONAL([DARWIN], [test "x$(uname -s)" = xDarwin])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
