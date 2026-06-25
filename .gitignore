@@ -1,0 +1,24 @@
+# Autotools / make
+Makefile
+config.status
+config.log
+autom4te.cache/
+.deps/
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+stamp-h1
+
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+
+# Built binary
+butt
+src/butt
