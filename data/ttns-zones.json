@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "server": {
+    "name": "TTNS Decks",
+    "host": "decks.thethursdaynightshow.com",
+    "port": 8080,
+    "user": "source",
+    "type": "icecast"
+  },
+  "stream_metadata": {
+    "description": "Live Now on TheThursdayNightShow and on TTNS.FM",
+    "genre": "eclectic"
+  },
+  "zones": [
+    {
+      "id": 1,
+      "name": "Zone 1",
+      "slots": [
+        { "slot": 1, "mount": "ttnszone1_1", "password": "Z0ne1-1" },
+        { "slot": 2, "mount": "ttnszone1_2", "password": "Z0ne1-2" },
+        { "slot": 3, "mount": "ttnszone1_3", "password": "Z0ne1-3" },
+        { "slot": 4, "mount": "ttnszone1_4", "password": "Z0ne1-4" },
+        { "slot": 5, "mount": "ttnszone1_5", "password": "Z0ne1-5" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Zone 2",
+      "slots": [
+        { "slot": 1, "mount": "ttnszone2_1", "password": "Z0ne2-1" },
+        { "slot": 2, "mount": "ttnszone2_2", "password": "Z0ne2-2" },
+        { "slot": 3, "mount": "ttnszone2_3", "password": "Z0ne2-3" },
+        { "slot": 4, "mount": "ttnszone2_4", "password": "Z0ne2-4" },
+        { "slot": 5, "mount": "ttnszone2_5", "password": "Z0ne2-5" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Zone 3",
+      "slots": [
+        { "slot": 1, "mount": "ttnszone3_1", "password": "Z0ne3-1" },
+        { "slot": 2, "mount": "ttnszone3_2", "password": "Z0ne3-2" },
+        { "slot": 3, "mount": "ttnszone3_3", "password": "Z0ne3-3" },
+        { "slot": 4, "mount": "ttnszone3_4", "password": "Z0ne3-4" },
+        { "slot": 5, "mount": "ttnszone3_5", "password": "Z0ne3-5" }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Zone 4",
+      "slots": [
+        { "slot": 1, "mount": "ttnszone4_1", "password": "Z0ne4-1" },
+        { "slot": 2, "mount": "ttnszone4_2", "password": "Z0ne4-2" },
+        { "slot": 3, "mount": "ttnszone4_3", "password": "Z0ne4-3" },
+        { "slot": 4, "mount": "ttnszone4_4", "password": "Z0ne4-4" },
+        { "slot": 5, "mount": "ttnszone4_5", "password": "Z0ne4-5" }
+      ]
+    }
+  ]
+}

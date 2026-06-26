@@ -8,8 +8,9 @@ TTNS-specific fork of [BUTT](https://github.com/romansavrulin/butt) (Broadcast U
 | **This fork** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
 | **Base version** | butt 0.1.16 |
 | **License** | GPL-2.0 (`COPYING`) |
+| **Distribution** | Private repo; compiled binaries only for TTNS DJs |
 
-The upstream user manual is in `README`. TTNS fork notes and changelog: `README.TTNS.md`, `CHANGELOG.md`.
+The upstream user manual is in `README`. TTNS fork notes: `README.TTNS.md`, `CHANGELOG.md`, development plan: [`docs/TTNS_DEVELOPMENT_PLAN.md`](docs/TTNS_DEVELOPMENT_PLAN.md).
 
 ## Git remotes
 
@@ -66,14 +67,26 @@ autoreconf -fi
 make clean && make
 ```
 
+## TTNS streaming (planned)
+
+Connection presets: [`data/ttns-zones.json`](data/ttns-zones.json)
+
+| | |
+|---|---|
+| **Server** | `decks.thethursdaynightshow.com:8080` (Icecast, user `source`) |
+| **Mounts** | `ttnszone{1-4}_{1-5}` (manual zone + slot picker) |
+| **Description** | Live Now on TheThursdayNightShow and on TTNS.FM |
+| **Genre** | eclectic |
+
+Logo: [`assets/ttns-logo.png`](assets/ttns-logo.png)
+
 ## Planned TTNS customizations
 
-- [ ] TTNS branding (app name, icons, about dialog)
-- [ ] Pre-configured Icecast/Shoutcast server profiles for TTNS
-- [ ] Default stream metadata (station name, URL, genre)
-- [ ] Simplified first-run setup for TTNS DJs
-- [ ] macOS build/signing pipeline for distribution to presenters
+See [`docs/TTNS_DEVELOPMENT_PLAN.md`](docs/TTNS_DEVELOPMENT_PLAN.md) for the full roadmap.
 
-## Linux / Windows
+- [ ] TTNS logo on main UI (`assets/ttns-logo.png`)
+- [ ] Dual mic/line faders, mic ducking, 8-button cart deck
+- [ ] Zone/slot picker wired to `data/ttns-zones.json`
+- [ ] macOS signed build for presenter distribution
 
 See `INSTALL` and upstream `README`. This fork has not yet been validated on those platforms.

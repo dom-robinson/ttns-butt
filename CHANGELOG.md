@@ -8,6 +8,10 @@ Upstream BUTT release notes remain in `NEWS`.
 ### Added
 
 - `README.TTNS.md` — fork overview, build instructions, planned customizations
+- `docs/TTNS_DEVELOPMENT_PLAN.md` — phased roadmap (mixer, ducking, carts, zones)
+- `data/ttns-zones.json` — Icecast presets for `decks.thethursdaynightshow.com:8080` (4 zones × 5 slots)
+- `assets/ttns-logo.png` — TTNS embossed logo for main UI
+- Default stream metadata: description + genre `eclectic`
 - Homebrew path detection in `configure.ac` (`/opt/homebrew`, `/usr/local`)
 - macOS autotools build: Objective-C++ compile mode and `Fl_My_Native_File_Chooser_MAC.mm` in the Darwin makefile
 - `AC_PROG_OBJCXX` and `DARWIN` automake conditional
