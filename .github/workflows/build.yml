@@ -89,8 +89,11 @@ jobs:
           bash scripts/generate-icons.sh || true
       - name: Build
         run: |
+          pacman -S --needed --noconfirm mingw-w64-x86_64-libjpeg-turbo mingw-w64-x86_64-libpng mingw-w64-x86_64-zlib
           autoreconf -fi
           ./configure --disable-dependency-tracking
+          # fltk-config --use-images may emit .dll.a import libs that are absent on MSYS2
+          sed -i 's/\.dll\.a/.a/g' src/Makefile
           mingw32-make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh
