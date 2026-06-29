@@ -92,9 +92,10 @@ jobs:
           pacman -S --needed --noconfirm mingw-w64-x86_64-libjpeg-turbo mingw-w64-x86_64-libpng mingw-w64-x86_64-zlib
           autoreconf -fi
           ./configure --disable-dependency-tracking
+          ls -la /mingw64/lib/libjpeg* /mingw64/lib/libpng* /mingw64/lib/libz* 2>&1 || true
           fixlib() {
             want="$1"
-            got=$(ls /mingw64/lib/${want}*.dll.a 2>/dev/null | head -1)
+            got=$(find /mingw64/lib -maxdepth 1 -name "${want}*" \( -name "*.dll.a" -o -name "*.a" \) 2>/dev/null | head -1)
             if [ -n "$got" ]; then
               sed -i "s|/mingw64/lib/${want}.dll.a|${got}|g" src/Makefile
             fi
