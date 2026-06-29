@@ -19,7 +19,7 @@ cd "$ROOT"
 [ -f "$ROOT/scripts/generate-icons.sh" ] && bash "$ROOT/scripts/generate-icons.sh" 2>/dev/null || true
 
 autoreconf -fi
-./configure -q
+./configure -q --disable-dependency-tracking
 make -j"$(nproc 2>/dev/null || echo 4)"
 
 rm -rf "$STAGE"

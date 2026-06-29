@@ -89,7 +89,7 @@ jobs:
       - name: Build
         run: |
           autoreconf -fi
-          ./configure
+          ./configure --disable-dependency-tracking
           make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh
