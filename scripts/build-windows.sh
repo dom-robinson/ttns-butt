@@ -18,9 +18,13 @@ ZIP="$DIST/ttns-deck-win64.zip"
 cd "$ROOT"
 [ -f "$ROOT/scripts/generate-icons.sh" ] && bash "$ROOT/scripts/generate-icons.sh" 2>/dev/null || true
 
-autoreconf -fi
-./configure -q --disable-dependency-tracking
-mingw32-make -j"$(nproc 2>/dev/null || echo 4)"
+if [ ! -f "$ROOT/src/butt.exe" ] && [ ! -f "$ROOT/src/butt" ]; then
+    autoreconf -fi
+    ./configure -q --disable-dependency-tracking
+    mingw32-make -C src -j"$(nproc 2>/dev/null || echo 4)"
+else
+    echo "Using existing binary in src/"
+fi
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE/bin" "$STAGE/data" "$STAGE/assets"
