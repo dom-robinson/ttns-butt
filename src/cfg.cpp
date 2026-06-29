@@ -167,6 +167,7 @@ int cfg_write_file(char *path)
             "mic_device = %d\n"
             "mic_gain = %.4f\n"
             "line_gain = %.4f\n"
+            "cart_gain = %.4f\n"
             "mic_monitor = %d\n"
             "mic_monitor_mute = %d\n"
             "monitor_output_device = %d\n"
@@ -181,6 +182,7 @@ int cfg_write_file(char *path)
             cfg.ttns.mic_dev_num,
             cfg.ttns.mic_gain,
             cfg.ttns.line_gain,
+            cfg.ttns.cart_gain,
             cfg.ttns.mic_monitor,
             cfg.ttns.mic_monitor_mute,
             cfg.ttns.monitor_out_dev_num,
@@ -200,6 +202,7 @@ int cfg_write_file(char *path)
         fprintf(cfg_fd, "cart%d_label = %s\n", i + 1,
                 cfg.ttns.cart_label[i] ? cfg.ttns.cart_label[i] : "");
         fprintf(cfg_fd, "cart%d_mode = %d\n", i + 1, cfg.ttns.cart_mode[i]);
+        fprintf(cfg_fd, "cart%d_gain = %.4f\n", i + 1, cfg.ttns.cart_slot_gain[i]);
     }
     fprintf(cfg_fd, "\n");
 
@@ -582,6 +585,7 @@ int cfg_set_values(char *path)
     cfg.ttns.mic_dev_num = cfg_get_int("ttns", "mic_device");
     cfg.ttns.mic_gain = cfg_get_float("ttns", "mic_gain");
     cfg.ttns.line_gain = cfg_get_float("ttns", "line_gain");
+    cfg.ttns.cart_gain = cfg_get_float("ttns", "cart_gain");
     cfg.ttns.mic_monitor = cfg_get_int("ttns", "mic_monitor");
     cfg.ttns.mic_monitor_mute = cfg_get_int("ttns", "mic_monitor_mute");
     cfg.ttns.monitor_out_dev_num = cfg_get_int("ttns", "monitor_output_device");
@@ -597,6 +601,8 @@ int cfg_set_values(char *path)
         cfg.ttns.mic_gain = 1.0f;
     if ((int)cfg.ttns.line_gain == -1)
         cfg.ttns.line_gain = 1.0f;
+    if ((int)cfg.ttns.cart_gain == -1)
+        cfg.ttns.cart_gain = 1.0f;
     if (cfg.ttns.mic_monitor == -1 || cfg.ttns.mic_monitor == 0)
         cfg.ttns.mic_monitor = 1;
     if (cfg.ttns.mic_monitor_mute == -1)
@@ -642,6 +648,10 @@ int cfg_set_values(char *path)
         cfg.ttns.cart_mode[i] = cfg_get_int("ttns", key);
         if (cfg.ttns.cart_mode[i] == -1)
             cfg.ttns.cart_mode[i] = TTNS_CART_ONESHOT;
+        snprintf(key, sizeof(key), "cart%d_gain", i + 1);
+        cfg.ttns.cart_slot_gain[i] = cfg_get_float("ttns", key);
+        if ((int)cfg.ttns.cart_slot_gain[i] == -1)
+            cfg.ttns.cart_slot_gain[i] = 1.0f;
     }
 
     //read FLTK related stuff
@@ -744,8 +754,9 @@ int cfg_create_default(void)
             "mic_device = -1\n"
             "mic_gain = 1.0\n"
             "line_gain = 1.0\n"
+            "cart_gain = 1.0\n"
             "mic_monitor = 1\n"
-            "mic_monitor_mute = 0\n"
+            "mic_monitor_mute = 1\n"
             "monitor_output_device = 0\n"
             "mic_mute = 0\n"
             "zone = 1\n"
@@ -759,6 +770,7 @@ int cfg_create_default(void)
         fprintf(cfg_fd, "cart%d_path = \n", i + 1);
         fprintf(cfg_fd, "cart%d_label = \n", i + 1);
         fprintf(cfg_fd, "cart%d_mode = 0\n", i + 1);
+        fprintf(cfg_fd, "cart%d_gain = 1.0\n", i + 1);
     }
     fprintf(cfg_fd, "\n");
 

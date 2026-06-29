@@ -189,6 +189,43 @@ int rb_write(struct ringbuf *rb, char* src, unsigned int len)
 	return 0;
 }
 
+unsigned int rb_discard(struct ringbuf *rb, unsigned int len)
+{
+    char scratch[512];
+    unsigned int total = 0;
+
+    if (!rb || !rb->buf || len == 0)
+        return 0;
+
+    while (total < len)
+    {
+        unsigned int chunk = len - total;
+
+        if (chunk > sizeof(scratch))
+            chunk = sizeof(scratch);
+        if (rb_read_len(rb, scratch, chunk) == 0)
+            break;
+        total += chunk;
+    }
+
+    return total;
+}
+
+int rb_write_drop(struct ringbuf *rb, char *src, unsigned int len)
+{
+    int space;
+
+    if (!rb || !src || !rb->buf || len == 0)
+        return -1;
+    if (len > rb->size)
+        return -1;
+
+    while ((space = rb_space(rb)) < (int)len)
+        rb_discard(rb, (unsigned int)((int)len - space));
+
+    return rb_write(rb, src, len);
+}
+
 int rb_free(struct ringbuf *rb)
 {
 	free(rb->buf);

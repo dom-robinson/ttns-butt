@@ -1305,7 +1305,7 @@ flgui::flgui() {
             choice_cfg_ttns_mic->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Choice* choice_cfg_ttns_mic
           { choice_cfg_ttns_monitor_out = new Fl_Choice(23, 152, 250, 20, "Monitor Output");
-            choice_cfg_ttns_monitor_out->tooltip("Output device for mic monitor headphones");
+            choice_cfg_ttns_monitor_out->tooltip("Headphones/speakers for deck monitor (+ optional mic)");
             choice_cfg_ttns_monitor_out->down_box(FL_FLAT_BOX);
             choice_cfg_ttns_monitor_out->callback((Fl_Callback*)cb_choice_cfg_ttns_monitor_out);
             choice_cfg_ttns_monitor_out->align(Fl_Align(FL_ALIGN_TOP_LEFT));

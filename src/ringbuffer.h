@@ -35,6 +35,8 @@ unsigned int rb_read(struct ringbuf *rb, char *dest);
 unsigned int rb_read_len(struct ringbuf *rb, char *dest, unsigned int len);
 
 int rb_write(struct ringbuf *rb, char* src, unsigned int size);
+unsigned int rb_discard(struct ringbuf *rb, unsigned int len);
+int rb_write_drop(struct ringbuf *rb, char *src, unsigned int len);
 int rb_free(struct ringbuf *rb);
 
 #endif /*RINGBUFFER_H*/

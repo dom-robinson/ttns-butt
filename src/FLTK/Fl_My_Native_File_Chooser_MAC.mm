@@ -426,7 +426,27 @@ static char *prepareMacFilter(int count, const char *filter, char **patterns) {
   BOOL isdir = NO;
   [[NSFileManager defaultManager] fileExistsAtPath:filename isDirectory:&isdir];
   if (isdir) return YES;
-  if ( fl_filename_match([filename fileSystemRepresentation], filter_pattern[ [nspopup indexOfSelectedItem] ]) ) return YES;
+  {
+    const char *pat = filter_pattern[[nspopup indexOfSelectedItem]];
+    if (pat && fl_filename_match([filename fileSystemRepresentation], pat))
+      return YES;
+    if (pat && strchr(pat, ';'))
+    {
+      char copy[1024];
+      char *tok;
+      strncpy(copy, pat, sizeof(copy) - 1);
+      copy[sizeof(copy) - 1] = '\0';
+      tok = strtok(copy, ";");
+      while (tok)
+      {
+        while (*tok == ' ')
+          tok++;
+        if (fl_filename_match([filename fileSystemRepresentation], tok))
+          return YES;
+        tok = strtok(NULL, ";");
+      }
+    }
+  }
   return NO;
 }
 - (BOOL)panel:(id)sender shouldEnableURL:(NSURL *)url

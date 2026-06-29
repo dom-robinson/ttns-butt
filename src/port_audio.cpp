@@ -84,11 +84,11 @@ PaStream *stream;
 static PaStream *mic_stream = NULL;
 static PaStream *monitor_stream = NULL;
 static short *mic_pcm_buf = NULL;
-static short *monitor_out_buf = NULL;
 static short *ttns_mix_buf = NULL;
 static short *ttns_cart_buf = NULL;
 static short *ttns_line_buf = NULL;
 static short *ttns_mic_work_buf = NULL;
+static short *monitor_mix_buf = NULL;
 static short *snd_conv_work_buf = NULL;
 static int line_input_channels = 2;
 static int mic_input_channels = 1;
@@ -121,7 +121,7 @@ static void ttns_monitor_rb_shutdown(void)
 
 static int ttns_mic_rb_start(void)
 {
-    size_t bytes = (size_t)pa_frames * (size_t)mic_input_channels * sizeof(short) * 16;
+    size_t bytes = (size_t)pa_frames * (size_t)mic_input_channels * sizeof(short) * 64;
 
     ttns_mic_rb_shutdown();
     if (rb_init(&ttns_mic_rb, (unsigned int)bytes) != 0)
@@ -132,7 +132,7 @@ static int ttns_mic_rb_start(void)
 
 static int ttns_monitor_rb_start(void)
 {
-    size_t bytes = (size_t)pa_frames * 2 * sizeof(short) * 16;
+    size_t bytes = (size_t)pa_frames * 2 * sizeof(short) * 64;
 
     ttns_monitor_rb_shutdown();
     if (rb_init(&monitor_rb, (unsigned int)bytes) != 0)
@@ -144,6 +144,7 @@ static int ttns_monitor_rb_start(void)
 static int ttns_mic_rb_read(short *dest, int frames, int channels)
 {
     unsigned int need;
+    unsigned int target;
     int filled;
 
     if (!ttns_mic_rb_inited || !dest || frames <= 0 || channels < 1)
@@ -151,9 +152,17 @@ static int ttns_mic_rb_read(short *dest, int frames, int channels)
 
     need = (unsigned int)frames * (unsigned int)channels * sizeof(short);
     filled = rb_filled(&ttns_mic_rb);
+    target = need * 4;
+
+    if (filled > (int)(target * 2))
+        rb_discard(&ttns_mic_rb, (unsigned int)filled - target);
+
+    filled = rb_filled(&ttns_mic_rb);
     if (filled < (int)need)
     {
         memset(dest, 0, need);
+        if (filled > 0)
+            rb_read_len(&ttns_mic_rb, (char*)dest, (unsigned int)filled);
         return 0;
     }
 
@@ -180,7 +189,7 @@ static int monitor_out_cb(const void *inputBuffer, void *outputBuffer,
 
     need = (unsigned int)framesPerBuffer * 2 * sizeof(short);
 
-    if (!monitor_rb_inited || cfg.ttns.mic_monitor_mute)
+    if (!monitor_rb_inited)
     {
         memset(outputBuffer, 0, need);
         return paContinue;
@@ -190,11 +199,41 @@ static int monitor_out_cb(const void *inputBuffer, void *outputBuffer,
     if (filled < (int)need)
     {
         memset(outputBuffer, 0, need);
+        if (filled > 0)
+            rb_read_len(&monitor_rb, (char*)outputBuffer, (unsigned int)filled);
         return paContinue;
     }
 
     rb_read_len(&monitor_rb, (char*)outputBuffer, need);
     return paContinue;
+}
+
+static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
+                                  const short *mic_in, int mic_channels,
+                                  float line_gain, float cart_gain,
+                                  float duck_gain, float mic_g)
+{
+    size_t mon_bytes;
+    float mon_mic_g;
+    const short *mic_src = mic_in;
+    int mic_ch = mic_channels;
+
+    if (!monitor_rb_inited || !monitor_mix_buf || frameCount <= 0 || !line_stereo)
+        return;
+
+    mon_mic_g = cfg.ttns.mic_monitor_mute ? 0.0f : mic_g;
+    if (!mic_src)
+    {
+        mic_src = line_stereo;
+        mic_ch = 1;
+        mon_mic_g = 0.0f;
+    }
+
+    ttns_process_mix(monitor_mix_buf, mic_src, mic_ch, line_stereo, ttns_cart_buf,
+                     frameCount, mon_mic_g, line_gain, cart_gain, duck_gain);
+
+    mon_bytes = (size_t)frameCount * 2 * sizeof(short);
+    rb_write_drop(&monitor_rb, (char*)monitor_mix_buf, (unsigned int)mon_bytes);
 }
 
 static void ttns_free_mix_buffers(void)
@@ -204,6 +243,7 @@ static void ttns_free_mix_buffers(void)
     free(ttns_cart_buf);
     free(ttns_line_buf);
     free(ttns_mic_work_buf);
+    free(monitor_mix_buf);
     mic_pcm_buf = NULL;
     ttns_mix_buf = NULL;
     ttns_cart_buf = NULL;
@@ -222,8 +262,10 @@ static int ttns_alloc_mix_buffers(void)
     ttns_line_buf = (short*)malloc(line_samples * sizeof(short));
     ttns_mix_buf = (short*)malloc(line_samples * sizeof(short));
     ttns_mic_work_buf = (short*)malloc(mic_samples * sizeof(short));
+    monitor_mix_buf = (short*)malloc(line_samples * sizeof(short));
 
-    if (!ttns_cart_buf || !ttns_line_buf || !ttns_mix_buf || !ttns_mic_work_buf)
+    if (!ttns_cart_buf || !ttns_line_buf || !ttns_mix_buf || !ttns_mic_work_buf
+        || !monitor_mix_buf)
     {
         ttns_free_mix_buffers();
         return 1;
@@ -240,36 +282,32 @@ static int ttns_peak_apply_gain(int peak, float gain)
     return (int)((float)peak * gain);
 }
 
-static void ttns_push_fader_meters(int line_pk_raw, int mic_pk_raw)
+static void ttns_push_fader_meters(int line_pk_raw, int mic_pk_raw, int cart_pk_raw)
 {
     int line_meter = ttns_peak_apply_gain(line_pk_raw, cfg.ttns.line_gain);
     int mic_meter = ttns_peak_apply_gain(mic_pk_raw, cfg.ttns.mic_gain);
+    int cart_meter = ttns_peak_apply_gain(cart_pk_raw, cfg.ttns.cart_gain);
 
-    if (ttns_mic_effective_mute())
-        mic_meter = 0;
-
-    ttns_meters_push(line_meter, mic_meter);
+    ttns_meters_push(line_meter, mic_meter, cart_meter);
 }
 
-static int ttns_peak_line_bus(const short *line_stereo, int frameCount)
+static int ttns_peak_stereo(const short *stereo, int frameCount)
 {
     int fi;
-    int line_pk = 0;
+    int pk = 0;
 
     for (fi = 0; fi < frameCount; fi++)
     {
-        int ll = line_stereo[fi * 2] + ttns_cart_buf[fi * 2];
-        int lr = line_stereo[fi * 2 + 1] + ttns_cart_buf[fi * 2 + 1];
+        int l = abs(stereo[fi * 2]);
+        int r = abs(stereo[fi * 2 + 1]);
 
-        ll = abs(ll);
-        lr = abs(lr);
-        if (ll > line_pk)
-            line_pk = ll;
-        if (lr > line_pk)
-            line_pk = lr;
+        if (l > pk)
+            pk = l;
+        if (r > pk)
+            pk = r;
     }
 
-    return line_pk;
+    return pk;
 }
 
 static int ttns_device_input_channels(int dev_num)
@@ -313,7 +351,7 @@ static int ttns_mic_capture_cb(const void *inputBuffer, void *outputBuffer,
     (void)statusFlags;
     (void)userData;
 
-    if (!inputBuffer || framesPerBuffer == 0 || !snd_audio_active)
+    if (!inputBuffer || framesPerBuffer == 0)
         return paContinue;
 
     if (framesPerBuffer > (unsigned long)pa_frames)
@@ -322,11 +360,14 @@ static int ttns_mic_capture_cb(const void *inputBuffer, void *outputBuffer,
     if (ttns_mic_rb_inited)
     {
         bytes = framesPerBuffer * (size_t)mic_input_channels * sizeof(short);
-        rb_write(&ttns_mic_rb, (char*)inputBuffer, (unsigned int)bytes);
+        rb_write_drop(&ttns_mic_rb, (char*)inputBuffer, (unsigned int)bytes);
     }
 
-    mic_capture_peak = ttns_mic_peak((const short*)inputBuffer, mic_input_channels,
-                                   (int)framesPerBuffer);
+    if (snd_audio_active)
+    {
+        mic_capture_peak = ttns_mic_peak((const short*)inputBuffer, mic_input_channels,
+                                         (int)framesPerBuffer);
+    }
 
     return paContinue;
 }
@@ -359,13 +400,11 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
     float duck_gain;
     float mic_g;
 
-    if (ttns_use_dual_mic)
-        mic_pk_raw = mic_capture_peak;
-    else
-        mic_pk_raw = ttns_mic_peak(mic_in, mic_channels, frameCount);
+    mic_pk_raw = ttns_mic_peak(mic_in, mic_channels, frameCount);
 
     duck_depth = util_db_to_factor(cfg.ttns.duck_depth_db);
-    duck_gain = ttns_duck_gain_update(mic_pk_raw, cfg.audio.samplerate, frameCount,
+    duck_gain = ttns_duck_gain_update(ttns_mic_effective_mute() ? 0 : mic_pk_raw,
+                                      cfg.audio.samplerate, frameCount,
                                       cfg.ttns.duck_threshold, duck_depth,
                                       cfg.ttns.duck_attack_ms, cfg.ttns.duck_release_ms);
 
@@ -374,10 +413,13 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
         mic_g = 0.0f;
 
     ttns_process_mix(ttns_mix_buf, mic_in, mic_channels, line_stereo, ttns_cart_buf,
-                     frameCount, mic_g, cfg.ttns.line_gain, duck_gain);
+                     frameCount, mic_g, cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain);
     memcpy(pa_pcm_buf, ttns_mix_buf, (size_t)frameCount * 2 * sizeof(short));
+    ttns_push_monitor_mix(frameCount, line_stereo, mic_in, mic_channels,
+                          cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain, mic_g);
 
-    ttns_push_fader_meters(ttns_peak_line_bus(line_stereo, frameCount), mic_pk_raw);
+    ttns_push_fader_meters(ttns_peak_stereo(line_stereo, frameCount), mic_pk_raw,
+                           ttns_peak_stereo(ttns_cart_buf, frameCount));
 }
 
 int snd_init(void)
@@ -409,16 +451,21 @@ int snd_init(void)
     return 0;
 }
 
+static void snd_stop_streams(void);
+static void snd_close_monitor(void);
+
 void snd_reinit(void)
 {
-    snd_close();
-    snd_init();
+    snd_stop_streams();
     snd_open_stream();
 }
 
-static void snd_close_monitor(void);
-
 static void snd_abort_open(void)
+{
+    snd_stop_streams();
+}
+
+static void snd_stop_streams(void)
 {
     snd_audio_active = 0;
 
@@ -438,7 +485,6 @@ static void snd_abort_open(void)
 
     snd_close_monitor();
     ttns_mic_rb_shutdown();
-    ttns_monitor_rb_shutdown();
     ttns_free_mix_buffers();
     free(snd_conv_work_buf);
     snd_conv_work_buf = NULL;
@@ -448,6 +494,7 @@ static void snd_abort_open(void)
     encode_buf = NULL;
     ttns_use_dual_mic = 0;
     ttns_use_shared_input = 0;
+    mic_capture_peak = 0;
 }
 
 static void snd_close_monitor(void)
@@ -458,8 +505,8 @@ static void snd_close_monitor(void)
         Pa_CloseStream(monitor_stream);
         monitor_stream = NULL;
     }
-    free(monitor_out_buf);
-    monitor_out_buf = NULL;
+
+    ttns_monitor_rb_shutdown();
 }
 
 static int snd_open_monitor(int samplerate)
@@ -472,7 +519,7 @@ static int snd_open_monitor(int samplerate)
 
     snd_close_monitor();
 
-    if (!ttns_use_dual_mic)
+    if (cfg.audio.out_dev_count <= 0)
         return 0;
 
     {
@@ -526,15 +573,6 @@ static int snd_open_monitor(int samplerate)
         return 1;
     }
 
-    monitor_out_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
-    if (!monitor_out_buf)
-    {
-        Pa_CloseStream(monitor_stream);
-        monitor_stream = NULL;
-        print_info("Mic monitor: out of memory", 1);
-        return 1;
-    }
-
     pa_err = Pa_StartStream(monitor_stream);
     if (pa_err != paNoError)
     {
@@ -543,8 +581,6 @@ static int snd_open_monitor(int samplerate)
         print_info(info_buf, 1);
         Pa_CloseStream(monitor_stream);
         monitor_stream = NULL;
-        free(monitor_out_buf);
-        monitor_out_buf = NULL;
         return 1;
     }
 
@@ -566,13 +602,38 @@ static int snd_open_monitor(int samplerate)
 
 void snd_reopen_monitor(void)
 {
+    PaError pa_err;
+
     if (!stream || !snd_audio_active)
     {
         snd_close_monitor();
         return;
     }
 
-    snd_open_monitor(cfg.audio.samplerate);
+    Pa_StopStream(stream);
+    if (mic_stream != NULL)
+        Pa_StopStream(mic_stream);
+
+    snd_close_monitor();
+
+    if (snd_open_monitor(cfg.audio.samplerate) != 0)
+    {
+        if (mic_stream != NULL)
+            Pa_StartStream(mic_stream);
+        Pa_StartStream(stream);
+        return;
+    }
+
+    if (mic_stream != NULL)
+    {
+        pa_err = Pa_StartStream(mic_stream);
+        if (pa_err != paNoError)
+            print_info("Mic capture restart failed after monitor change", 1);
+    }
+
+    pa_err = Pa_StartStream(stream);
+    if (pa_err != paNoError)
+        print_info("Audio input restart failed after monitor change", 1);
 }
 
 int snd_open_stream(void)
@@ -761,9 +822,22 @@ int snd_open_stream(void)
                         }
                         else
                         {
+                            size_t prefill_bytes;
+                            int prefill_wait;
+
                             ttns_use_dual_mic = 1;
                             mic_capture_peak = 0;
                             Pa_StartStream(mic_stream);
+
+                            prefill_bytes = (size_t)pa_frames * (size_t)mic_input_channels
+                                            * sizeof(short) * 2;
+                            prefill_wait = 0;
+                            while (rb_filled(&ttns_mic_rb) < (int)prefill_bytes
+                                   && prefill_wait < 250)
+                            {
+                                Pa_Sleep(2);
+                                prefill_wait++;
+                            }
                         }
                     }
                     else
@@ -1188,29 +1262,6 @@ int snd_callback(const void *input,
         ttns_mic_rb_read(mic_copy, (int)frameCount, mic_input_channels);
         mic_in = mic_copy;
 
-        if (!cfg.ttns.mic_monitor_mute && monitor_rb_inited)
-        {
-            int fi;
-            size_t mon_bytes = (size_t)frameCount * 2 * sizeof(short);
-
-            for (fi = 0; fi < (int)frameCount; fi++)
-            {
-                int ml, mr;
-                if (mic_input_channels >= 2)
-                {
-                    ml = (int)(mic_copy[fi * 2] * cfg.ttns.mic_gain);
-                    mr = (int)(mic_copy[fi * 2 + 1] * cfg.ttns.mic_gain);
-                }
-                else
-                {
-                    ml = mr = (int)(mic_copy[fi] * cfg.ttns.mic_gain);
-                }
-                monitor_out_buf[fi * 2] = ttns_clamp16(ml);
-                monitor_out_buf[fi * 2 + 1] = ttns_clamp16(mr);
-            }
-            rb_write(&monitor_rb, (char*)monitor_out_buf, (unsigned int)mon_bytes);
-        }
-
         ttns_cart_render(ttns_cart_buf, (int)frameCount);
 
         ttns_copy_line_to_stereo(ttns_line_buf, line_in, (int)frameCount, line_input_channels);
@@ -1252,7 +1303,6 @@ int snd_callback(const void *input,
     else
     {
         const short *line_in = (const short*)input;
-        int line_pk_raw;
 
         ttns_cart_render(ttns_cart_buf, (int)frameCount);
         ttns_copy_line_to_stereo(ttns_line_buf, line_in, (int)frameCount, line_input_channels);
@@ -1265,10 +1315,11 @@ int snd_callback(const void *input,
                 int r = ttns_line_buf[i * 2 + 1];
                 int cl = ttns_cart_buf[i * 2];
                 int cr = ttns_cart_buf[i * 2 + 1];
-                float g = cfg.ttns.line_gain;
+                float lg = cfg.ttns.line_gain;
+                float cg = cfg.ttns.cart_gain;
 
-                pa_pcm_buf[i * 2] = ttns_clamp16((int)((l + cl) * g));
-                pa_pcm_buf[i * 2 + 1] = ttns_clamp16((int)((r + cr) * g));
+                pa_pcm_buf[i * 2] = ttns_clamp16((int)(l * lg + cl * cg));
+                pa_pcm_buf[i * 2 + 1] = ttns_clamp16((int)(r * lg + cr * cg));
             }
         }
         else
@@ -1279,16 +1330,19 @@ int snd_callback(const void *input,
                 int r = ttns_line_buf[i * 2 + 1];
                 int cl = ttns_cart_buf[i * 2];
                 int cr = ttns_cart_buf[i * 2 + 1];
-                float g = cfg.ttns.line_gain;
+                float lg = cfg.ttns.line_gain;
+                float cg = cfg.ttns.cart_gain;
 
-                ttns_mix_buf[i * 2] = ttns_clamp16((int)((l + cl) * g));
-                ttns_mix_buf[i * 2 + 1] = ttns_clamp16((int)((r + cr) * g));
+                ttns_mix_buf[i * 2] = ttns_clamp16((int)(l * lg + cl * cg));
+                ttns_mix_buf[i * 2 + 1] = ttns_clamp16((int)(r * lg + cr * cg));
             }
             memcpy(pa_pcm_buf, ttns_mix_buf, frameCount * cfg.audio.channel * sizeof(short));
         }
 
-        line_pk_raw = ttns_peak_line_bus(ttns_line_buf, (int)frameCount);
-        ttns_push_fader_meters(line_pk_raw, 0);
+        ttns_push_monitor_mix((int)frameCount, ttns_line_buf, NULL, 1,
+                              cfg.ttns.line_gain, cfg.ttns.cart_gain, 1.0f, 0.0f);
+        ttns_push_fader_meters(ttns_peak_stereo(ttns_line_buf, (int)frameCount), 0,
+                               ttns_peak_stereo(ttns_cart_buf, (int)frameCount));
     }
     samplerate_out = cfg.audio.samplerate;
 	
@@ -1606,8 +1660,6 @@ void snd_close(void)
 {
     snd_audio_active = 0;
 
-    snd_close_monitor();
-
     if (mic_stream != NULL)
     {
         Pa_StopStream(mic_stream);
@@ -1621,6 +1673,8 @@ void snd_close(void)
         Pa_CloseStream(stream);
         stream = NULL;
     }
+
+    snd_close_monitor();
 
     Pa_Terminate();
 
@@ -1636,7 +1690,6 @@ void snd_close(void)
 
     ttns_free_mix_buffers();
     ttns_mic_rb_shutdown();
-    ttns_monitor_rb_shutdown();
     free(snd_conv_work_buf);
     snd_conv_work_buf = NULL;
 

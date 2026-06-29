@@ -23,6 +23,9 @@ mkdir -p "$STAGE/bin" "$STAGE/share/ttns-deck/data" "$STAGE/share/ttns-deck/asse
 cp "$ROOT/src/butt" "$STAGE/bin/ttns-deck"
 cp "$ROOT/data/ttns-zones.json" "$STAGE/share/ttns-deck/data/"
 cp "$ROOT/assets/ttns-logo.png" "$STAGE/share/ttns-deck/assets/"
+[ -f "$ROOT/assets/ttns-deck.ico" ] && cp "$ROOT/assets/ttns-deck.ico" "$STAGE/share/ttns-deck/assets/" 2>/dev/null || true
+mkdir -p "$STAGE/share/icons/hicolor/256x256/apps"
+cp "$ROOT/assets/ttns-logo.png" "$STAGE/share/icons/hicolor/256x256/apps/ttns-deck.png"
 cp "$ROOT/assets/ttns-deck.desktop" "$STAGE/share/ttns-deck/" 2>/dev/null || true
 cp "$ROOT/docs/TTNS_DJ_GUIDE.md" "$STAGE/README.txt"
 

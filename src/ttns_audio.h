@@ -10,8 +10,8 @@ int ttns_clamp16(int sample);
 void ttns_peak_lr(const short *buf, int frames, int channels, int *lpeak, int *rpeak);
 int ttns_mic_peak(const short *mic, int mic_channels, int frames);
 
-void ttns_meters_push(int line_peak, int mic_peak);
-void ttns_meters_poll(int *line_peak, int *mic_peak);
+void ttns_meters_push(int line_peak, int mic_peak, int cart_peak);
+void ttns_meters_poll(int *line_peak, int *mic_peak, int *cart_peak);
 
 int ttns_mic_effective_mute(void);
 
@@ -24,7 +24,7 @@ int ttns_ducking_active(void);
 /* line+cart bus with ducking, then add mic. cart may be NULL. */
 void ttns_process_mix(short *out, const short *mic, int mic_channels,
                       const short *line, const short *cart, int frames,
-                      float mic_gain, float line_gain,
+                      float mic_gain, float line_gain, float cart_gain,
                       float duck_gain);
 
 #endif

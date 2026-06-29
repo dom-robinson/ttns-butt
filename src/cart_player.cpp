@@ -23,6 +23,7 @@ typedef struct
     float fade;
     int fade_samples;
     int fading_out;
+    float slot_gain;
 } cart_slot_t;
 
 static cart_slot_t slots[TTNS_CART_SLOTS];
@@ -60,7 +61,10 @@ void ttns_cart_init(int samplerate)
     stream_sr = samplerate;
     memset(slots, 0, sizeof(slots));
     for (i = 0; i < TTNS_CART_SLOTS; i++)
+    {
         slots[i].fade_samples = fade_samples_for_sr(stream_sr);
+        slots[i].slot_gain = 1.0f;
+    }
 }
 
 void ttns_cart_shutdown(void)
@@ -121,6 +125,22 @@ void ttns_cart_set_mode(int slot, int mode)
     if (slot < 0 || slot >= TTNS_CART_SLOTS)
         return;
     slots[slot].mode = mode;
+}
+
+void ttns_cart_set_gain(int slot, float gain)
+{
+    if (slot < 0 || slot >= TTNS_CART_SLOTS)
+        return;
+    if (gain < 0.0f)
+        gain = 0.0f;
+    slots[slot].slot_gain = gain;
+}
+
+float ttns_cart_get_gain(int slot)
+{
+    if (slot < 0 || slot >= TTNS_CART_SLOTS)
+        return 1.0f;
+    return slots[slot].slot_gain;
 }
 
 void ttns_cart_set_label(int slot, const char *label)
@@ -230,7 +250,7 @@ void ttns_cart_render(short *out_stereo, int frames)
                 s->fading_out = 1;
             }
 
-            g = s->fade;
+            g = s->fade * s->slot_gain;
             out_stereo[f * 2] = ttns_clamp16(out_stereo[f * 2] + (int)(l * g));
             out_stereo[f * 2 + 1] = ttns_clamp16(out_stereo[f * 2 + 1] + (int)(r * g));
             s->position++;

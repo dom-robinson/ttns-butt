@@ -14,6 +14,8 @@ void ttns_cart_shutdown(void);
 int ttns_cart_load(int slot, const char *path);
 void ttns_cart_clear(int slot);
 void ttns_cart_set_mode(int slot, int mode);
+void ttns_cart_set_gain(int slot, float gain);
+float ttns_cart_get_gain(int slot);
 void ttns_cart_set_label(int slot, const char *label);
 const char *ttns_cart_get_label(int slot);
 void ttns_cart_trigger(int slot);

@@ -42,7 +42,8 @@ install-data-local:
 	$(INSTALL) -m 644 $(top_srcdir)/assets/ttns-deck.desktop $(DESTDIR)$(ttnsdeckdir)/ 2>/dev/null || true
 
 if DARWIN
-butt_SOURCES += FLTK/Fl_My_Native_File_Chooser_MAC.mm
+butt_SOURCES += FLTK/Fl_My_Native_File_Chooser_MAC.mm cart_loader_mac.mm
+butt_LDFLAGS = -framework AVFoundation -framework CoreMedia
 endif
 
 if WINDOWS

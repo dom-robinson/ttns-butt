@@ -177,6 +177,38 @@ static short *finalize_pcm(pcm_buf_t *buf, int source_sr, int target_sr, int *ou
     return rs;
 }
 
+short *cart_resample_stereo_pcm(const short *in, int in_frames, int in_sr, int target_sr,
+                                int *out_frames)
+{
+    short *out;
+    int frames;
+
+    if (!in || in_frames <= 0 || !out_frames)
+        return NULL;
+
+    if (in_sr == target_sr)
+    {
+        size_t samples = (size_t)in_frames * 2;
+
+        out = (short*)malloc(samples * sizeof(short));
+        if (!out)
+            return NULL;
+        memcpy(out, in, samples * sizeof(short));
+        *out_frames = in_frames;
+        return out;
+    }
+
+    out = resample_pcm(in, in_frames, 2, in_sr, target_sr, &frames);
+    if (!out)
+    {
+        *out_frames = 0;
+        return NULL;
+    }
+
+    *out_frames = frames;
+    return out;
+}
+
 static short *load_wav_stereo(const char *path, int *out_frames, int target_sr)
 {
     FILE *fd;
@@ -270,12 +302,14 @@ static short *load_mp3_stereo(const char *path, int *out_frames, int target_sr)
     short pcm_l[1152];
     short pcm_r[1152];
     pcm_buf_t buf;
+    mp3data_struct mp3data;
     size_t len;
     int iret;
-    int done;
     int source_sr = 44100;
+    int eof = 0;
 
     memset(&buf, 0, sizeof(buf));
+    memset(&mp3data, 0, sizeof(mp3data));
 
     fd = fopen(path, "rb");
     if (!fd)
@@ -288,50 +322,49 @@ static short *load_mp3_stereo(const char *path, int *out_frames, int target_sr)
         return NULL;
     }
 
-    while (1)
+    while (!eof)
     {
         len = fread(mp3buf, 1, sizeof(mp3buf), fd);
         if (len == 0)
+            eof = 1;
+
+        if (len > 0)
         {
-            done = 0;
-            while (!done)
-            {
-                iret = hip_decode(hip, mp3buf, 0, pcm_l, pcm_r);
-                if (iret > 0)
-                {
-                    if (pcm_buf_append_lr(&buf, pcm_l, pcm_r, iret) != 0)
-                    {
-                        hip_decode_exit(hip);
-                        fclose(fd);
-                        pcm_buf_free(&buf);
-                        return NULL;
-                    }
-                }
-                else
-                {
-                    done = 1;
-                }
-            }
-            break;
+            iret = hip_decode_headers(hip, mp3buf, len, pcm_l, pcm_r, &mp3data);
+            if (iret < 0)
+                break;
+            if (mp3data.header_parsed && mp3data.samplerate > 0)
+                source_sr = mp3data.samplerate;
+            if (iret > 0 && pcm_buf_append_lr(&buf, pcm_l, pcm_r, iret) != 0)
+                break;
         }
 
-        iret = hip_decode(hip, mp3buf, (int)len, pcm_l, pcm_r);
-        while (iret > 0)
+        for (;;)
         {
+            iret = hip_decode(hip, mp3buf, 0, pcm_l, pcm_r);
+            if (iret < 0)
+                break;
+            if (iret == 0)
+                break;
             if (pcm_buf_append_lr(&buf, pcm_l, pcm_r, iret) != 0)
             {
-                hip_decode_exit(hip);
-                fclose(fd);
-                pcm_buf_free(&buf);
-                return NULL;
+                iret = -1;
+                break;
             }
-
-            iret = hip_decode(hip, NULL, 0, pcm_l, pcm_r);
         }
+
+        if (iret < 0)
+            break;
     }
 
     hip_decode_exit(hip);
     fclose(fd);
+
+    if (iret < 0 || !buf.data || buf.frames <= 0)
+    {
+        pcm_buf_free(&buf);
+        return NULL;
+    }
 
     return finalize_pcm(&buf, source_sr, target_sr, out_frames);
 }
@@ -528,11 +561,15 @@ static int sniff_format(const char *path)
         return 'm';
     if (hdr[0] == 0xff && (hdr[1] & 0xe0) == 0xe0)
         return 'm';
+    if (n >= 12 && !memcmp(hdr + 4, "ftyp", 4))
+        return 'a';
 
     if (path_ext_is(path, "wav"))
         return 'w';
     if (path_ext_is(path, "mp3"))
         return 'm';
+    if (path_ext_is(path, "m4a") || path_ext_is(path, "aac"))
+        return 'a';
     if (path_ext_is(path, "flac"))
         return 'f';
     if (path_ext_is(path, "ogg"))
@@ -558,7 +595,18 @@ short *cart_load_stereo_pcm(const char *path, int target_sr, int *out_frames)
         pcm = load_wav_stereo(path, out_frames, target_sr);
         break;
     case 'm':
+#ifdef __APPLE__
+        pcm = cart_load_av_stereo(path, target_sr, out_frames);
+#else
         pcm = load_mp3_stereo(path, out_frames, target_sr);
+#endif
+        break;
+    case 'a':
+#ifdef __APPLE__
+        pcm = cart_load_av_stereo(path, target_sr, out_frames);
+#else
+        pcm = NULL;
+#endif
         break;
     case 'f':
         pcm = load_flac_stereo(path, out_frames, target_sr);

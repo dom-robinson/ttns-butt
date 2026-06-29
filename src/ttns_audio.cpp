@@ -10,24 +10,28 @@ static int duck_active = 0;
 
 static volatile int meter_line_peak = 0;
 static volatile int meter_mic_peak = 0;
+static volatile int meter_cart_peak = 0;
 
 int ttns_mic_effective_mute(void)
 {
     return cfg.ttns.mic_mute ? 1 : 0;
 }
 
-void ttns_meters_push(int line_peak, int mic_peak)
+void ttns_meters_push(int line_peak, int mic_peak, int cart_peak)
 {
     meter_line_peak = line_peak;
     meter_mic_peak = mic_peak;
+    meter_cart_peak = cart_peak;
 }
 
-void ttns_meters_poll(int *line_peak, int *mic_peak)
+void ttns_meters_poll(int *line_peak, int *mic_peak, int *cart_peak)
 {
     if (line_peak)
         *line_peak = meter_line_peak;
     if (mic_peak)
         *mic_peak = meter_mic_peak;
+    if (cart_peak)
+        *cart_peak = meter_cart_peak;
 }
 
 int ttns_clamp16(int sample)
@@ -113,7 +117,7 @@ int ttns_ducking_active(void)
 
 void ttns_process_mix(short *out, const short *mic, int mic_channels,
                       const short *line, const short *cart, int frames,
-                      float mic_gain, float line_gain,
+                      float mic_gain, float line_gain, float cart_gain,
                       float duck_gain)
 {
     int i;
@@ -143,8 +147,8 @@ void ttns_process_mix(short *out, const short *mic, int mic_channels,
             mic_l = mic_r = mic[i];
         }
 
-        bus_l = (line_l + cart_l) * line_gain * duck_gain;
-        bus_r = (line_r + cart_r) * line_gain * duck_gain;
+        bus_l = line_l * line_gain * duck_gain + cart_l * cart_gain * duck_gain;
+        bus_r = line_r * line_gain * duck_gain + cart_r * cart_gain * duck_gain;
 
         out[i * 2] = ttns_clamp16((int)(bus_l + mic_l * mic_gain));
         out[i * 2 + 1] = ttns_clamp16((int)(bus_r + mic_r * mic_gain));

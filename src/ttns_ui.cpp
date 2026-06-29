@@ -20,6 +20,7 @@
 #include <FL/Fl_Window.H>
 #include <FL/fl_ask.H>
 
+#include "FL/Fl_My_Double_Window.H"
 #include "FL/Fl_My_Native_File_Chooser.H"
 #include "FL/Fl_My_Value_Slider.H"
 #include "FL/Fl_Ttns_Mic_Button.H"
@@ -59,6 +60,7 @@ static Fl_Choice *ttns_choice_mount = NULL;
 static Fl_Box *ttns_duck_lbl = NULL;
 static Fl_Ttns_Fader *ttns_slider_mic = NULL;
 static Fl_Ttns_Fader *ttns_slider_line = NULL;
+static Fl_Ttns_Fader *ttns_slider_cart = NULL;
 static Fl_Ttns_Fader *ttns_slider_duck_gate = NULL;
 static Fl_Ttns_Fader *ttns_slider_duck_depth = NULL;
 static Fl_Box *ttns_duck_led = NULL;
@@ -66,11 +68,13 @@ static Fl_Ttns_Check_Button *ttns_chk_monitor_mute = NULL;
 static Fl_Ttns_Mic_Button *ttns_btn_mic = NULL;
 static Fl_Ttns_Cart_Button *ttns_cart_btn[TTNS_CART_SLOTS];
 
-static Fl_Window *ttns_cart_setup_win = NULL;
+static Fl_My_Double_Window *ttns_cart_setup_win = NULL;
 static Fl_Input *ttns_cart_setup_path = NULL;
 static Fl_Round_Button *ttns_cart_setup_oneshot = NULL;
 static Fl_Round_Button *ttns_cart_setup_loop = NULL;
+static Fl_Ttns_Fader *ttns_cart_setup_gain = NULL;
 static int ttns_cart_setup_slot = 0;
+static float ttns_cart_setup_gain_undo = 1.0f;
 
 static float ttns_thr_lin_to_db(float lin)
 {
@@ -251,9 +255,12 @@ static void ttns_gain_cb(Fl_Widget *w, void *which)
 {
     float db = (float)((Fl_My_Value_Slider*)w)->value();
     float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+    int bus = (int)(intptr_t)which;
 
-    if ((int)(intptr_t)which)
+    if (bus == 1)
         cfg.ttns.line_gain = factor;
+    else if (bus == 2)
+        cfg.ttns.cart_gain = factor;
     else
         cfg.ttns.mic_gain = factor;
 
@@ -299,7 +306,8 @@ static void ttns_monitor_cb(Fl_Widget *w, void *)
 {
     (void)w;
     cfg.ttns.mic_monitor = 1;
-    cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute ? ttns_chk_monitor_mute->value() : 0;
+    cfg.ttns.mic_monitor_mute = (ttns_chk_monitor_mute && ttns_chk_monitor_mute->value())
+        ? 0 : 1;
     unsaved_changes = 1;
 }
 
@@ -327,7 +335,7 @@ static void ttns_cart_apply_path(int slot, const char *picked)
 
     if (ttns_cart_load(slot, picked) != 0)
     {
-        fl_alert("Could not load audio:\n%s\n(Supported: WAV, MP3, FLAC, OGG)", picked);
+        fl_alert("Could not load audio:\n%s\n(Supported: WAV, MP3, M4A, FLAC, OGG)", picked);
         return;
     }
 
@@ -351,6 +359,10 @@ static void ttns_cart_apply_path(int slot, const char *picked)
     ttns_update_cart_labels();
 }
 
+#define TTNS_CART_AUDIO_FILTER \
+    "Audio Files\t*.{wav,mp3,m4a,flac,ogg}\n" \
+    "All Files\t*"
+
 static void ttns_cart_setup_browse_cb(Fl_Widget *, void *)
 {
     Fl_My_Native_File_Chooser nfc;
@@ -358,7 +370,7 @@ static void ttns_cart_setup_browse_cb(Fl_Widget *, void *)
 
     nfc.title("Select cart audio");
     nfc.type(Fl_My_Native_File_Chooser::BROWSE_FILE);
-    nfc.filter("Audio Files\t*.wav;*.mp3;*.flac;*.ogg");
+    nfc.filter(TTNS_CART_AUDIO_FILTER);
     if (nfc.show() != 0)
         return;
 
@@ -367,6 +379,20 @@ static void ttns_cart_setup_browse_cb(Fl_Widget *, void *)
         return;
 
     ttns_cart_setup_path->value(picked);
+}
+
+static void ttns_cart_setup_gain_cb(Fl_Widget *w, void *)
+{
+    int slot = ttns_cart_setup_slot;
+    float db = (float)((Fl_Ttns_Fader*)w)->value();
+    float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+
+    cfg.ttns.cart_slot_gain[slot] = factor;
+    ttns_cart_set_gain(slot, factor);
+    unsaved_changes = 1;
+
+    if (ttns_cart_has_audio(slot) && !ttns_cart_is_playing(slot))
+        ttns_cart_trigger(slot);
 }
 
 static void ttns_cart_setup_ok_cb(Fl_Widget *, void *)
@@ -380,6 +406,15 @@ static void ttns_cart_setup_ok_cb(Fl_Widget *, void *)
 
     cfg.ttns.cart_mode[slot] = mode;
     ttns_cart_set_mode(slot, mode);
+
+    if (ttns_cart_setup_gain)
+    {
+        float db = (float)ttns_cart_setup_gain->value();
+        float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+
+        cfg.ttns.cart_slot_gain[slot] = factor;
+        ttns_cart_set_gain(slot, factor);
+    }
 
     if (path && path[0])
         ttns_cart_apply_path(slot, path);
@@ -406,6 +441,10 @@ static void ttns_cart_setup_ok_cb(Fl_Widget *, void *)
 
 static void ttns_cart_setup_cancel_cb(Fl_Widget *, void *)
 {
+    int slot = ttns_cart_setup_slot;
+
+    cfg.ttns.cart_slot_gain[slot] = ttns_cart_setup_gain_undo;
+    ttns_cart_set_gain(slot, ttns_cart_setup_gain_undo);
     ttns_cart_setup_win->hide();
 }
 
@@ -415,7 +454,7 @@ static void ttns_cart_setup_show(int slot)
 
     if (!ttns_cart_setup_win)
     {
-        ttns_cart_setup_win = new Fl_Window(440, 190, "Cart setup");
+        ttns_cart_setup_win = new Fl_My_Double_Window(440, 220, "Cart setup");
         ttns_cart_setup_win->set_modal();
         ttns_theme_style_window(ttns_cart_setup_win);
 
@@ -445,10 +484,16 @@ static void ttns_cart_setup_show(int slot)
         ttns_cart_setup_loop->selection_color(ttns_col_fg());
         ttns_cart_setup_loop->tooltip("Press again while playing to stop with fade-out");
 
-        Fl_Button *ok = new Fl_Button(250, 148, 80, 26, "OK");
+        ttns_lbl(12, 108, 48, "Level");
+        ttns_cart_setup_gain = new Fl_Ttns_Fader(60, 106, 280, 22, 0, 0);
+        ttns_style_slider(ttns_cart_setup_gain);
+        ttns_cart_setup_gain->tooltip("Per-cart trim (dB); drag to hear live preview");
+        ttns_cart_setup_gain->callback(ttns_cart_setup_gain_cb);
+
+        Fl_Button *ok = new Fl_Button(250, 168, 80, 26, "OK");
         ttns_theme_style_butt_button(ok, 1);
         ok->callback(ttns_cart_setup_ok_cb);
-        Fl_Button *cancel = new Fl_Button(340, 148, 88, 26, "Cancel");
+        Fl_Button *cancel = new Fl_Button(340, 168, 88, 26, "Cancel");
         ttns_theme_style_butt_button(cancel, 0);
         cancel->callback(ttns_cart_setup_cancel_cb);
 
@@ -456,6 +501,7 @@ static void ttns_cart_setup_show(int slot)
     }
 
     ttns_cart_setup_slot = slot;
+    ttns_cart_setup_gain_undo = cfg.ttns.cart_slot_gain[slot];
     snprintf(title, sizeof(title), "Cart %d setup", slot + 1);
     ttns_cart_setup_win->label(title);
 
@@ -468,6 +514,8 @@ static void ttns_cart_setup_show(int slot)
         ttns_cart_setup_loop->value(1);
     else
         ttns_cart_setup_oneshot->value(1);
+    if (ttns_cart_setup_gain)
+        ttns_cart_setup_gain->value(util_factor_to_db(cfg.ttns.cart_slot_gain[slot]));
 
     ttns_cart_setup_win->position(
         fl_g->window_main->x() + 40,
@@ -482,7 +530,7 @@ static void ttns_cart_play(int slot)
 
     if (!ttns_cart_has_audio(slot))
     {
-        fl_message("Cart %d has no audio.\nRight-click to assign a file (WAV, MP3, FLAC, OGG).", slot + 1);
+        fl_message("Cart %d has no audio.\nRight-click to assign a file (WAV, MP3, M4A, FLAC, OGG).", slot + 1);
         return;
     }
 
@@ -569,6 +617,7 @@ static void ttns_reload_carts_from_cfg(void)
     for (i = 0; i < TTNS_CART_SLOTS; i++)
     {
         ttns_cart_set_mode(i, cfg.ttns.cart_mode[i]);
+        ttns_cart_set_gain(i, cfg.ttns.cart_slot_gain[i]);
         if (cfg.ttns.cart_label[i] && cfg.ttns.cart_label[i][0])
             ttns_cart_set_label(i, cfg.ttns.cart_label[i]);
         if (cfg.ttns.cart_path[i] && cfg.ttns.cart_path[i][0])
@@ -583,10 +632,13 @@ void ttns_ui_timer_tick(void)
     int duck = ttns_ducking_active();
     int line_pk = 0;
     int mic_pk = 0;
+    int cart_pk = 0;
 
-    ttns_meters_poll(&line_pk, &mic_pk);
+    ttns_meters_poll(&line_pk, &mic_pk, &cart_pk);
     if (ttns_slider_line)
         ttns_slider_line->set_peak_sample(line_pk);
+    if (ttns_slider_cart)
+        ttns_slider_cart->set_peak_sample(cart_pk);
     if (ttns_slider_mic)
         ttns_slider_mic->set_peak_sample(mic_pk);
 
@@ -633,11 +685,12 @@ void ttns_ui_timer_tick(void)
 
 void ttns_ui_sync_from_cfg(void)
 {
-    if (!ttns_slider_mic || !ttns_slider_line)
+    if (!ttns_slider_mic || !ttns_slider_line || !ttns_slider_cart)
         return;
 
     ttns_slider_mic->value(util_factor_to_db(cfg.ttns.mic_gain));
     ttns_slider_line->value(util_factor_to_db(cfg.ttns.line_gain));
+    ttns_slider_cart->value(util_factor_to_db(cfg.ttns.cart_gain));
 
     if (ttns_slider_duck_gate)
         ttns_slider_duck_gate->value(ttns_thr_lin_to_db(cfg.ttns.duck_threshold));
@@ -649,7 +702,7 @@ void ttns_ui_sync_from_cfg(void)
 
     ttns_fill_cfg_audio_devices();
     if (ttns_chk_monitor_mute)
-        ttns_chk_monitor_mute->value(cfg.ttns.mic_monitor_mute);
+        ttns_chk_monitor_mute->value(cfg.ttns.mic_monitor_mute ? 0 : 1);
     if (ttns_btn_mic)
         ttns_btn_mic->value(cfg.ttns.mic_mute ? 1 : 0);
     ttns_reload_carts_from_cfg();
@@ -664,6 +717,11 @@ void ttns_cfg_sync_from_ui(void)
     {
         db = (float)ttns_slider_line->value();
         cfg.ttns.line_gain = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+    }
+    if (ttns_slider_cart)
+    {
+        db = (float)ttns_slider_cart->value();
+        cfg.ttns.cart_gain = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
     }
     if (ttns_slider_mic)
     {
@@ -684,12 +742,15 @@ void ttns_cfg_sync_from_ui(void)
         cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
     cfg.ttns.mic_monitor = 1;
     if (ttns_chk_monitor_mute)
-        cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute->value();
+        cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute->value() ? 0 : 1;
     if (ttns_btn_mic)
         cfg.ttns.mic_mute = ttns_btn_mic->value() ? 1 : 0;
 
     for (i = 0; i < TTNS_CART_SLOTS; i++)
+    {
         cfg.ttns.cart_mode[i] = ttns_cart_get_mode(i);
+        cfg.ttns.cart_slot_gain[i] = ttns_cart_get_gain(i);
+    }
 }
 
 void ttns_ui_apply_zone_selection(void)
@@ -772,9 +833,16 @@ void ttns_ui_init(flgui *g)
     ttns_btn_mic = new Fl_Ttns_Mic_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y,
                                           TTNS_MIC_BTN_W, TTNS_MIC_BTN_H);
     ttns_btn_mic->labelsize(9);
-    ttns_btn_mic->tooltip("Toggle mic on/off air (Space)");
+    ttns_btn_mic->tooltip("Mic on/off air — when off, mic is muted from stream and monitor (Space)");
     ttns_btn_mic->callback(ttns_mic_mute_cb);
     ttns_btn_mic->shortcut(0);
+
+    ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 2,
+                                                     TTNS_MIC_BTN_W, 20, "Monitor");
+    ttns_chk_monitor_mute->labelsize(9);
+    ttns_style_check(ttns_chk_monitor_mute);
+    ttns_chk_monitor_mute->tooltip("Add mic to headphones — line/deck is always monitored");
+    ttns_chk_monitor_mute->callback(ttns_monitor_cb);
 
     ttns_duck_led = new Fl_Box(win_w - 24, 10, 18, 18);
     ttns_duck_led->box(FL_ROUND_UP_BOX);
@@ -793,35 +861,28 @@ void ttns_ui_init(flgui *g)
     ttns_style_slider(ttns_slider_line);
     ttns_slider_line->callback(ttns_gain_cb, (void*)(intptr_t)1);
 
-    ttns_lbl(TTNS_LBL_X, 68, 38, "Mic");
-    ttns_slider_mic = new Fl_Ttns_Fader(TTNS_VAL_X, 66, val_w, TTNS_FADER_H);
+    ttns_lbl(TTNS_LBL_X, 68, 38, "Cart");
+    ttns_slider_cart = new Fl_Ttns_Fader(TTNS_VAL_X, 66, val_w, TTNS_FADER_H);
+    ttns_style_slider(ttns_slider_cart);
+    ttns_slider_cart->callback(ttns_gain_cb, (void*)(intptr_t)2);
+    ttns_slider_cart->tooltip("Master level for all cart slots (still ducked with line)");
+
+    ttns_lbl(TTNS_LBL_X, 94, 38, "Mic");
+    ttns_slider_mic = new Fl_Ttns_Fader(TTNS_VAL_X, 92, val_w, TTNS_FADER_H);
     ttns_style_slider(ttns_slider_mic);
     ttns_slider_mic->callback(ttns_gain_cb, (void*)(intptr_t)0);
 
-    ttns_lbl(TTNS_LBL_X, 94, 38, "Gate");
-    ttns_slider_duck_gate = new Fl_Ttns_Fader(TTNS_VAL_X, 92, val_w, TTNS_FADER_H, 0, 0);
+    ttns_lbl(TTNS_LBL_X, 120, 38, "Gate");
+    ttns_slider_duck_gate = new Fl_Ttns_Fader(TTNS_VAL_X, 118, val_w, TTNS_FADER_H, 0, 0);
     ttns_style_duck_slider(ttns_slider_duck_gate, -50.0, -6.0);
     ttns_slider_duck_gate->callback(ttns_duck_gate_cb);
     ttns_slider_duck_gate->tooltip("Mic level (dB) that triggers ducking of line+carts");
 
-    ttns_lbl(TTNS_LBL_X, 118, 38, "Depth");
-    ttns_slider_duck_depth = new Fl_Ttns_Fader(TTNS_VAL_X, 116, val_w, TTNS_FADER_H, 0, 0);
+    ttns_lbl(TTNS_LBL_X, 144, 38, "Depth");
+    ttns_slider_duck_depth = new Fl_Ttns_Fader(TTNS_VAL_X, 142, val_w, TTNS_FADER_H, 0, 0);
     ttns_style_duck_slider(ttns_slider_duck_depth, -24.0, 0.0);
     ttns_slider_duck_depth->callback(ttns_duck_depth_cb);
     ttns_slider_duck_depth->tooltip("How far line+carts drop while ducked (dB)");
-
-    {
-        int row_y = 142;
-        int row_r = TTNS_VAL_X + val_w;
-        const int mute_mon_w = 110;
-
-        ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(row_r - mute_mon_w, row_y,
-                                                         mute_mon_w, 22, "Mute Monitor");
-        ttns_chk_monitor_mute->labelsize(11);
-        ttns_style_check(ttns_chk_monitor_mute);
-        ttns_chk_monitor_mute->tooltip("Silence headphone monitor (stream is unaffected)");
-        ttns_chk_monitor_mute->callback(ttns_monitor_cb);
-    }
 
     sep = new Fl_Box(8, TTNS_CART_Y - 2, win_w - 16, 2);
     sep->box(FL_BORDER_FRAME);

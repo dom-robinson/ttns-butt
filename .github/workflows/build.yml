@@ -3,13 +3,22 @@ name: Build TTNS Deck
 on:
   push:
     branches: [master, ttns-mixer]
+    tags: ['v*']
   pull_request:
     branches: [master]
   workflow_dispatch:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: macos-latest
+            arch_label: arm64
+          - runs-on: macos-15-intel
+            arch_label: x64
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -19,14 +28,15 @@ jobs:
         run: |
           autoreconf -fi
           ./configure
-          make -j3
+          make -C src -j3
       - name: Package
         run: |
           chmod +x scripts/*.sh
+          ./scripts/generate-icons.sh
           ./scripts/build-macos-app.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: ttns-deck-macos-${{ runner.arch }}
+          name: ttns-deck-macos-${{ matrix.arch_label }}
           path: dist/macos/
 
   build-linux:
@@ -39,15 +49,16 @@ jobs:
           sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
             libfltk1.3-dev libportaudio2 libportaudio-dev libmp3lame-dev \
             libvorbis-dev libogg-dev libflac-dev libopus-dev libsamplerate0-dev \
-            libfdk-aac-dev
+            libfdk-aac-dev python3-pillow
       - name: Build
         run: |
           autoreconf -fi
           ./configure
-          make -j2
+          make -C src -j2
       - name: Package
         run: |
           chmod +x scripts/*.sh
+          bash scripts/generate-icons.sh || true
           ./scripts/build-linux.sh
       - uses: actions/upload-artifact@v4
         with:
@@ -70,6 +81,7 @@ jobs:
             mingw-w64-x86_64-lame mingw-w64-x86_64-libvorbis mingw-w64-x86_64-flac
             mingw-w64-x86_64-opus mingw-w64-x86_64-libsamplerate mingw-w64-x86_64-fdk-aac
             autoconf automake libtool pkg-config git zip
+            mingw-w64-x86_64-python-pillow
       - name: Generate icon
         run: |
           chmod +x scripts/*.sh
@@ -78,10 +90,50 @@ jobs:
         run: |
           autoreconf -fi
           ./configure
-          make -j2
+          make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh
       - uses: actions/upload-artifact@v4
         with:
           name: ttns-deck-windows-x64
           path: dist/windows/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+      - name: List packages
+        run: find release-artifacts -type f | sort
+      - name: Create GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            ## TTNS Deck preliminary release
+
+            DJ testing build. See [docs/TTNS_DJ_GUIDE.md](docs/TTNS_DJ_GUIDE.md) and [docs/RELEASE.md](docs/RELEASE.md).
+
+            | Platform | Look for |
+            |----------|----------|
+            | macOS Apple Silicon | `ttns-deck-arm64-macos.zip` |
+            | macOS Intel | `ttns-deck-x86_64-macos.zip` |
+            | Linux x64 | `ttns-deck-linux-x86_64.tar.gz` |
+            | Windows x64 | `ttns-deck-win64.zip` |
+
+            **Unsigned macOS:** right-click app → Open the first time.
+
+            Config contains Icecast passwords — distribute only to TTNS DJs.
+          files: |
+            release-artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

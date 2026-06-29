@@ -143,6 +143,8 @@ typedef struct
         int mic_dev_num;
         float mic_gain;
         float line_gain;
+        float cart_gain;
+        float cart_slot_gain[TTNS_CART_SLOTS];
         int mic_monitor;
         int mic_monitor_mute;
         int monitor_out_dev_num;
