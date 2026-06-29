@@ -46,6 +46,8 @@
 #include "vu_meter.h"
 #include "util.h"
 #include "flgui.h"
+#include "ttns_ui.h"
+#include "cart_player.h"
 #include "fl_funcs.h"
 #include "fl_timer_funcs.h"
 
@@ -109,9 +111,9 @@ int main(int argc, char *argv[])
 #endif 
 
 
-    snprintf(info_buf, sizeof(info_buf), "Starting %s\nWritten by Daniel Nöthen\n"
-    	"PayPal: bipak@gmx.net\n"
-        "Bitcoin: 13xxTxB7hUGrXAGCR7hLi85GSXdE1Jyhx9\n", PACKAGE_STRING);
+    snprintf(info_buf, sizeof(info_buf), "Starting TTNS Deck %s\n"
+        "Based on butt by Daniel Nöthen (GPL-2.0)\n",
+        PACKAGE_VERSION);
     print_info(info_buf, 0);
 
 #ifdef _WIN32
@@ -183,7 +185,11 @@ int main(int argc, char *argv[])
         cfg_set_values(NULL);
     }
 
+    ttns_ui_init(fl_g);
+
+    ttns_cart_init(cfg.audio.samplerate);
     init_main_gui_and_audio();
+    ttns_ui_sync_from_cfg();
 
     snd_open_stream();
 
@@ -199,7 +205,7 @@ int main(int argc, char *argv[])
 		button_connect_cb();
 
     snprintf(info_buf, sizeof(info_buf),
-            "butt %s started successfully", VERSION);
+            "TTNS Deck %s started successfully", PACKAGE_VERSION);
     print_info(info_buf, 0);
 
     GUI_LOOP();

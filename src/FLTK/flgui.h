@@ -166,6 +166,11 @@ private:
   inline void cb_choice_cfg_dev_i(Fl_Choice*, void*);
   static void cb_choice_cfg_dev(Fl_Choice*, void*);
 public:
+  Fl_Choice *choice_cfg_ttns_mic;
+private:
+  inline void cb_choice_cfg_ttns_mic_i(Fl_Choice*, void*);
+  static void cb_choice_cfg_ttns_mic(Fl_Choice*, void*);
+public:
   Fl_Choice *choice_cfg_channel;
   static Fl_Menu_Item menu_choice_cfg_channel[];
 private:

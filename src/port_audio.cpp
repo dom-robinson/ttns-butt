@@ -43,6 +43,9 @@
 #include "vu_meter.h"
 #include "flgui.h"
 #include "fl_funcs.h"
+#include "util.h"
+#include "ttns_audio.h"
+#include "cart_player.h"
 
 
 int pa_frames = 2048;
@@ -78,6 +81,15 @@ pthread_mutex_t stream_mut, rec_mut;
 pthread_cond_t  stream_cond, rec_cond;
 
 PaStream *stream;
+static PaStream *mic_stream = NULL;
+static PaStream *monitor_stream = NULL;
+static short *mic_pcm_buf = NULL;
+static short *monitor_out_buf = NULL;
+static short *ttns_mix_buf = NULL;
+static short *ttns_cart_buf = NULL;
+static short *ttns_line_buf = NULL;
+static int mic_input_channels = 1;
+static int ttns_use_dual_mic = 0;
 
 int snd_init(void)
 {
@@ -115,6 +127,70 @@ void snd_reinit(void)
     snd_open_stream();
 }
 
+static void snd_close_monitor(void)
+{
+    if (monitor_stream != NULL)
+    {
+        Pa_StopStream(monitor_stream);
+        Pa_CloseStream(monitor_stream);
+        monitor_stream = NULL;
+    }
+    free(monitor_out_buf);
+    monitor_out_buf = NULL;
+}
+
+static int snd_open_monitor(int samplerate)
+{
+    char info_buf[256];
+    PaStreamParameters out_params;
+    PaDeviceIndex out_dev;
+    const PaDeviceInfo *out_info;
+    PaError pa_err;
+
+    snd_close_monitor();
+
+    if (!cfg.ttns.mic_monitor || !ttns_use_dual_mic)
+        return 0;
+
+    out_dev = Pa_GetDefaultOutputDevice();
+    if (out_dev == paNoDevice)
+    {
+        print_info("Mic monitor: no output device", 1);
+        return 1;
+    }
+
+    out_info = Pa_GetDeviceInfo(out_dev);
+    if (out_info == NULL)
+        return 1;
+
+    out_params.device = out_dev;
+    out_params.channelCount = 2;
+    out_params.sampleFormat = paInt16;
+    out_params.suggestedLatency = out_info->defaultLowOutputLatency;
+    out_params.hostApiSpecificStreamInfo = NULL;
+
+    pa_err = Pa_IsFormatSupported(NULL, &out_params, samplerate);
+    if (pa_err != paFormatIsSupported)
+    {
+        print_info("Mic monitor: output format not supported", 1);
+        return 1;
+    }
+
+    pa_err = Pa_OpenStream(&monitor_stream, NULL, &out_params,
+                           samplerate, pa_frames, paClipOff, NULL, NULL);
+    if (pa_err != paNoError)
+    {
+        snprintf(info_buf, sizeof(info_buf), "Mic monitor open failed: %s",
+                 Pa_GetErrorText(pa_err));
+        print_info(info_buf, 1);
+        return 1;
+    }
+
+    monitor_out_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+    Pa_StartStream(monitor_stream);
+    return 0;
+}
+
 int snd_open_stream(void)
 {
 
@@ -149,7 +225,12 @@ int snd_open_stream(void)
 
     samplerate = cfg.audio.samplerate;
 
-    pa_dev_id = cfg.audio.pcm_list[cfg.audio.dev_num]->dev_id;
+    {
+        int line_dev_num = cfg.ttns.line_dev_num;
+        if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
+            line_dev_num = cfg.audio.dev_num;
+        pa_dev_id = cfg.audio.pcm_list[line_dev_num]->dev_id;
+    }
 
     pa_dev_info = Pa_GetDeviceInfo(pa_dev_id);
     if(pa_dev_info == NULL)
@@ -208,7 +289,71 @@ int snd_open_stream(void)
         return 1;
     }
 
-    
+    ttns_use_dual_mic = 0;
+    mic_stream = NULL;
+    mic_pcm_buf = NULL;
+    ttns_mix_buf = NULL;
+
+    {
+        int line_dev_num = cfg.ttns.line_dev_num;
+        int mic_dev_num = cfg.ttns.mic_dev_num;
+        PaStreamParameters mic_params;
+        const PaDeviceInfo *mic_dev_info;
+        PaDeviceIndex mic_pa_dev_id;
+
+        if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
+            line_dev_num = cfg.audio.dev_num;
+        if (mic_dev_num < 0 || mic_dev_num >= cfg.audio.dev_count)
+            mic_dev_num = cfg.audio.dev_num;
+
+        if (mic_dev_num != line_dev_num)
+        {
+            mic_pa_dev_id = cfg.audio.pcm_list[mic_dev_num]->dev_id;
+            mic_dev_info = Pa_GetDeviceInfo(mic_pa_dev_id);
+            if (mic_dev_info == NULL)
+            {
+                snprintf(info_buf, sizeof(info_buf), "Error getting mic device info (%d)", mic_pa_dev_id);
+                print_info(info_buf, 1);
+            }
+            else
+            {
+                mic_input_channels = (mic_dev_info->maxInputChannels > 1) ? 2 : 1;
+                mic_params.device = mic_pa_dev_id;
+                mic_params.channelCount = mic_input_channels;
+                mic_params.sampleFormat = paInt16;
+                mic_params.suggestedLatency = mic_dev_info->defaultHighInputLatency;
+                mic_params.hostApiSpecificStreamInfo = NULL;
+
+                pa_err = Pa_IsFormatSupported(&mic_params, NULL, samplerate);
+                if (pa_err == paFormatIsSupported)
+                {
+                    pa_err = Pa_OpenStream(&mic_stream, &mic_params, NULL,
+                                           samplerate, pa_frames,
+                                           paInputOverflow, NULL, NULL);
+                    if (pa_err == paNoError)
+                    {
+                        mic_pcm_buf = (short*)malloc(pa_frames * mic_input_channels * sizeof(short));
+                        ttns_mix_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+                        ttns_use_dual_mic = 1;
+                        Pa_StartStream(mic_stream);
+                    }
+                    else
+                    {
+                        snprintf(info_buf, sizeof(info_buf),
+                                 "Mic device open failed: %s", Pa_GetErrorText(pa_err));
+                        print_info(info_buf, 1);
+                    }
+                }
+                else
+                {
+                    print_info("Mic device format not supported at stream samplerate", 1);
+                }
+            }
+        }
+    }
+
+    snd_open_monitor(samplerate);
+
     Pa_StartStream(stream);
     return 0;
 }
@@ -532,17 +677,129 @@ int snd_callback(const void *input,
     char stream_buf[16 * pa_frames*2 * sizeof(short)];
     char record_buf[16 * pa_frames*2 * sizeof(short)];
 
-
-    memcpy(pa_pcm_buf, input, frameCount*cfg.audio.channel*sizeof(short));
-    samplerate_out = cfg.audio.samplerate;
-
-    if (cfg.main.gain != 1)
+    if (ttns_use_dual_mic && mic_stream != NULL && mic_pcm_buf != NULL && ttns_mix_buf != NULL)
     {
-        for(i = 0; i < framepacket_size; i++)
+        const short *line_in = (const short*)input;
+        const short *mic_in;
+        float duck_depth;
+        float duck_gain;
+        int mic_peak;
+
+        Pa_ReadStream(mic_stream, mic_pcm_buf, frameCount);
+        mic_in = mic_pcm_buf;
+
+        if (cfg.ttns.mic_monitor && !cfg.ttns.mic_monitor_mute &&
+            monitor_stream != NULL && monitor_out_buf != NULL)
         {
-            pa_pcm_buf[i] *= cfg.main.gain;
+            int fi;
+            for (fi = 0; fi < (int)frameCount; fi++)
+            {
+                int ml, mr;
+                if (mic_input_channels >= 2)
+                {
+                    ml = (int)(mic_pcm_buf[fi * 2] * cfg.ttns.mic_gain);
+                    mr = (int)(mic_pcm_buf[fi * 2 + 1] * cfg.ttns.mic_gain);
+                }
+                else
+                {
+                    ml = mr = (int)(mic_pcm_buf[fi] * cfg.ttns.mic_gain);
+                }
+                monitor_out_buf[fi * 2] = ttns_clamp16(ml);
+                monitor_out_buf[fi * 2 + 1] = ttns_clamp16(mr);
+            }
+            Pa_WriteStream(monitor_stream, monitor_out_buf, frameCount);
+        }
+
+        if (!ttns_cart_buf)
+            ttns_cart_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+        if (!ttns_line_buf)
+            ttns_line_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+
+        ttns_cart_render(ttns_cart_buf, (int)frameCount);
+
+        for (i = 0; i < (int)frameCount; i++)
+        {
+            ttns_line_buf[i * 2] = line_in[i * 2];
+            ttns_line_buf[i * 2 + 1] = line_in[i * 2 + 1];
+        }
+
+        mic_peak = ttns_mic_peak(mic_in, mic_input_channels, (int)frameCount);
+        mic_peak = (int)((float)mic_peak * cfg.ttns.mic_gain);
+        duck_depth = util_db_to_factor(cfg.ttns.duck_depth_db);
+        duck_gain = ttns_duck_gain_update(mic_peak, cfg.audio.samplerate, (int)frameCount,
+                                          cfg.ttns.duck_threshold, duck_depth,
+                                          cfg.ttns.duck_attack_ms, cfg.ttns.duck_release_ms);
+
+        {
+            float mic_g = cfg.ttns.mic_gain;
+            if (ttns_mic_effective_mute())
+                mic_g = 0.0f;
+
+            ttns_process_mix(ttns_mix_buf, mic_in, mic_input_channels, ttns_line_buf, ttns_cart_buf,
+                             (int)frameCount, mic_g, cfg.ttns.line_gain, duck_gain);
+        }
+        memcpy(pa_pcm_buf, ttns_mix_buf, frameCount * 2 * sizeof(short));
+
+        {
+            int fi;
+            int line_pk = 0;
+
+            for (fi = 0; fi < (int)frameCount; fi++)
+            {
+                int ll = ttns_line_buf[fi * 2] + ttns_cart_buf[fi * 2];
+                int lr = ttns_line_buf[fi * 2 + 1] + ttns_cart_buf[fi * 2 + 1];
+                ll = abs((int)((float)ll * cfg.ttns.line_gain * duck_gain));
+                lr = abs((int)((float)lr * cfg.ttns.line_gain * duck_gain));
+                if (ll > line_pk)
+                    line_pk = ll;
+                if (lr > line_pk)
+                    line_pk = lr;
+            }
+            ttns_meters_push(line_pk, mic_peak);
         }
     }
+    else
+    {
+        const short *line_in = (const short*)input;
+
+        if (!ttns_cart_buf)
+            ttns_cart_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+        if (!ttns_mix_buf)
+            ttns_mix_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+
+        ttns_cart_render(ttns_cart_buf, (int)frameCount);
+
+        for (i = 0; i < (int)frameCount; i++)
+        {
+            int l = line_in[i * 2];
+            int r = line_in[i * 2 + 1];
+            int cl = ttns_cart_buf[i * 2];
+            int cr = ttns_cart_buf[i * 2 + 1];
+            float g = cfg.ttns.line_gain;
+
+            ttns_mix_buf[i * 2] = ttns_clamp16((int)((l + cl) * g));
+            ttns_mix_buf[i * 2 + 1] = ttns_clamp16((int)((r + cr) * g));
+        }
+        memcpy(pa_pcm_buf, ttns_mix_buf, frameCount * cfg.audio.channel * sizeof(short));
+
+        {
+            int fi;
+            int line_pk = 0;
+            float g = cfg.ttns.line_gain;
+
+            for (fi = 0; fi < (int)frameCount; fi++)
+            {
+                int ll = abs((int)((float)(line_in[fi * 2] + ttns_cart_buf[fi * 2]) * g));
+                int lr = abs((int)((float)(line_in[fi * 2 + 1] + ttns_cart_buf[fi * 2 + 1]) * g));
+                if (ll > line_pk)
+                    line_pk = ll;
+                if (lr > line_pk)
+                    line_pk = lr;
+            }
+            ttns_meters_push(line_pk, 0);
+        }
+    }
+    samplerate_out = cfg.audio.samplerate;
 	
 	if (streaming)
 	{
@@ -777,6 +1034,15 @@ void snd_reset_samplerate_conv(int rec_or_stream)
 
 void snd_close(void)
 {
+    snd_close_monitor();
+
+    if (mic_stream != NULL)
+    {
+        Pa_StopStream(mic_stream);
+        Pa_CloseStream(mic_stream);
+        mic_stream = NULL;
+    }
+
     Pa_StopStream(stream);
     Pa_CloseStream(stream);
     Pa_Terminate();
@@ -786,6 +1052,16 @@ void snd_close(void)
 
     free(srconv_record_in_buf);
     free(srconv_record_out_buf);
+
+    free(mic_pcm_buf);
+    free(ttns_mix_buf);
+    free(ttns_cart_buf);
+    free(ttns_line_buf);
+    mic_pcm_buf = NULL;
+    ttns_mix_buf = NULL;
+    ttns_cart_buf = NULL;
+    ttns_line_buf = NULL;
+    ttns_use_dual_mic = 0;
 
     free(pa_pcm_buf);
     free(encode_buf);

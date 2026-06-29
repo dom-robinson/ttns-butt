@@ -47,10 +47,25 @@ void fill_cfg_widgets(void)
 
   
     //fill the main section
-    for(i = 0; i < cfg.audio.dev_count; i++)
-        fl_g->choice_cfg_dev->add(cfg.audio.pcm_list[i]->name);
+    if (fl_g->choice_cfg_dev && fl_g->choice_cfg_ttns_mic)
+    {
+        for(i = 0; i < cfg.audio.dev_count; i++)
+        {
+            fl_g->choice_cfg_dev->add(cfg.audio.pcm_list[i]->name);
+            fl_g->choice_cfg_ttns_mic->add(cfg.audio.pcm_list[i]->name);
+        }
 
-    fl_g->choice_cfg_dev->value(cfg.audio.dev_num);
+        fl_g->choice_cfg_dev->value(cfg.ttns.line_dev_num);
+        fl_g->choice_cfg_ttns_mic->value(cfg.ttns.mic_dev_num);
+        cfg.audio.dev_num = cfg.ttns.line_dev_num;
+    }
+    else if (fl_g->choice_cfg_dev)
+    {
+        for(i = 0; i < cfg.audio.dev_count; i++)
+            fl_g->choice_cfg_dev->add(cfg.audio.pcm_list[i]->name);
+
+        fl_g->choice_cfg_dev->value(cfg.audio.dev_num);
+    }
 
     fl_g->choice_cfg_act_srv->clear();
     fl_g->choice_cfg_act_srv->redraw();

@@ -19,6 +19,8 @@
 #include "port_audio.h"
 #include "parseconfig.h"
 
+#define TTNS_CART_SLOTS 8
+
 enum {
 
     SHOUTCAST = 0,
@@ -132,6 +134,26 @@ typedef struct
         int ontop;
 	int lcd_auto;
     }gui;
+
+    struct
+    {
+        int line_dev_num;
+        int mic_dev_num;
+        float mic_gain;
+        float line_gain;
+        int mic_monitor;
+        int mic_monitor_mute;
+        int mic_mute;
+        int zone;
+        int slot;
+        float duck_depth_db;
+        float duck_threshold;
+        int duck_attack_ms;
+        int duck_release_ms;
+        char *cart_path[TTNS_CART_SLOTS];
+        char *cart_label[TTNS_CART_SLOTS];
+        int cart_mode[TTNS_CART_SLOTS];
+    } ttns;
 
     server_t **srv;
     icy_t **icy;

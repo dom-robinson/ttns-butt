@@ -116,9 +116,20 @@ am__butt_SOURCES_DIST = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp \
 	FLTK/Fl_ILM216.h FLTK/fl_callbacks.cpp FLTK/fl_callbacks.h \
 	FLTK/fl_funcs.cpp FLTK/fl_funcs.h FLTK/flgui.cpp FLTK/flgui.h \
 	FLTK/FL/Fl_My_Double_Window.H FLTK/FL/Fl_My_Value_Slider.H \
+	FLTK/FL/Fl_Ttns_Cart_Button.H FLTK/Fl_Ttns_Cart_Button.cpp \
+	FLTK/FL/Fl_Ttns_Fader.H FLTK/Fl_Ttns_Fader.cpp \
+	FLTK/FL/Fl_Ttns_Transport_Button.H \
+	FLTK/Fl_Ttns_Transport_Button.cpp \
+	FLTK/FL/Fl_Ttns_Border_Button.H FLTK/Fl_Ttns_Border_Button.cpp \
+	FLTK/FL/Fl_Ttns_Check_Button.H FLTK/Fl_Ttns_Check_Button.cpp \
+	FLTK/FL/Fl_Ttns_Mic_Button.H FLTK/Fl_Ttns_Mic_Button.cpp \
 	FLTK/Fl_My_Native_File_Chooser.cxx \
 	FLTK/FL/Fl_My_Native_File_Chooser.H FLTK/fl_timer_funcs.cpp \
 	FLTK/fl_timer_funcs.h aac_encode.cpp aac_encode.h \
+	ttns_audio.cpp ttns_audio.h ttns_ui.cpp ttns_ui.h \
+	ttns_zones.cpp ttns_zones.h cart_player.cpp cart_player.h \
+	cart_loader.cpp cart_loader.h ttns_theme.cpp ttns_theme.h \
+	ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h \
 	FLTK/Fl_My_Native_File_Chooser_MAC.mm resource.rc
 am__dirstamp = $(am__leading_dot)dirstamp
 @DARWIN_TRUE@am__objects_1 =  \
@@ -135,8 +146,18 @@ am_butt_OBJECTS = butt-butt.$(OBJEXT) butt-cfg.$(OBJEXT) \
 	butt-flac_encode.$(OBJEXT) FLTK/butt-Fl_ILM216.$(OBJEXT) \
 	FLTK/butt-fl_callbacks.$(OBJEXT) FLTK/butt-fl_funcs.$(OBJEXT) \
 	FLTK/butt-flgui.$(OBJEXT) \
+	FLTK/butt-Fl_Ttns_Cart_Button.$(OBJEXT) \
+	FLTK/butt-Fl_Ttns_Fader.$(OBJEXT) \
+	FLTK/butt-Fl_Ttns_Transport_Button.$(OBJEXT) \
+	FLTK/butt-Fl_Ttns_Border_Button.$(OBJEXT) \
+	FLTK/butt-Fl_Ttns_Check_Button.$(OBJEXT) \
+	FLTK/butt-Fl_Ttns_Mic_Button.$(OBJEXT) \
 	FLTK/butt-Fl_My_Native_File_Chooser.$(OBJEXT) \
 	FLTK/butt-fl_timer_funcs.$(OBJEXT) butt-aac_encode.$(OBJEXT) \
+	butt-ttns_audio.$(OBJEXT) butt-ttns_ui.$(OBJEXT) \
+	butt-ttns_zones.$(OBJEXT) butt-cart_player.$(OBJEXT) \
+	butt-cart_loader.$(OBJEXT) butt-ttns_theme.$(OBJEXT) \
+	butt-ttns_paths.$(OBJEXT) butt-ttns_about.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
 butt_OBJECTS = $(am_butt_OBJECTS)
 butt_LDADD = $(LDADD)
@@ -156,19 +177,29 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/butt-aac_encode.Po \
-	./$(DEPDIR)/butt-butt.Po ./$(DEPDIR)/butt-cfg.Po \
+	./$(DEPDIR)/butt-butt.Po ./$(DEPDIR)/butt-cart_loader.Po \
+	./$(DEPDIR)/butt-cart_player.Po ./$(DEPDIR)/butt-cfg.Po \
 	./$(DEPDIR)/butt-flac_encode.Po ./$(DEPDIR)/butt-icecast.Po \
 	./$(DEPDIR)/butt-lame_encode.Po \
 	./$(DEPDIR)/butt-opus_encode.Po \
 	./$(DEPDIR)/butt-parseconfig.Po ./$(DEPDIR)/butt-port_audio.Po \
 	./$(DEPDIR)/butt-ringbuffer.Po ./$(DEPDIR)/butt-shoutcast.Po \
 	./$(DEPDIR)/butt-sockfuncs.Po ./$(DEPDIR)/butt-strfuncs.Po \
-	./$(DEPDIR)/butt-timer.Po ./$(DEPDIR)/butt-util.Po \
+	./$(DEPDIR)/butt-timer.Po ./$(DEPDIR)/butt-ttns_about.Po \
+	./$(DEPDIR)/butt-ttns_audio.Po ./$(DEPDIR)/butt-ttns_paths.Po \
+	./$(DEPDIR)/butt-ttns_theme.Po ./$(DEPDIR)/butt-ttns_ui.Po \
+	./$(DEPDIR)/butt-ttns_zones.Po ./$(DEPDIR)/butt-util.Po \
 	./$(DEPDIR)/butt-vorbis_encode.Po ./$(DEPDIR)/butt-vu_meter.Po \
 	./$(DEPDIR)/butt-wav_header.Po \
 	FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po \
 	FLTK/$(DEPDIR)/butt-Fl_ILM216.Po \
 	FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po \
+	FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Po \
+	FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Po \
+	FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Po \
+	FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Po \
+	FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Po \
+	FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Po \
 	FLTK/$(DEPDIR)/butt-fl_callbacks.Po \
 	FLTK/$(DEPDIR)/butt-fl_funcs.Po \
 	FLTK/$(DEPDIR)/butt-fl_timer_funcs.Po \
@@ -361,10 +392,22 @@ butt_SOURCES = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp icecast.h \
 	FLTK/Fl_ILM216.h FLTK/fl_callbacks.cpp FLTK/fl_callbacks.h \
 	FLTK/fl_funcs.cpp FLTK/fl_funcs.h FLTK/flgui.cpp FLTK/flgui.h \
 	FLTK/FL/Fl_My_Double_Window.H FLTK/FL/Fl_My_Value_Slider.H \
+	FLTK/FL/Fl_Ttns_Cart_Button.H FLTK/Fl_Ttns_Cart_Button.cpp \
+	FLTK/FL/Fl_Ttns_Fader.H FLTK/Fl_Ttns_Fader.cpp \
+	FLTK/FL/Fl_Ttns_Transport_Button.H \
+	FLTK/Fl_Ttns_Transport_Button.cpp \
+	FLTK/FL/Fl_Ttns_Border_Button.H FLTK/Fl_Ttns_Border_Button.cpp \
+	FLTK/FL/Fl_Ttns_Check_Button.H FLTK/Fl_Ttns_Check_Button.cpp \
+	FLTK/FL/Fl_Ttns_Mic_Button.H FLTK/Fl_Ttns_Mic_Button.cpp \
 	FLTK/Fl_My_Native_File_Chooser.cxx \
 	FLTK/FL/Fl_My_Native_File_Chooser.H FLTK/fl_timer_funcs.cpp \
 	FLTK/fl_timer_funcs.h aac_encode.cpp aac_encode.h \
+	ttns_audio.cpp ttns_audio.h ttns_ui.cpp ttns_ui.h \
+	ttns_zones.cpp ttns_zones.h cart_player.cpp cart_player.h \
+	cart_loader.cpp cart_loader.h ttns_theme.cpp ttns_theme.h \
+	ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h \
 	$(am__append_1) $(am__append_2)
+ttnsdeckdir = $(datadir)/ttns-deck
 all: all-am
 
 .SUFFIXES:
@@ -454,6 +497,18 @@ FLTK/butt-fl_funcs.$(OBJEXT): FLTK/$(am__dirstamp) \
 	FLTK/$(DEPDIR)/$(am__dirstamp)
 FLTK/butt-flgui.$(OBJEXT): FLTK/$(am__dirstamp) \
 	FLTK/$(DEPDIR)/$(am__dirstamp)
+FLTK/butt-Fl_Ttns_Cart_Button.$(OBJEXT): FLTK/$(am__dirstamp) \
+	FLTK/$(DEPDIR)/$(am__dirstamp)
+FLTK/butt-Fl_Ttns_Fader.$(OBJEXT): FLTK/$(am__dirstamp) \
+	FLTK/$(DEPDIR)/$(am__dirstamp)
+FLTK/butt-Fl_Ttns_Transport_Button.$(OBJEXT): FLTK/$(am__dirstamp) \
+	FLTK/$(DEPDIR)/$(am__dirstamp)
+FLTK/butt-Fl_Ttns_Border_Button.$(OBJEXT): FLTK/$(am__dirstamp) \
+	FLTK/$(DEPDIR)/$(am__dirstamp)
+FLTK/butt-Fl_Ttns_Check_Button.$(OBJEXT): FLTK/$(am__dirstamp) \
+	FLTK/$(DEPDIR)/$(am__dirstamp)
+FLTK/butt-Fl_Ttns_Mic_Button.$(OBJEXT): FLTK/$(am__dirstamp) \
+	FLTK/$(DEPDIR)/$(am__dirstamp)
 FLTK/butt-Fl_My_Native_File_Chooser.$(OBJEXT): FLTK/$(am__dirstamp) \
 	FLTK/$(DEPDIR)/$(am__dirstamp)
 FLTK/butt-fl_timer_funcs.$(OBJEXT): FLTK/$(am__dirstamp) \
@@ -474,6 +529,8 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-aac_encode.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-butt.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-cart_loader.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-cart_player.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-cfg.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-flac_encode.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-icecast.Po@am__quote@ # am--include-marker
@@ -486,6 +543,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-sockfuncs.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-strfuncs.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-timer.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_about.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_audio.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_paths.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_theme.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_ui.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_zones.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-util.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-vorbis_encode.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-vu_meter.Po@am__quote@ # am--include-marker
@@ -493,6 +556,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_ILM216.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-fl_callbacks.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-fl_funcs.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-fl_timer_funcs.Po@am__quote@ # am--include-marker
@@ -814,6 +883,90 @@ FLTK/butt-flgui.obj: FLTK/flgui.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-flgui.obj `if test -f 'FLTK/flgui.cpp'; then $(CYGPATH_W) 'FLTK/flgui.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/flgui.cpp'; fi`
 
+FLTK/butt-Fl_Ttns_Cart_Button.o: FLTK/Fl_Ttns_Cart_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Cart_Button.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Cart_Button.o `test -f 'FLTK/Fl_Ttns_Cart_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Cart_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Cart_Button.cpp' object='FLTK/butt-Fl_Ttns_Cart_Button.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Cart_Button.o `test -f 'FLTK/Fl_Ttns_Cart_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Cart_Button.cpp
+
+FLTK/butt-Fl_Ttns_Cart_Button.obj: FLTK/Fl_Ttns_Cart_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Cart_Button.obj -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Cart_Button.obj `if test -f 'FLTK/Fl_Ttns_Cart_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Cart_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Cart_Button.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Cart_Button.cpp' object='FLTK/butt-Fl_Ttns_Cart_Button.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Cart_Button.obj `if test -f 'FLTK/Fl_Ttns_Cart_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Cart_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Cart_Button.cpp'; fi`
+
+FLTK/butt-Fl_Ttns_Fader.o: FLTK/Fl_Ttns_Fader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Fader.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Tpo -c -o FLTK/butt-Fl_Ttns_Fader.o `test -f 'FLTK/Fl_Ttns_Fader.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Fader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Fader.cpp' object='FLTK/butt-Fl_Ttns_Fader.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Fader.o `test -f 'FLTK/Fl_Ttns_Fader.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Fader.cpp
+
+FLTK/butt-Fl_Ttns_Fader.obj: FLTK/Fl_Ttns_Fader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Fader.obj -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Tpo -c -o FLTK/butt-Fl_Ttns_Fader.obj `if test -f 'FLTK/Fl_Ttns_Fader.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Fader.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Fader.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Fader.cpp' object='FLTK/butt-Fl_Ttns_Fader.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Fader.obj `if test -f 'FLTK/Fl_Ttns_Fader.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Fader.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Fader.cpp'; fi`
+
+FLTK/butt-Fl_Ttns_Transport_Button.o: FLTK/Fl_Ttns_Transport_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Transport_Button.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Transport_Button.o `test -f 'FLTK/Fl_Ttns_Transport_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Transport_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Transport_Button.cpp' object='FLTK/butt-Fl_Ttns_Transport_Button.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Transport_Button.o `test -f 'FLTK/Fl_Ttns_Transport_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Transport_Button.cpp
+
+FLTK/butt-Fl_Ttns_Transport_Button.obj: FLTK/Fl_Ttns_Transport_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Transport_Button.obj -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Transport_Button.obj `if test -f 'FLTK/Fl_Ttns_Transport_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Transport_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Transport_Button.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Transport_Button.cpp' object='FLTK/butt-Fl_Ttns_Transport_Button.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Transport_Button.obj `if test -f 'FLTK/Fl_Ttns_Transport_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Transport_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Transport_Button.cpp'; fi`
+
+FLTK/butt-Fl_Ttns_Border_Button.o: FLTK/Fl_Ttns_Border_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Border_Button.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Border_Button.o `test -f 'FLTK/Fl_Ttns_Border_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Border_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Border_Button.cpp' object='FLTK/butt-Fl_Ttns_Border_Button.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Border_Button.o `test -f 'FLTK/Fl_Ttns_Border_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Border_Button.cpp
+
+FLTK/butt-Fl_Ttns_Border_Button.obj: FLTK/Fl_Ttns_Border_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Border_Button.obj -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Border_Button.obj `if test -f 'FLTK/Fl_Ttns_Border_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Border_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Border_Button.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Border_Button.cpp' object='FLTK/butt-Fl_Ttns_Border_Button.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Border_Button.obj `if test -f 'FLTK/Fl_Ttns_Border_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Border_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Border_Button.cpp'; fi`
+
+FLTK/butt-Fl_Ttns_Check_Button.o: FLTK/Fl_Ttns_Check_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Check_Button.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Check_Button.o `test -f 'FLTK/Fl_Ttns_Check_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Check_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Check_Button.cpp' object='FLTK/butt-Fl_Ttns_Check_Button.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Check_Button.o `test -f 'FLTK/Fl_Ttns_Check_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Check_Button.cpp
+
+FLTK/butt-Fl_Ttns_Check_Button.obj: FLTK/Fl_Ttns_Check_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Check_Button.obj -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Check_Button.obj `if test -f 'FLTK/Fl_Ttns_Check_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Check_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Check_Button.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Check_Button.cpp' object='FLTK/butt-Fl_Ttns_Check_Button.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Check_Button.obj `if test -f 'FLTK/Fl_Ttns_Check_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Check_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Check_Button.cpp'; fi`
+
+FLTK/butt-Fl_Ttns_Mic_Button.o: FLTK/Fl_Ttns_Mic_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Mic_Button.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Mic_Button.o `test -f 'FLTK/Fl_Ttns_Mic_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Mic_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Mic_Button.cpp' object='FLTK/butt-Fl_Ttns_Mic_Button.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Mic_Button.o `test -f 'FLTK/Fl_Ttns_Mic_Button.cpp' || echo '$(srcdir)/'`FLTK/Fl_Ttns_Mic_Button.cpp
+
+FLTK/butt-Fl_Ttns_Mic_Button.obj: FLTK/Fl_Ttns_Mic_Button.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_Ttns_Mic_Button.obj -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Tpo -c -o FLTK/butt-Fl_Ttns_Mic_Button.obj `if test -f 'FLTK/Fl_Ttns_Mic_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Mic_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Mic_Button.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Tpo FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='FLTK/Fl_Ttns_Mic_Button.cpp' object='FLTK/butt-Fl_Ttns_Mic_Button.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o FLTK/butt-Fl_Ttns_Mic_Button.obj `if test -f 'FLTK/Fl_Ttns_Mic_Button.cpp'; then $(CYGPATH_W) 'FLTK/Fl_Ttns_Mic_Button.cpp'; else $(CYGPATH_W) '$(srcdir)/FLTK/Fl_Ttns_Mic_Button.cpp'; fi`
+
 FLTK/butt-Fl_My_Native_File_Chooser.o: FLTK/Fl_My_Native_File_Chooser.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT FLTK/butt-Fl_My_Native_File_Chooser.o -MD -MP -MF FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Tpo -c -o FLTK/butt-Fl_My_Native_File_Chooser.o `test -f 'FLTK/Fl_My_Native_File_Chooser.cxx' || echo '$(srcdir)/'`FLTK/Fl_My_Native_File_Chooser.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Tpo FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po
@@ -855,6 +1008,118 @@ butt-aac_encode.obj: aac_encode.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='aac_encode.cpp' object='butt-aac_encode.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-aac_encode.obj `if test -f 'aac_encode.cpp'; then $(CYGPATH_W) 'aac_encode.cpp'; else $(CYGPATH_W) '$(srcdir)/aac_encode.cpp'; fi`
+
+butt-ttns_audio.o: ttns_audio.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_audio.o -MD -MP -MF $(DEPDIR)/butt-ttns_audio.Tpo -c -o butt-ttns_audio.o `test -f 'ttns_audio.cpp' || echo '$(srcdir)/'`ttns_audio.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_audio.Tpo $(DEPDIR)/butt-ttns_audio.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_audio.cpp' object='butt-ttns_audio.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_audio.o `test -f 'ttns_audio.cpp' || echo '$(srcdir)/'`ttns_audio.cpp
+
+butt-ttns_audio.obj: ttns_audio.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_audio.obj -MD -MP -MF $(DEPDIR)/butt-ttns_audio.Tpo -c -o butt-ttns_audio.obj `if test -f 'ttns_audio.cpp'; then $(CYGPATH_W) 'ttns_audio.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_audio.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_audio.Tpo $(DEPDIR)/butt-ttns_audio.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_audio.cpp' object='butt-ttns_audio.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_audio.obj `if test -f 'ttns_audio.cpp'; then $(CYGPATH_W) 'ttns_audio.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_audio.cpp'; fi`
+
+butt-ttns_ui.o: ttns_ui.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_ui.o -MD -MP -MF $(DEPDIR)/butt-ttns_ui.Tpo -c -o butt-ttns_ui.o `test -f 'ttns_ui.cpp' || echo '$(srcdir)/'`ttns_ui.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_ui.Tpo $(DEPDIR)/butt-ttns_ui.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_ui.cpp' object='butt-ttns_ui.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_ui.o `test -f 'ttns_ui.cpp' || echo '$(srcdir)/'`ttns_ui.cpp
+
+butt-ttns_ui.obj: ttns_ui.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_ui.obj -MD -MP -MF $(DEPDIR)/butt-ttns_ui.Tpo -c -o butt-ttns_ui.obj `if test -f 'ttns_ui.cpp'; then $(CYGPATH_W) 'ttns_ui.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_ui.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_ui.Tpo $(DEPDIR)/butt-ttns_ui.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_ui.cpp' object='butt-ttns_ui.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_ui.obj `if test -f 'ttns_ui.cpp'; then $(CYGPATH_W) 'ttns_ui.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_ui.cpp'; fi`
+
+butt-ttns_zones.o: ttns_zones.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_zones.o -MD -MP -MF $(DEPDIR)/butt-ttns_zones.Tpo -c -o butt-ttns_zones.o `test -f 'ttns_zones.cpp' || echo '$(srcdir)/'`ttns_zones.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_zones.Tpo $(DEPDIR)/butt-ttns_zones.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_zones.cpp' object='butt-ttns_zones.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_zones.o `test -f 'ttns_zones.cpp' || echo '$(srcdir)/'`ttns_zones.cpp
+
+butt-ttns_zones.obj: ttns_zones.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_zones.obj -MD -MP -MF $(DEPDIR)/butt-ttns_zones.Tpo -c -o butt-ttns_zones.obj `if test -f 'ttns_zones.cpp'; then $(CYGPATH_W) 'ttns_zones.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_zones.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_zones.Tpo $(DEPDIR)/butt-ttns_zones.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_zones.cpp' object='butt-ttns_zones.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_zones.obj `if test -f 'ttns_zones.cpp'; then $(CYGPATH_W) 'ttns_zones.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_zones.cpp'; fi`
+
+butt-cart_player.o: cart_player.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-cart_player.o -MD -MP -MF $(DEPDIR)/butt-cart_player.Tpo -c -o butt-cart_player.o `test -f 'cart_player.cpp' || echo '$(srcdir)/'`cart_player.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-cart_player.Tpo $(DEPDIR)/butt-cart_player.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cart_player.cpp' object='butt-cart_player.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-cart_player.o `test -f 'cart_player.cpp' || echo '$(srcdir)/'`cart_player.cpp
+
+butt-cart_player.obj: cart_player.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-cart_player.obj -MD -MP -MF $(DEPDIR)/butt-cart_player.Tpo -c -o butt-cart_player.obj `if test -f 'cart_player.cpp'; then $(CYGPATH_W) 'cart_player.cpp'; else $(CYGPATH_W) '$(srcdir)/cart_player.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-cart_player.Tpo $(DEPDIR)/butt-cart_player.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cart_player.cpp' object='butt-cart_player.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-cart_player.obj `if test -f 'cart_player.cpp'; then $(CYGPATH_W) 'cart_player.cpp'; else $(CYGPATH_W) '$(srcdir)/cart_player.cpp'; fi`
+
+butt-cart_loader.o: cart_loader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-cart_loader.o -MD -MP -MF $(DEPDIR)/butt-cart_loader.Tpo -c -o butt-cart_loader.o `test -f 'cart_loader.cpp' || echo '$(srcdir)/'`cart_loader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-cart_loader.Tpo $(DEPDIR)/butt-cart_loader.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cart_loader.cpp' object='butt-cart_loader.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-cart_loader.o `test -f 'cart_loader.cpp' || echo '$(srcdir)/'`cart_loader.cpp
+
+butt-cart_loader.obj: cart_loader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-cart_loader.obj -MD -MP -MF $(DEPDIR)/butt-cart_loader.Tpo -c -o butt-cart_loader.obj `if test -f 'cart_loader.cpp'; then $(CYGPATH_W) 'cart_loader.cpp'; else $(CYGPATH_W) '$(srcdir)/cart_loader.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-cart_loader.Tpo $(DEPDIR)/butt-cart_loader.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cart_loader.cpp' object='butt-cart_loader.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-cart_loader.obj `if test -f 'cart_loader.cpp'; then $(CYGPATH_W) 'cart_loader.cpp'; else $(CYGPATH_W) '$(srcdir)/cart_loader.cpp'; fi`
+
+butt-ttns_theme.o: ttns_theme.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_theme.o -MD -MP -MF $(DEPDIR)/butt-ttns_theme.Tpo -c -o butt-ttns_theme.o `test -f 'ttns_theme.cpp' || echo '$(srcdir)/'`ttns_theme.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_theme.Tpo $(DEPDIR)/butt-ttns_theme.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_theme.cpp' object='butt-ttns_theme.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_theme.o `test -f 'ttns_theme.cpp' || echo '$(srcdir)/'`ttns_theme.cpp
+
+butt-ttns_theme.obj: ttns_theme.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_theme.obj -MD -MP -MF $(DEPDIR)/butt-ttns_theme.Tpo -c -o butt-ttns_theme.obj `if test -f 'ttns_theme.cpp'; then $(CYGPATH_W) 'ttns_theme.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_theme.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_theme.Tpo $(DEPDIR)/butt-ttns_theme.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_theme.cpp' object='butt-ttns_theme.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_theme.obj `if test -f 'ttns_theme.cpp'; then $(CYGPATH_W) 'ttns_theme.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_theme.cpp'; fi`
+
+butt-ttns_paths.o: ttns_paths.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_paths.o -MD -MP -MF $(DEPDIR)/butt-ttns_paths.Tpo -c -o butt-ttns_paths.o `test -f 'ttns_paths.cpp' || echo '$(srcdir)/'`ttns_paths.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_paths.Tpo $(DEPDIR)/butt-ttns_paths.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_paths.cpp' object='butt-ttns_paths.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_paths.o `test -f 'ttns_paths.cpp' || echo '$(srcdir)/'`ttns_paths.cpp
+
+butt-ttns_paths.obj: ttns_paths.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_paths.obj -MD -MP -MF $(DEPDIR)/butt-ttns_paths.Tpo -c -o butt-ttns_paths.obj `if test -f 'ttns_paths.cpp'; then $(CYGPATH_W) 'ttns_paths.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_paths.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_paths.Tpo $(DEPDIR)/butt-ttns_paths.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_paths.cpp' object='butt-ttns_paths.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_paths.obj `if test -f 'ttns_paths.cpp'; then $(CYGPATH_W) 'ttns_paths.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_paths.cpp'; fi`
+
+butt-ttns_about.o: ttns_about.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_about.o -MD -MP -MF $(DEPDIR)/butt-ttns_about.Tpo -c -o butt-ttns_about.o `test -f 'ttns_about.cpp' || echo '$(srcdir)/'`ttns_about.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_about.Tpo $(DEPDIR)/butt-ttns_about.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_about.cpp' object='butt-ttns_about.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_about.o `test -f 'ttns_about.cpp' || echo '$(srcdir)/'`ttns_about.cpp
+
+butt-ttns_about.obj: ttns_about.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_about.obj -MD -MP -MF $(DEPDIR)/butt-ttns_about.Tpo -c -o butt-ttns_about.obj `if test -f 'ttns_about.cpp'; then $(CYGPATH_W) 'ttns_about.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_about.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_about.Tpo $(DEPDIR)/butt-ttns_about.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_about.cpp' object='butt-ttns_about.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_about.obj `if test -f 'ttns_about.cpp'; then $(CYGPATH_W) 'ttns_about.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_about.cpp'; fi`
 
 .cxx.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -1019,6 +1284,8 @@ clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/butt-aac_encode.Po
 	-rm -f ./$(DEPDIR)/butt-butt.Po
+	-rm -f ./$(DEPDIR)/butt-cart_loader.Po
+	-rm -f ./$(DEPDIR)/butt-cart_player.Po
 	-rm -f ./$(DEPDIR)/butt-cfg.Po
 	-rm -f ./$(DEPDIR)/butt-flac_encode.Po
 	-rm -f ./$(DEPDIR)/butt-icecast.Po
@@ -1031,6 +1298,12 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/butt-sockfuncs.Po
 	-rm -f ./$(DEPDIR)/butt-strfuncs.Po
 	-rm -f ./$(DEPDIR)/butt-timer.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_about.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_audio.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_paths.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_theme.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_ui.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_zones.Po
 	-rm -f ./$(DEPDIR)/butt-util.Po
 	-rm -f ./$(DEPDIR)/butt-vorbis_encode.Po
 	-rm -f ./$(DEPDIR)/butt-vu_meter.Po
@@ -1038,6 +1311,12 @@ distclean: distclean-am
 	-rm -f FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_ILM216.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Po
 	-rm -f FLTK/$(DEPDIR)/butt-fl_callbacks.Po
 	-rm -f FLTK/$(DEPDIR)/butt-fl_funcs.Po
 	-rm -f FLTK/$(DEPDIR)/butt-fl_timer_funcs.Po
@@ -1058,7 +1337,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-data-local
 
 install-dvi: install-dvi-am
 
@@ -1089,6 +1368,8 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/butt-aac_encode.Po
 	-rm -f ./$(DEPDIR)/butt-butt.Po
+	-rm -f ./$(DEPDIR)/butt-cart_loader.Po
+	-rm -f ./$(DEPDIR)/butt-cart_player.Po
 	-rm -f ./$(DEPDIR)/butt-cfg.Po
 	-rm -f ./$(DEPDIR)/butt-flac_encode.Po
 	-rm -f ./$(DEPDIR)/butt-icecast.Po
@@ -1101,6 +1382,12 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/butt-sockfuncs.Po
 	-rm -f ./$(DEPDIR)/butt-strfuncs.Po
 	-rm -f ./$(DEPDIR)/butt-timer.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_about.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_audio.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_paths.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_theme.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_ui.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_zones.Po
 	-rm -f ./$(DEPDIR)/butt-util.Po
 	-rm -f ./$(DEPDIR)/butt-vorbis_encode.Po
 	-rm -f ./$(DEPDIR)/butt-vu_meter.Po
@@ -1108,6 +1395,12 @@ maintainer-clean: maintainer-clean-am
 	-rm -f FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_ILM216.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Border_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Cart_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Check_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Fader.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Mic_Button.Po
+	-rm -f FLTK/$(DEPDIR)/butt-Fl_Ttns_Transport_Button.Po
 	-rm -f FLTK/$(DEPDIR)/butt-fl_callbacks.Po
 	-rm -f FLTK/$(DEPDIR)/butt-fl_funcs.Po
 	-rm -f FLTK/$(DEPDIR)/butt-fl_timer_funcs.Po
@@ -1136,17 +1429,25 @@ uninstall-am: uninstall-binPROGRAMS
 	distclean distclean-compile distclean-generic distclean-tags \
 	distdir dvi dvi-am html html-am info info-am install \
 	install-am install-binPROGRAMS install-data install-data-am \
-	install-dvi install-dvi-am install-exec install-exec-am \
-	install-html install-html-am install-info install-info-am \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS
+	install-data-local install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 
+
+install-data-local:
+	$(INSTALL) -d $(DESTDIR)$(bindir)
+	$(INSTALL) -m 755 butt $(DESTDIR)$(bindir)/ttns-deck
+	$(INSTALL) -d $(DESTDIR)$(ttnsdeckdir)/data $(DESTDIR)$(ttnsdeckdir)/assets
+	$(INSTALL) -m 644 $(top_srcdir)/data/ttns-zones.json $(DESTDIR)$(ttnsdeckdir)/data/
+	$(INSTALL) -m 644 $(top_srcdir)/assets/ttns-logo.png $(DESTDIR)$(ttnsdeckdir)/assets/
+	$(INSTALL) -m 644 $(top_srcdir)/assets/ttns-deck.desktop $(DESTDIR)$(ttnsdeckdir)/ 2>/dev/null || true
 
 # used only under MinGW to compile the resource.rc file (manifest and program icon)
 

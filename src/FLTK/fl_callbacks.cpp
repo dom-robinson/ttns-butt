@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 
 #include <errno.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
@@ -35,6 +36,7 @@
 
 #include "FL/Fl_My_Native_File_Chooser.H"
 #include "cfg.h"
+#include "ttns_theme.h"
 #include "butt.h"
 #include "port_audio.h"
 #include "timer.h"
@@ -47,7 +49,9 @@
 #include "flgui.h"
 #include "util.h"
 #include "fl_timer_funcs.h"
+#include "ttns_ui.h"
 #include "fl_funcs.h"
+#include "ttns_audio.h"
 
 
 
@@ -125,6 +129,8 @@ void button_connect_cb(void)
 
     if(connected)
         return;
+
+    ttns_ui_apply_zone_selection();
 
     if(cfg.main.num_of_srv < 1)
     {
@@ -207,6 +213,8 @@ void button_connect_cb(void)
 
     //the user may not change the audio device while streaming
     fl_g->choice_cfg_dev->deactivate();
+    if (fl_g->choice_cfg_ttns_mic)
+        fl_g->choice_cfg_ttns_mic->deactivate();
     //the sames applies to the codecs
     fl_g->choice_cfg_codec->deactivate();
 
@@ -286,6 +294,7 @@ void button_cfg_cb(void)
         fl_g->button_cfg->label("Settings@<");
 
         fill_cfg_widgets();
+        ttns_theme_apply(fl_g);
 
         if(cfg.gui.attach)
             Fl::add_timeout(0.1, &cfg_win_pos_timer);
@@ -576,6 +585,8 @@ void button_disconnect_cb(void)
                 {
                     fl_g->choice_cfg_channel->activate();
                     fl_g->choice_cfg_dev->activate();
+                    if (fl_g->choice_cfg_ttns_mic)
+                        fl_g->choice_cfg_ttns_mic->activate();
                     fl_g->choice_cfg_samplerate->activate();
                 }
 
@@ -596,6 +607,8 @@ void button_disconnect_cb(void)
         return;
 
     fl_g->choice_cfg_dev->activate();
+    if (fl_g->choice_cfg_ttns_mic)
+        fl_g->choice_cfg_ttns_mic->activate();
     fl_g->choice_cfg_codec->activate();
 
     fl_g->choice_cfg_bitrate->activate();
@@ -675,6 +688,8 @@ void button_record_cb(void)
         {
             fl_g->choice_cfg_channel->activate();
             fl_g->choice_cfg_dev->activate();
+            if (fl_g->choice_cfg_ttns_mic)
+                fl_g->choice_cfg_ttns_mic->activate();
             fl_g->choice_cfg_samplerate->activate();
         }
 
@@ -820,6 +835,8 @@ void button_record_cb(void)
     fl_g->choice_rec_bitrate->deactivate();
     fl_g->choice_cfg_channel->deactivate();
     fl_g->choice_cfg_dev->deactivate();
+    if (fl_g->choice_cfg_ttns_mic)
+        fl_g->choice_cfg_ttns_mic->deactivate();
     fl_g->choice_cfg_samplerate->deactivate();
 
     //create the recording thread
@@ -850,6 +867,237 @@ void button_record_cb(void)
         free(path_without_split_time);
 }
 
+static int ttns_collapsed_win_h = 0;
+
+/* Fl_ILM216 status panel: original BUTT height was 95px; +50% for TTNS layout. */
+static const int TTNS_LCD_H = 147;
+
+static const int ttns_vu_xs[9] = {2, 18, 34, 50, 66, 82, 104, 120, 139};
+
+static const int TTNS_TRANSPORT_W = 24;
+static const int TTNS_TRANSPORT_H = 24;
+static const int TTNS_TRANSPORT_GAP = 4;
+static const int TTNS_TRANSPORT_X0 = 8;
+
+static int ttns_transport_right_edge(void)
+{
+    return TTNS_TRANSPORT_X0 + 3 * TTNS_TRANSPORT_W + 2 * TTNS_TRANSPORT_GAP;
+}
+
+static void ttns_layout_deck_buttons(flgui *g, int win_w, int deck_y, int vu_l_y)
+{
+    const int btn_w = 76;
+    const int btn_x = win_w - 84;
+    const int more_h = 18;
+    const int settings_h = 22;
+    const int gap = 4;
+    int more_y;
+
+    if (!g)
+        return;
+
+    more_y = deck_y + vu_l_y - 1;
+
+    if (g->button_info)
+        g->button_info->resize(btn_x, more_y, btn_w, more_h);
+
+    if (g->button_cfg)
+    {
+        g->button_cfg->resize(btn_x, more_y - gap - settings_h, btn_w, settings_h);
+        g->button_cfg->show();
+    }
+}
+
+static void ttns_resize_led_row(Fl_Box *leds[], int count, int y)
+{
+    int i;
+
+    for (i = 0; i < count; i++)
+    {
+        if (!leds[i])
+            continue;
+        leds[i]->resize(ttns_vu_xs[i], y, 11, 11);
+    }
+}
+
+static void ttns_style_transport_buttons(Fl_Group *deck)
+{
+    (void)deck;
+}
+
+static void ttns_layout_transport(Fl_Group *deck, int y)
+{
+    int i;
+    int bx;
+
+    if (!deck)
+        return;
+
+    bx = TTNS_TRANSPORT_X0;
+
+    for (i = 0; i < deck->children(); i++)
+    {
+        Fl_Widget *c = deck->child(i);
+        Fl_Button *b = dynamic_cast<Fl_Button*>(c);
+        const char *tip;
+
+        if (!b)
+            continue;
+
+        tip = b->tooltip();
+        if (!tip)
+            continue;
+
+        if (!strcmp(tip, "start/stop recording"))
+            b->resize(bx, y, TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
+        else if (!strcmp(tip, "disconnect from server"))
+            b->resize(bx + TTNS_TRANSPORT_W + TTNS_TRANSPORT_GAP, y,
+                      TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
+        else if (!strcmp(tip, "connect to server"))
+            b->resize(bx + 2 * (TTNS_TRANSPORT_W + TTNS_TRANSPORT_GAP), y,
+                      TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
+    }
+}
+
+void ttns_layout_feedback_panel(void)
+{
+    flgui *g = fl_g;
+    Fl_Widget *deck;
+    int win_w;
+    int deck_y;
+    const int lcd_x = 8;
+    const int lcd_y = 6;
+    const int lcd_h = TTNS_LCD_H;
+    int lcd_w;
+    int transport_y;
+    int vu_gx;
+    int vu_r_y;
+    int vu_l_y;
+    int deck_h;
+    Fl_Box *right_leds[9];
+    Fl_Box *left_leds[9];
+    Fl_Box *right_dark[9];
+    Fl_Box *left_dark[9];
+
+    if (!g || !g->lcd || !g->window_main)
+        return;
+
+    win_w = g->window_main->w();
+    lcd_w = win_w - 16;
+    deck = g->lcd->parent();
+    deck_y = deck->y();
+
+    g->lcd->resize(lcd_x, lcd_y, lcd_w, lcd_h);
+
+    transport_y = lcd_y + lcd_h + 6;
+    vu_gx = ttns_transport_right_edge() + 12;
+    vu_r_y = transport_y + 2;
+    vu_l_y = vu_r_y + 16;
+
+    ttns_layout_transport((Fl_Group*)deck, transport_y);
+
+    right_leds[0] = g->right_1_light;
+    right_leds[1] = g->right_2_light;
+    right_leds[2] = g->right_3_light;
+    right_leds[3] = g->right_4_light;
+    right_leds[4] = g->right_5_light;
+    right_leds[5] = g->right_6_light;
+    right_leds[6] = g->right_7_light;
+    right_leds[7] = g->right_8_light;
+    right_leds[8] = g->right_9_light;
+
+    left_leds[0] = g->left_1_light;
+    left_leds[1] = g->left_2_light;
+    left_leds[2] = g->left_3_light;
+    left_leds[3] = g->left_4_light;
+    left_leds[4] = g->left_5_light;
+    left_leds[5] = g->left_6_light;
+    left_leds[6] = g->left_7_light;
+    left_leds[7] = g->left_8_light;
+    left_leds[8] = g->left_9_light;
+
+    right_dark[0] = g->right_1_dark;
+    right_dark[1] = g->right_2_dark;
+    right_dark[2] = g->right_3_dark;
+    right_dark[3] = g->right_4_dark;
+    right_dark[4] = g->right_5_dark;
+    right_dark[5] = g->right_6_dark;
+    right_dark[6] = g->right_7_dark;
+    right_dark[7] = g->right_8_dark;
+    right_dark[8] = g->right_9_dark;
+
+    left_dark[0] = g->left_1_dark;
+    left_dark[1] = g->left_2_dark;
+    left_dark[2] = g->left_3_dark;
+    left_dark[3] = g->left_4_dark;
+    left_dark[4] = g->left_5_dark;
+    left_dark[5] = g->left_6_dark;
+    left_dark[6] = g->left_7_dark;
+    left_dark[7] = g->left_8_dark;
+    left_dark[8] = g->left_9_dark;
+
+    if (g->LEDs_dark)
+        g->LEDs_dark->resize(vu_gx, vu_r_y - 2, 150, 28);
+    if (g->LEDs_light)
+        g->LEDs_light->resize(vu_gx, vu_r_y - 2, 150, 28);
+
+    ttns_resize_led_row(right_leds, 9, 2);
+    ttns_resize_led_row(left_leds, 9, 16);
+    ttns_resize_led_row(right_dark, 9, 2);
+    ttns_resize_led_row(left_dark, 9, 16);
+
+    deck_h = vu_l_y + 14;
+    deck->resize(0, deck_y, win_w, deck_h);
+
+    if (g->R_VU)
+        g->R_VU->hide();
+    if (g->L_VU)
+        g->L_VU->hide();
+    if (g->VU_Text)
+        g->VU_Text->hide();
+
+    ttns_layout_deck_buttons(g, win_w, deck_y, vu_l_y);
+
+    if (g->info_output)
+        g->info_output->resize(0, deck_y + deck_h + 4, win_w, g->info_output->h());
+
+    ttns_collapsed_win_h = deck_y + deck_h + 8;
+}
+
+int ttns_window_collapsed_height(void)
+{
+    if (ttns_collapsed_win_h > 0)
+        return ttns_collapsed_win_h;
+
+    if (!fl_g || !fl_g->window_main)
+        return 0;
+
+    if (fl_g->info_output)
+        return fl_g->info_output->y() - 30;
+
+    return fl_g->window_main->h();
+}
+
+void info_panel_collapse(void)
+{
+    int collapsed_h;
+
+    if (!fl_g || !fl_g->info_output)
+        return;
+
+    collapsed_h = ttns_window_collapsed_height();
+    if (collapsed_h < 200)
+        collapsed_h = fl_g->info_output->y() - 30;
+
+    fl_g->window_main->resize(fl_g->window_main->x(),
+                              fl_g->window_main->y(),
+                              fl_g->window_main->w(),
+                              collapsed_h);
+    fl_g->info_output->hide();
+    fl_g->button_info->label("More @2>");
+    fl_g->info_visible = 0;
+}
+
 void button_info_cb() //changed "Info" text to "More"
 {
     if (!fl_g->info_visible)
@@ -865,14 +1113,7 @@ void button_info_cb() //changed "Info" text to "More"
     }
     else
     {
-        // Hide info output...
-        fl_g->window_main->resize(fl_g->window_main->x(),
-                                  fl_g->window_main->y(),
-                                  fl_g->window_main->w(),
-                                  fl_g->info_output->y() - 30);
-        fl_g->info_output->hide();
-        fl_g->button_info->label("More @2>");
-        fl_g->info_visible = 0;
+        info_panel_collapse();
     }
 }
 
@@ -2056,9 +2297,19 @@ void button_cfg_edit_icy_cb(void)
 
 void choice_cfg_dev_cb(void)
 {
-    cfg.audio.dev_num = fl_g->choice_cfg_dev->value();
+    cfg.ttns.line_dev_num = fl_g->choice_cfg_dev->value();
+    cfg.audio.dev_num = cfg.ttns.line_dev_num;
     update_samplerates();
     snd_reinit();
+    ttns_mixer_reset();
+    unsaved_changes = 1;
+}
+
+void choice_cfg_ttns_mic_cb(void)
+{
+    cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
+    snd_reinit();
+    ttns_mixer_reset();
     unsaved_changes = 1;
 }
 
@@ -2806,17 +3057,7 @@ void button_cfg_log_browse_cb(void)
 
 void window_main_close_cb(void)
 {
-    if(unsaved_changes)
-    {
-        int ret;
-        ret = fl_choice("There are unsaved changes.\n"
-                "Would you like to save them to your config file?",
-                "no", "yes", NULL);
-        if(ret == 1)
-            cfg_write_file(NULL);				
-
-
-    }
-
+    ttns_cfg_sync_from_ui();
+    cfg_write_file(NULL);
     exit(0);
 }

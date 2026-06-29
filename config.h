@@ -43,6 +43,9 @@
 /* Define to 1 if you have the 'vorbisenc' library (-lvorbisenc). */
 #define HAVE_LIBVORBISENC 1
 
+/* Define to 1 if you have the 'vorbisfile' library (-lvorbisfile). */
+#define HAVE_LIBVORBISFILE 1
+
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
 
@@ -121,25 +124,25 @@
 #define HAVE__BOOL 1
 
 /* Name of package */
-#define PACKAGE "butt"
+#define PACKAGE "ttns-deck"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "BUG-REPORT-ADDRESS"
+#define PACKAGE_BUGREPORT "https://thethursdaynightshow.com"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "butt"
+#define PACKAGE_NAME "ttns-deck"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "butt 0.1.16"
+#define PACKAGE_STRING "ttns-deck 0.1.16-ttns"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "butt"
+#define PACKAGE_TARNAME "ttns-deck"
 
 /* Define to the home page for this package. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.1.16"
+#define PACKAGE_VERSION "0.1.16-ttns"
 
 /* Define to 1 if all of the C89 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
@@ -147,7 +150,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.1.16"
+#define VERSION "0.1.16-ttns"
 
 /* Define to '__inline__' or '__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */

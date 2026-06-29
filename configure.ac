@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([butt], [0.1.16], [BUG-REPORT-ADDRESS])
+AC_INIT([ttns-deck], [0.1.16-ttns], [https://thethursdaynightshow.com])
 AM_INIT_AUTOMAKE([subdir-objects foreign])
 
 AC_CONFIG_SRCDIR([config.h.in])
@@ -30,6 +30,9 @@ AC_CHECK_LIB([vorbis], [vorbis_info_init], [],
 	    )
 AC_CHECK_LIB([vorbisenc], [vorbis_encode_init], [],
 		[AC_MSG_ERROR([**** Could not find libvorbisenc     ****])]
+	    )
+AC_CHECK_LIB([vorbisfile], [ov_open], [],
+		[AC_MSG_ERROR([**** Could not find libvorbisfile     ****])]
 	    )
 AC_CHECK_LIB([opus], [opus_encoder_create], [],
 		[AC_MSG_ERROR([**** Could not find libopus     ****])]

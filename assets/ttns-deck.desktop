@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=TTNS Deck
+Comment=TTNS live broadcast mixer
+Exec=ttns-deck
+Icon=ttns-deck
+Categories=AudioVideo;Audio;
+Terminal=false

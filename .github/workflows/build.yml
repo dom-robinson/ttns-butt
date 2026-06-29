@@ -1,0 +1,87 @@
+name: Build TTNS Deck
+
+on:
+  push:
+    branches: [master, ttns-mixer]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install fltk portaudio lame libvorbis libogg flac opus libsamplerate fdk-aac pkg-config autoconf automake libtool
+      - name: Build
+        run: |
+          autoreconf -fi
+          ./configure
+          make -j3
+      - name: Package
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/build-macos-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ttns-deck-macos-${{ runner.arch }}
+          path: dist/macos/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
+            libfltk1.3-dev libportaudio2 libportaudio-dev libmp3lame-dev \
+            libvorbis-dev libogg-dev libflac-dev libopus-dev libsamplerate0-dev \
+            libfdk-aac-dev
+      - name: Build
+        run: |
+          autoreconf -fi
+          ./configure
+          make -j2
+      - name: Package
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/build-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ttns-deck-linux-x64
+          path: dist/linux/
+
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain mingw-w64-x86_64-fltk mingw-w64-x86_64-portaudio
+            mingw-w64-x86_64-lame mingw-w64-x86_64-libvorbis mingw-w64-x86_64-flac
+            mingw-w64-x86_64-opus mingw-w64-x86_64-libsamplerate mingw-w64-x86_64-fdk-aac
+            autoconf automake libtool pkg-config git zip
+      - name: Generate icon
+        run: |
+          chmod +x scripts/*.sh
+          bash scripts/generate-icons.sh || true
+      - name: Build
+        run: |
+          autoreconf -fi
+          ./configure
+          make -j2
+      - name: Package
+        run: bash scripts/build-windows.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ttns-deck-windows-x64
+          path: dist/windows/

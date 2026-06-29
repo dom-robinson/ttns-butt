@@ -40,6 +40,7 @@
 
 #include "butt.h"
 #include "flgui.h"
+#include "ttns_theme.h"
 
 #include "../xpm/rec.xpm" //rec_xpm
 #include "../xpm/rec_dark.xpm" //rec_xpm
@@ -374,41 +375,65 @@ void Fl_ILM216::draw(void)
 {
     int        i;                // Looping var
     int        X = x() + (w() - 16 * 24) / 2;    // X base position
-    int        Y = y() + (h() - 2 * 40) / 2;    // Y base position
+    int        Y;                // Y base position
+    int        row_h = 40;
+    int        text_h = row_h;
+    int        has_row2 = 0;
+    int        line_x;
+    int        line_top;
+    int        line_bottom;
+    int        conn_y;
+    int        rec_y;
     Fl_Color    oc;                // Outline color
 
-    // Draw the background...
-    if (backlight_)
+    for (i = 16; i < 32; i++)
     {
-        draw_box(box(), x(), y(), w(), h(), fl_lighter((Fl_Color)cfg.main.bg_color));
-        oc = fl_color_average((Fl_Color)cfg.main.txt_color, fl_lighter((Fl_Color)cfg.main.bg_color), 0.5f);
-    }
-    else
-    {
-        draw_box(box(), x(), y(), w(), h(), (Fl_Color)cfg.main.bg_color);
-        oc = fl_color_average((Fl_Color)cfg.main.txt_color, (Fl_Color)cfg.main.bg_color, 0.5f);
+        if (chars_[i] != ' ')
+        {
+            has_row2 = 1;
+            break;
+        }
     }
 
-  //draw the right line 
+    if (has_row2)
+        text_h = row_h * 2;
+
+    Y = y() + (h() - text_h) / 2;
+    if (Y < y())
+        Y = y();
+
+    ttns_draw_round_frame(x(), y(), w(), h(),
+                          (Fl_Color)cfg.main.bg_color, ttns_col_red());
+
+    oc = fl_color_average((Fl_Color)cfg.main.txt_color,
+                          (Fl_Color)cfg.main.bg_color, 0.5f);
+
+    line_x = X + 15 * 25 - 15;
+    line_top = y() + 8;
+    line_bottom = y() + h() - 8;
+
     fl_color((Fl_Color)cfg.main.txt_color);
-
     fl_line_style(FL_SOLID, 1, NULL);
-    fl_line(X + 15*25-15, Y, X + 15*25-15, Y+40*2);
+    fl_line(line_x, line_top, line_x, line_bottom);
     fl_line_style(0);
 
-    //draw the status symbols
-    if(connected)
-        conn_->draw(X + 15*25 -5, Y+8);
+    conn_y = line_top + 6;
+    if (has_row2)
+        rec_y = Y + 8 + 50;
     else
-        conn_dark_->draw(X + 15*25 -5, Y+8);
+        rec_y = line_bottom - 28;
 
+    if(connected)
+        conn_->draw(X + 15*25 -5, conn_y);
+    else
+        conn_dark_->draw(X + 15*25 -5, conn_y);
 
     if(recording)
-        rec_->draw(X + 15*25 -7, Y+8+50);
+        rec_->draw(X + 15*25 -7, rec_y);
     else if (cfg.rec.start_rec)
-        rec_armed_->draw(X + 15*25 -7, Y+8+50);
+        rec_armed_->draw(X + 15*25 -7, rec_y);
     else
-        rec_dark_->draw(X + 15*25 -7, Y+8+50);
+        rec_dark_->draw(X + 15*25 -7, rec_y);
 
   // Draw the LCD contents...
     for (i = 0; i < 16; i ++)
@@ -417,14 +442,14 @@ void Fl_ILM216::draw(void)
 
         if (font_[chars_[i + 0]])
             font_[chars_[i + 0]]->draw(X + i * 24, Y);
-        if (font_[chars_[i + 16]])
+        if (font_[chars_[i + 16]] && has_row2)
             font_[chars_[i + 16]]->draw(X + i * 24, Y + 40);
 
         fl_color(oc);
 
         if (outline_[chars_[i + 0]])
             outline_[chars_[i + 0]]->draw(X + i * 24, Y);
-        if (outline_[chars_[i + 16]])
+        if (outline_[chars_[i + 16]] && has_row2)
             outline_[chars_[i + 16]]->draw(X + i * 24, Y + 40);
   }
 }

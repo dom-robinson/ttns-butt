@@ -24,6 +24,8 @@
 #include "flgui.h"
 #include "util.h"
 #include "fl_funcs.h"
+#include "cart_player.h"
+#include "ttns_ui.h"
 
 #ifdef _WIN32
  const char CONFIG_FILE[] = "buttrc";
@@ -40,6 +42,8 @@ int cfg_write_file(char *path)
     int i;
     FILE *cfg_fd;
     char info_buf[256];
+
+    ttns_cfg_sync_from_ui();
 
     if(path == NULL)
         path = cfg_path;
@@ -156,6 +160,46 @@ int cfg_write_file(char *path)
             cfg.gui.ontop,
             cfg.gui.lcd_auto
            );
+
+    fprintf(cfg_fd,
+            "[ttns]\n"
+            "line_device = %d\n"
+            "mic_device = %d\n"
+            "mic_gain = %.4f\n"
+            "line_gain = %.4f\n"
+            "mic_monitor = %d\n"
+            "mic_monitor_mute = %d\n"
+            "mic_mute = %d\n"
+            "zone = %d\n"
+            "slot = %d\n"
+            "duck_depth_db = %.2f\n"
+            "duck_threshold = %.4f\n"
+            "duck_attack_ms = %d\n"
+            "duck_release_ms = %d\n",
+            cfg.ttns.line_dev_num,
+            cfg.ttns.mic_dev_num,
+            cfg.ttns.mic_gain,
+            cfg.ttns.line_gain,
+            cfg.ttns.mic_monitor,
+            cfg.ttns.mic_monitor_mute,
+            cfg.ttns.mic_mute,
+            cfg.ttns.zone,
+            cfg.ttns.slot,
+            cfg.ttns.duck_depth_db,
+            cfg.ttns.duck_threshold,
+            cfg.ttns.duck_attack_ms,
+            cfg.ttns.duck_release_ms
+           );
+
+    for(i = 0; i < TTNS_CART_SLOTS; i++)
+    {
+        fprintf(cfg_fd, "cart%d_path = %s\n", i + 1,
+                cfg.ttns.cart_path[i] ? cfg.ttns.cart_path[i] : "");
+        fprintf(cfg_fd, "cart%d_label = %s\n", i + 1,
+                cfg.ttns.cart_label[i] ? cfg.ttns.cart_label[i] : "");
+        fprintf(cfg_fd, "cart%d_mode = %d\n", i + 1, cfg.ttns.cart_mode[i]);
+    }
+    fprintf(cfg_fd, "\n");
 
     for(i = 0; i < cfg.main.num_of_srv; i++)
     {
@@ -531,6 +575,66 @@ int cfg_set_values(char *path)
     if(cfg.gui.lcd_auto == -1)
         cfg.gui.lcd_auto = 0;
 
+    cfg.ttns.line_dev_num = cfg_get_int("ttns", "line_device");
+    cfg.ttns.mic_dev_num = cfg_get_int("ttns", "mic_device");
+    cfg.ttns.mic_gain = cfg_get_float("ttns", "mic_gain");
+    cfg.ttns.line_gain = cfg_get_float("ttns", "line_gain");
+    cfg.ttns.mic_monitor = cfg_get_int("ttns", "mic_monitor");
+    cfg.ttns.mic_monitor_mute = cfg_get_int("ttns", "mic_monitor_mute");
+    cfg.ttns.mic_mute = cfg_get_int("ttns", "mic_mute");
+    cfg.ttns.zone = cfg_get_int("ttns", "zone");
+    cfg.ttns.slot = cfg_get_int("ttns", "slot");
+
+    if (cfg.ttns.line_dev_num == -1)
+        cfg.ttns.line_dev_num = cfg.audio.dev_num;
+    if (cfg.ttns.mic_dev_num == -1)
+        cfg.ttns.mic_dev_num = cfg.audio.dev_num;
+    if ((int)cfg.ttns.mic_gain == -1)
+        cfg.ttns.mic_gain = 1.0f;
+    if ((int)cfg.ttns.line_gain == -1)
+        cfg.ttns.line_gain = 1.0f;
+    if (cfg.ttns.mic_monitor == -1)
+        cfg.ttns.mic_monitor = 0;
+    if (cfg.ttns.mic_monitor_mute == -1)
+        cfg.ttns.mic_monitor_mute = 0;
+    if (cfg.ttns.mic_mute == -1)
+        cfg.ttns.mic_mute = 0;
+    if (cfg.ttns.zone == -1)
+        cfg.ttns.zone = 1;
+    if (cfg.ttns.slot == -1)
+        cfg.ttns.slot = 1;
+
+    if (cfg.ttns.line_dev_num > cfg.audio.dev_count - 1)
+        cfg.ttns.line_dev_num = cfg.audio.dev_num;
+    if (cfg.ttns.mic_dev_num > cfg.audio.dev_count - 1)
+        cfg.ttns.mic_dev_num = cfg.audio.dev_num;
+
+    cfg.ttns.duck_depth_db = cfg_get_float("ttns", "duck_depth_db");
+    cfg.ttns.duck_threshold = cfg_get_float("ttns", "duck_threshold");
+    cfg.ttns.duck_attack_ms = cfg_get_int("ttns", "duck_attack_ms");
+    cfg.ttns.duck_release_ms = cfg_get_int("ttns", "duck_release_ms");
+
+    if ((int)cfg.ttns.duck_depth_db == -1)
+        cfg.ttns.duck_depth_db = -12.0f;
+    if ((int)cfg.ttns.duck_threshold == -1)
+        cfg.ttns.duck_threshold = 0.05f;
+    if (cfg.ttns.duck_attack_ms == -1)
+        cfg.ttns.duck_attack_ms = 30;
+    if (cfg.ttns.duck_release_ms == -1)
+        cfg.ttns.duck_release_ms = 300;
+
+    for(i = 0; i < TTNS_CART_SLOTS; i++)
+    {
+        char key[32];
+        snprintf(key, sizeof(key), "cart%d_path", i + 1);
+        cfg.ttns.cart_path[i] = cfg_get_str("ttns", key);
+        snprintf(key, sizeof(key), "cart%d_label", i + 1);
+        cfg.ttns.cart_label[i] = cfg_get_str("ttns", key);
+        snprintf(key, sizeof(key), "cart%d_mode", i + 1);
+        cfg.ttns.cart_mode[i] = cfg_get_int("ttns", key);
+        if (cfg.ttns.cart_mode[i] == -1)
+            cfg.ttns.cart_mode[i] = TTNS_CART_ONESHOT;
+    }
 
     //read FLTK related stuff
     cfg.main.bg_color = cfg_get_int("main", "bg_color");
@@ -546,6 +650,7 @@ int cfg_set_values(char *path)
 
 int cfg_create_default(void)
 {
+    int i;
     FILE *cfg_fd;
     char *p;
     char def_rec_folder[PATH_MAX];
@@ -624,6 +729,29 @@ int cfg_create_default(void)
             "ontop = 0\n"
             "lcd_auto = 0\n\n"
             );
+
+    fprintf(cfg_fd,
+            "[ttns]\n"
+            "line_device = -1\n"
+            "mic_device = -1\n"
+            "mic_gain = 1.0\n"
+            "line_gain = 1.0\n"
+            "mic_monitor = 0\n"
+            "mic_monitor_mute = 0\n"
+            "mic_mute = 0\n"
+            "zone = 1\n"
+            "slot = 1\n"
+            "duck_depth_db = -12.0\n"
+            "duck_threshold = 0.05\n"
+            "duck_attack_ms = 30\n"
+            "duck_release_ms = 300\n");
+    for(i = 0; i < TTNS_CART_SLOTS; i++)
+    {
+        fprintf(cfg_fd, "cart%d_path = \n", i + 1);
+        fprintf(cfg_fd, "cart%d_label = \n", i + 1);
+        fprintf(cfg_fd, "cart%d_mode = 0\n", i + 1);
+    }
+    fprintf(cfg_fd, "\n");
 
     fclose(cfg_fd);
 

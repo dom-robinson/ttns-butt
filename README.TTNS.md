@@ -1,92 +1,123 @@
-# TTNS BUTT
+# TTNS BUTT (TTNS Deck)
 
-TTNS-specific fork of [BUTT](https://github.com/romansavrulin/butt) (Broadcast Using This Tool) — a cross-platform Icecast/Shoutcast streaming client for live DJ / presenter use.
+TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and Icecast client for **The Thursday Night Show**.
 
 | | |
 |---|---|
-| **Upstream** | [romansavrulin/butt](https://github.com/romansavrulin/butt) (mirror of [SourceForge butt](https://sourceforge.net/projects/butt/)) |
-| **This fork** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
-| **Base version** | butt 0.1.16 |
-| **License** | GPL-2.0 (`COPYING`) |
-| **Distribution** | Private repo; compiled binaries only for TTNS DJs |
+| **Product name** | TTNS Deck |
+| **Upstream** | butt 0.1.16 |
+| **This fork** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) (private) |
+| **DJ guide** | [`docs/TTNS_DJ_GUIDE.md`](docs/TTNS_DJ_GUIDE.md) |
+| **Distribution** | Compiled binaries only — macOS, Linux, Windows |
 
-The upstream user manual is in `README`. TTNS fork notes: `README.TTNS.md`, `CHANGELOG.md`, development plan: [`docs/TTNS_DEVELOPMENT_PLAN.md`](docs/TTNS_DEVELOPMENT_PLAN.md).
+---
 
-## Git remotes
+## Platforms
 
-| Remote | Repository |
-|--------|------------|
-| `origin` | https://github.com/dom-robinson/ttns-butt |
-| `upstream` | https://github.com/romansavrulin/butt |
+| OS | Architectures | Package script |
+|----|---------------|----------------|
+| **macOS** 11+ | Apple Silicon (arm64), Intel (x86_64) | `scripts/build-macos-app.sh` |
+| **Linux** | x86_64, arm64 | `scripts/build-linux.sh` |
+| **Windows** 10+ | x64 | `scripts/build-windows.sh` (MSYS2) |
 
-Pull upstream changes:
+CI builds all three: [`.github/workflows/build.yml`](.github/workflows/build.yml)
 
 ```bash
-git fetch upstream
-git merge upstream/master
+./scripts/build-release.sh   # auto-picks script for current OS
 ```
 
-## Build (macOS)
+Output: `dist/macos/`, `dist/linux/`, or `dist/windows/`
 
-### Dependencies
+---
+
+## Build dependencies
+
+### macOS (Homebrew)
 
 ```bash
 brew install fltk portaudio lame libvorbis libogg flac opus libsamplerate fdk-aac pkg-config autoconf automake libtool
-```
-
-### Compile
-
-```bash
-./configure
-make
-```
-
-Binary: `src/butt`
-
-`./configure` detects Homebrew on Apple Silicon (`/opt/homebrew`) and Intel Macs (`/usr/local`). On macOS, C++ sources build as Objective-C++ (required for Cocoa window helpers in FLTK).
-
-### Run
-
-```bash
+autoreconf -fi && ./configure && make -C src
 ./src/butt
 ```
 
-First launch creates `~/.buttrc`. See upstream `README` for streaming setup.
+Apple Silicon uses `/opt/homebrew`; Intel uses `/usr/local` — handled by `configure.ac`.
 
-### Alternative: Xcode
+### Linux (Debian/Ubuntu)
 
-An Xcode project lives under `xcode/`. It bundles older static libraries and may need deployment-target updates on current Xcode; **autotools is the supported TTNS build path on macOS for now.**
+```bash
+sudo apt install build-essential autoconf automake libtool pkg-config \
+  libfltk1.3-dev libportaudio2 libportaudio-dev libmp3lame-dev \
+  libvorbis-dev libogg-dev libflac-dev libopus-dev libsamplerate0-dev libfdk-aac-dev
+autoreconf -fi && ./configure && make -C src
+sudo make -C src install   # installs ttns-deck + /usr/share/ttns-deck/
+```
+
+### Windows (MSYS2 MinGW x64)
+
+Install packages listed in `scripts/build-windows.sh`, then `bash scripts/build-windows.sh`.
+
+---
+
+## DJ quick start
+
+See **[`docs/TTNS_DJ_GUIDE.md`](docs/TTNS_DJ_GUIDE.md)** for the full presenter guide.
+
+1. **Settings → Audio** — set **Line Input (Deck)** and **Mic Input** (different devices for ducking).  
+2. Pick **Mount** (`ttnszone 1-1` … `4-5`) → **Connect**.  
+3. Balance **Line** / **Mic** faders; watch **Duck** LED (yellow when ducking).  
+4. Use the large **LIVE / MUTED** mic button (or **Space**) to toggle mic on air.  
+5. Right-click carts to assign audio; click or press **1–8** to play.  
+6. **Settings** (bottom-right) → codec/bitrate if needed.
+
+Stream target: `decks.thethursdaynightshow.com:8080` (presets in bundled `data/ttns-zones.json`).
+
+---
+
+## UI overview
+
+| Area | Controls |
+|------|----------|
+| Top-left | TTNS logo, About, **mic LIVE/MUTED** button |
+| Top | Mount dropdown, Duck indicator |
+| Faders | Line, Mic, Gate, Depth (ducking) |
+| Bottom row | **Monitor**, **Mic to Mon** (right-aligned) |
+| Carts | 8 buttons with hotkeys |
+| Main panel | LCD status, transport, VU meters, More / Settings |
+
+Theme: black background, terminal green text, red accents.
+
+---
+
+## Features
+
+- [x] TTNS logo, window icon, About dialog  
+- [x] Dual mic/line mix, ducking, 8 carts, mount presets  
+- [x] Large mic mute button + Space toggle  
+- [x] Mic monitor + Mic to Mon checkboxes  
+- [x] TTNS-themed faders, carts, transport, LCD frame  
+- [x] Cross-platform resource paths (app bundle / install dir / dev tree)  
+- [x] Packaging scripts + CI for macOS, Linux, Windows  
+
+---
+
+## macOS code signing (ops)
+
+Unsigned builds: users right-click → Open. For distribution:
+
+```bash
+codesign --force --deep --sign "Developer ID Application: …" "dist/macos/TTNS Deck.app"
+xcrun notarytool submit …  # optional notarization
+```
+
+---
 
 ## Development
 
-Regenerate autotools after editing `configure.ac` or `Makefile.am`:
+- Roadmap: [`docs/TTNS_DEVELOPMENT_PLAN.md`](docs/TTNS_DEVELOPMENT_PLAN.md)  
+- Changes: [`CHANGELOG.md`](CHANGELOG.md)  
+- Regenerate icons: `scripts/generate-icons.sh`  
+- Branch: `ttns-mixer`
 
 ```bash
-autoreconf -fi
-./configure
-make clean && make
+git fetch upstream && git merge upstream/master   # pull upstream butt
 ```
-
-## TTNS streaming (planned)
-
-Connection presets: [`data/ttns-zones.json`](data/ttns-zones.json)
-
-| | |
-|---|---|
-| **Server** | `decks.thethursdaynightshow.com:8080` (Icecast, user `source`) |
-| **Mounts** | `ttnszone{1-4}_{1-5}` (manual zone + slot picker) |
-| **Description** | Live Now on TheThursdayNightShow and on TTNS.FM |
-| **Genre** | eclectic |
-
-Logo: [`assets/ttns-logo.png`](assets/ttns-logo.png)
-
-## Planned TTNS customizations
-
-See [`docs/TTNS_DEVELOPMENT_PLAN.md`](docs/TTNS_DEVELOPMENT_PLAN.md) for the full roadmap.
-
-- [ ] TTNS logo on main UI (`assets/ttns-logo.png`)
-- [ ] Dual mic/line faders, mic ducking, 8-button cart deck
-- [ ] Zone/slot picker wired to `data/ttns-zones.json`
-- [ ] macOS signed build for presenter distribution
-
-See `INSTALL` and upstream `README`. This fork has not yet been validated on those platforms.

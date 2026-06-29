@@ -207,13 +207,16 @@ Bundled in [`data/ttns-zones.json`](../data/ttns-zones.json):
 
 ---
 
-### Phase E — Polish & distribution (ongoing)
+### Phase E — Polish & distribution ✅
 
-- [ ] TTNS branding: **logo on main UI**, app name, dock icon, about dialog
-- [ ] macOS signed `.app` / DMG for presenter distribution
-- [ ] Linux build smoke test (if any DJs use it)
-- [ ] User-facing quick-start doc for TTNS DJs
-- [ ] Changelog entries per phase
+- [x] TTNS branding: logo, **TTNS Deck** title, window icon, **About** dialog
+- [x] Cross-platform resource paths (`ttns_paths`)
+- [x] macOS `.app` + zip (`scripts/build-macos-app.sh`, dock `.icns`)
+- [x] Linux tarball + `make install` (`scripts/build-linux.sh`)
+- [x] Windows zip + DLL bundle (`scripts/build-windows.sh`, MSYS2)
+- [x] CI: macOS / Linux / Windows (`.github/workflows/build.yml`)
+- [x] DJ guide: `docs/TTNS_DJ_GUIDE.md`
+- [ ] Apple **notarization** / Developer ID signing (ops step — documented in README.TTNS.md)
 
 ---
 

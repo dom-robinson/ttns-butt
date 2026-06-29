@@ -25,3 +25,5 @@ xcode/build/
 # Built binary
 butt
 src/butt
+dist/
+build/

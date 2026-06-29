@@ -38,11 +38,14 @@
 #include "icecast.h"
 #include "strfuncs.h"
 #include "fl_timer_funcs.h"
+#include "ttns_ui.h"
 
 void vu_meter_timer(void*)
 {
     if(pa_new_frames)
         snd_update_vu();
+
+    ttns_ui_timer_tick();
 
     Fl::repeat_timeout(0.01, &vu_meter_timer);
 }

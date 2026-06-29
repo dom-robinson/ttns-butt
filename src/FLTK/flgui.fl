@@ -867,10 +867,10 @@ info_output->buffer(info_buffer);
 window_cfg->size(window_cfg->w(), 380);
 
 // show info output...
-info_visible = 1;
-                
-info_output->show();
-button_info->label("Less @8>");} {}
+  // Info log starts collapsed; ttns_ui_init sets final height after mixer panel.
+  info_visible = 0;
+  info_output->hide();
+  button_info->label("More @2>");} {}
   }
   Function {~flgui()} {open
   } {}
