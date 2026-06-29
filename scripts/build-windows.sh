@@ -20,7 +20,7 @@ cd "$ROOT"
 
 autoreconf -fi
 ./configure -q --disable-dependency-tracking
-make -j"$(nproc 2>/dev/null || echo 4)"
+mingw32-make -j"$(nproc 2>/dev/null || echo 4)"
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE/bin" "$STAGE/data" "$STAGE/assets"

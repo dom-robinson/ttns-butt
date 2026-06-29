@@ -13,6 +13,7 @@
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Value_Input.H>
 #include <FL/Fl_Window.H>
+#include <FL/Enumerations.H>
 
 #include "FL/Fl_My_Value_Slider.H"
 #include "FL/Fl_Ttns_Cart_Button.H"
@@ -57,10 +58,17 @@ void ttns_draw_round_frame(int x, int y, int w, int h, Fl_Color fill, Fl_Color b
         r = 2;
 
     fl_color(fill);
+#if FL_MINOR_VERSION >= 4
     fl_rounded_rectf(x, y, w, h, r);
     fl_color(border);
     fl_line_style(FL_SOLID, 2);
     fl_rounded_rect(x + 1, y + 1, w - 2, h - 2, r);
+#else
+    fl_rectf(x, y, w, h);
+    fl_color(border);
+    fl_line_style(FL_SOLID, 2);
+    fl_rect(x + 1, y + 1, w - 2, h - 2);
+#endif
     fl_line_style(0);
 }
 

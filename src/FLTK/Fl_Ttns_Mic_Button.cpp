@@ -1,6 +1,7 @@
 #include "FL/Fl_Ttns_Mic_Button.H"
 
 #include <FL/fl_draw.H>
+#include <FL/Enumerations.H>
 
 #include "ttns_theme.h"
 
@@ -14,7 +15,11 @@ static void ttns_draw_mic_glyph(int cx, int cy, int size, int muted)
     Fl_Color col = muted ? ttns_col_red() : ttns_col_green();
 
     fl_color(col);
+#if FL_MINOR_VERSION >= 4
     fl_rounded_rectf(cap_x, cap_y, cap_w, cap_h, cap_w / 2);
+#else
+    fl_rectf(cap_x, cap_y, cap_w, cap_h);
+#endif
 
     fl_line_style(FL_SOLID, 2);
     fl_color(col);
