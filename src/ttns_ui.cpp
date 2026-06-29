@@ -62,7 +62,6 @@ static Fl_Ttns_Fader *ttns_slider_line = NULL;
 static Fl_Ttns_Fader *ttns_slider_duck_gate = NULL;
 static Fl_Ttns_Fader *ttns_slider_duck_depth = NULL;
 static Fl_Box *ttns_duck_led = NULL;
-static Fl_Ttns_Check_Button *ttns_chk_monitor = NULL;
 static Fl_Ttns_Check_Button *ttns_chk_monitor_mute = NULL;
 static Fl_Ttns_Mic_Button *ttns_btn_mic = NULL;
 static Fl_Ttns_Cart_Button *ttns_cart_btn[TTNS_CART_SLOTS];
@@ -299,10 +298,9 @@ static void ttns_mic_mute_cb(Fl_Widget *w, void *)
 static void ttns_monitor_cb(Fl_Widget *w, void *)
 {
     (void)w;
-    cfg.ttns.mic_monitor = ttns_chk_monitor ? ttns_chk_monitor->value() : 0;
+    cfg.ttns.mic_monitor = 1;
     cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute ? ttns_chk_monitor_mute->value() : 0;
     unsaved_changes = 1;
-    snd_reopen_monitor();
 }
 
 static void ttns_zone_cb(Fl_Widget *, void *)
@@ -650,8 +648,6 @@ void ttns_ui_sync_from_cfg(void)
         ttns_zones_fill_mount_choice(ttns_choice_mount);
 
     ttns_fill_cfg_audio_devices();
-    if (ttns_chk_monitor)
-        ttns_chk_monitor->value(cfg.ttns.mic_monitor);
     if (ttns_chk_monitor_mute)
         ttns_chk_monitor_mute->value(cfg.ttns.mic_monitor_mute);
     if (ttns_btn_mic)
@@ -686,8 +682,7 @@ void ttns_cfg_sync_from_ui(void)
         cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
     if (fl_g && fl_g->choice_cfg_ttns_monitor_out)
         cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
-    if (ttns_chk_monitor)
-        cfg.ttns.mic_monitor = ttns_chk_monitor->value();
+    cfg.ttns.mic_monitor = 1;
     if (ttns_chk_monitor_mute)
         cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute->value();
     if (ttns_btn_mic)
@@ -818,23 +813,14 @@ void ttns_ui_init(flgui *g)
     {
         int row_y = 142;
         int row_r = TTNS_VAL_X + val_w;
-        const int mic_mon_w = 98;
-        const int monitor_w = 78;
-        const int row_gap = 12;
+        const int mute_mon_w = 110;
 
-        ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(row_r - mic_mon_w, row_y,
-                                                         mic_mon_w, 22, "Mic to Mon");
+        ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(row_r - mute_mon_w, row_y,
+                                                         mute_mon_w, 22, "Mute Monitor");
         ttns_chk_monitor_mute->labelsize(11);
         ttns_style_check(ttns_chk_monitor_mute);
-        ttns_chk_monitor_mute->tooltip("Silence mic monitor without affecting stream");
+        ttns_chk_monitor_mute->tooltip("Silence headphone monitor (stream is unaffected)");
         ttns_chk_monitor_mute->callback(ttns_monitor_cb);
-
-        ttns_chk_monitor = new Fl_Ttns_Check_Button(row_r - mic_mon_w - row_gap - monitor_w,
-                                                    row_y, monitor_w, 22, "Monitor");
-        ttns_chk_monitor->labelsize(11);
-        ttns_style_check(ttns_chk_monitor);
-        ttns_chk_monitor->tooltip("Route mic to headphones (separate mic device required)");
-        ttns_chk_monitor->callback(ttns_monitor_cb);
     }
 
     sep = new Fl_Box(8, TTNS_CART_Y - 2, win_w - 16, 2);
