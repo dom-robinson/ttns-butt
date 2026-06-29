@@ -217,7 +217,6 @@ static void ttns_about_cb(Fl_Widget *, void *)
 static void ttns_reopen_audio(void)
 {
     snd_reinit();
-    snd_open_stream();
     ttns_mixer_reset();
 }
 

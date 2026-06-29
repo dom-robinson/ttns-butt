@@ -7,7 +7,8 @@ Upstream BUTT release notes remain in `NEWS`.
 
 ### Fixed
 
-- **Post-fader metering** — Line and Mic fader VU bars now reflect fader gain and mic mute (not raw input level)
+- **Audio device switching crash** — stack buffer overflow in PortAudio callback (large VLA buffers moved to heap); safe teardown with `snd_audio_active` guard; null-safe `snd_close()`; fixed double `snd_open_stream()` on device change
+- **FLTK 1.4 duplicate ObjC classes** — renamed file-chooser delegates to avoid clash with Homebrew FLTK — Line and Mic fader VU bars now reflect fader gain and mic mute (not raw input level)
 - **Dual mic capture on macOS** — mic input uses a dedicated PortAudio callback + mutex instead of `Pa_ReadStream` in the main callback (fixes stale/zero mic meter and unreliable mic mix)
 - **Mono line input** — line-only and dual-device paths honour single-channel deck devices via `ttns_copy_line_to_stereo()`
 - **Streaming/Codec label overlap** — Audio tab layout corrected after Mic Input row was added (codec/bitrate moved inside frame)

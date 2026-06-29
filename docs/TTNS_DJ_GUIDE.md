@@ -135,6 +135,8 @@ bash scripts/build-windows.sh
 | Ducking never triggers | Line and Mic must be separate devices |
 | Mic level on wrong fader | Same device selected for Line and Mic — use deck loopback + separate mic |
 | Mic meter flat but line moves | Mic device failed to open; check **More** log and **Settings → Audio** |
+| App crashes changing audio device | Rebuild from latest `ttns-mixer` — fixed stack overflow on device switch |
+| macOS FLopenDelegate warning | Harmless on old builds; fixed in latest build |
 | Carts silent | Assign a supported file (WAV/MP3/FLAC/OGG); right-click to re-assign |
 | Mic won’t unmute | Click LIVE/MUTED button or Space — both toggle the same state |
 | macOS “unidentified developer” | Right-click app → Open, or ops team re-signs build |

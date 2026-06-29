@@ -401,7 +401,7 @@ static char *prepareMacFilter(int count, const char *filter, char **patterns) {
   return t;
 }
   
-@interface FLopenDelegate : NSObject 
+@interface TTNSFlOpenDelegate : NSObject 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 <NSOpenSavePanelDelegate>
 #endif
@@ -409,12 +409,12 @@ static char *prepareMacFilter(int count, const char *filter, char **patterns) {
   NSPopUpButton *nspopup;
   char **filter_pattern;
 }
-- (FLopenDelegate*)setPopup:(NSPopUpButton*)popup filter_pattern:(char**)pattern;
+- (TTNSFlOpenDelegate*)setPopup:(NSPopUpButton*)popup filter_pattern:(char**)pattern;
 - (BOOL)panel:(id)sender shouldShowFilename:(NSString *)filename;
 - (BOOL)panel:(id)sender shouldEnableURL:(NSURL *)url;
 @end
-@implementation FLopenDelegate
-- (FLopenDelegate*)setPopup:(NSPopUpButton*)popup filter_pattern:(char**)pattern
+@implementation TTNSFlOpenDelegate
+- (TTNSFlOpenDelegate*)setPopup:(NSPopUpButton*)popup filter_pattern:(char**)pattern
 {
   nspopup = popup;
   filter_pattern = pattern;
@@ -435,7 +435,7 @@ static char *prepareMacFilter(int count, const char *filter, char **patterns) {
 }
 @end
 
-@interface FLsaveDelegate : NSObject 
+@interface TTNSFlSaveDelegate : NSObject 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 <NSOpenSavePanelDelegate>
 #endif
@@ -448,7 +448,7 @@ static char *prepareMacFilter(int count, const char *filter, char **patterns) {
 - (void)panel:(NSSavePanel*)p;
 - (void)option:(BOOL)o;
 @end
-@implementation FLsaveDelegate
+@implementation TTNSFlSaveDelegate
 - (NSString *)panel:(id)sender userEnteredFilename:(NSString *)filename confirmed:(BOOL)okFlag
 {
   if ( !okFlag || saveas_confirm ) return filename;
@@ -615,13 +615,13 @@ int Fl_My_Native_File_Chooser::post() {
       [popup addItemWithTitle:[[NSString alloc] initWithUTF8String:Fl_File_Chooser::all_files_label]];
       [popup setAction:@selector(validateVisibleColumns)];
       [popup setTarget:(NSObject*)_panel];
-      FLopenDelegate *openDelegate = [[[FLopenDelegate alloc] init] autorelease];
+      TTNSFlOpenDelegate *openDelegate = [[[TTNSFlOpenDelegate alloc] init] autorelease];
       [openDelegate setPopup:popup filter_pattern:_filt_patt];
       [(NSOpenPanel*)_panel setDelegate:openDelegate];
     }
   }
   else {
-    FLsaveDelegate *saveDelegate = [[[FLsaveDelegate alloc] init] autorelease]; 
+    TTNSFlSaveDelegate *saveDelegate = [[[TTNSFlSaveDelegate alloc] init] autorelease]; 
     [(NSSavePanel*)_panel setAllowsOtherFileTypes:YES];
     [(NSSavePanel*)_panel setDelegate:saveDelegate];
     [saveDelegate option:(_options & SAVEAS_CONFIRM)];
