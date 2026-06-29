@@ -84,6 +84,7 @@ On the row below the faders (right-aligned):
 
 - **Monitor** — hear your mic in headphones (default system output)  
 - **Mic to Mon** — silence the monitor without affecting the broadcast  
+- **Settings → Audio → Monitor Output** — pick headphones/speakers (e.g. AirPods vs built-in)
 
 Useful to avoid Bluetooth latency when you don’t want to hear yourself.
 

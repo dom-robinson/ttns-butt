@@ -148,6 +148,15 @@ static void ttns_fill_cfg_audio_devices(void)
         fl_g->choice_cfg_dev->value(cfg.ttns.line_dev_num);
         fl_g->choice_cfg_ttns_mic->value(cfg.ttns.mic_dev_num);
     }
+
+    if (fl_g->choice_cfg_ttns_monitor_out)
+    {
+        fl_g->choice_cfg_ttns_monitor_out->clear();
+        for (i = 0; i < cfg.audio.out_dev_count; i++)
+            fl_g->choice_cfg_ttns_monitor_out->add(cfg.audio.out_pcm_list[i]->name);
+        if (cfg.audio.out_dev_count > 0)
+            fl_g->choice_cfg_ttns_monitor_out->value(cfg.ttns.monitor_out_dev_num);
+    }
 }
 
 static void ttns_raise_duck_led(flgui *g)
@@ -293,7 +302,7 @@ static void ttns_monitor_cb(Fl_Widget *w, void *)
     cfg.ttns.mic_monitor = ttns_chk_monitor ? ttns_chk_monitor->value() : 0;
     cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute ? ttns_chk_monitor_mute->value() : 0;
     unsaved_changes = 1;
-    ttns_reopen_audio();
+    snd_reopen_monitor();
 }
 
 static void ttns_zone_cb(Fl_Widget *, void *)
@@ -675,6 +684,8 @@ void ttns_cfg_sync_from_ui(void)
         cfg.ttns.line_dev_num = fl_g->choice_cfg_dev->value();
     if (fl_g && fl_g->choice_cfg_ttns_mic)
         cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
+    if (fl_g && fl_g->choice_cfg_ttns_monitor_out)
+        cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
     if (ttns_chk_monitor)
         cfg.ttns.mic_monitor = ttns_chk_monitor->value();
     if (ttns_chk_monitor_mute)

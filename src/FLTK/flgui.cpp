@@ -553,6 +553,13 @@ void flgui::cb_choice_cfg_ttns_mic(Fl_Choice* o, void* v) {
   ((flgui*)(o->parent()->parent()->parent()->parent()->user_data()))->cb_choice_cfg_ttns_mic_i(o,v);
 }
 
+void flgui::cb_choice_cfg_ttns_monitor_out_i(Fl_Choice*, void*) {
+  choice_cfg_ttns_monitor_out_cb();
+}
+void flgui::cb_choice_cfg_ttns_monitor_out(Fl_Choice* o, void* v) {
+  ((flgui*)(o->parent()->parent()->parent()->parent()->user_data()))->cb_choice_cfg_ttns_monitor_out_i(o,v);
+}
+
 void flgui::cb_Stereo_i(Fl_Menu_*, void*) {
   choice_cfg_channel_stereo_cb();
 }
@@ -1282,7 +1289,7 @@ flgui::flgui() {
       } // Fl_Group* o
       { Fl_Group* o = new Fl_Group(0, 19, 300, 450, "Audio");
         o->hide();
-        { Fl_Group* o = new Fl_Group(15, 55, 265, 148, "Main Audio Settings");
+        { Fl_Group* o = new Fl_Group(15, 55, 265, 178, "Main Audio Settings");
           o->box(FL_ENGRAVED_FRAME);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           { choice_cfg_dev = new Fl_Choice(23, 72, 250, 20, "Line Input (Deck)");
@@ -1297,14 +1304,20 @@ flgui::flgui() {
             choice_cfg_ttns_mic->callback((Fl_Callback*)cb_choice_cfg_ttns_mic);
             choice_cfg_ttns_mic->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Choice* choice_cfg_ttns_mic
-          { choice_cfg_channel = new Fl_Choice(23, 162, 114, 20, "Channel");
+          { choice_cfg_ttns_monitor_out = new Fl_Choice(23, 152, 250, 20, "Monitor Output");
+            choice_cfg_ttns_monitor_out->tooltip("Output device for mic monitor headphones");
+            choice_cfg_ttns_monitor_out->down_box(FL_FLAT_BOX);
+            choice_cfg_ttns_monitor_out->callback((Fl_Callback*)cb_choice_cfg_ttns_monitor_out);
+            choice_cfg_ttns_monitor_out->align(Fl_Align(FL_ALIGN_TOP_LEFT));
+          } // Fl_Choice* choice_cfg_ttns_monitor_out
+          { choice_cfg_channel = new Fl_Choice(23, 192, 114, 20, "Channel");
             choice_cfg_channel->tooltip("Select input channel");
             choice_cfg_channel->box(FL_ENGRAVED_BOX);
             choice_cfg_channel->down_box(FL_BORDER_BOX);
             choice_cfg_channel->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             choice_cfg_channel->menu(menu_choice_cfg_channel);
           } // Fl_Choice* choice_cfg_channel
-          { choice_cfg_samplerate = new Fl_Choice(158, 162, 115, 20, "Samplerate");
+          { choice_cfg_samplerate = new Fl_Choice(158, 192, 115, 20, "Samplerate");
             choice_cfg_samplerate->tooltip("Select input sample rate");
             choice_cfg_samplerate->down_box(FL_BORDER_BOX);
             choice_cfg_samplerate->callback((Fl_Callback*)cb_choice_cfg_samplerate);
@@ -1312,17 +1325,17 @@ flgui::flgui() {
           } // Fl_Choice* choice_cfg_samplerate
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(15, 212, 265, 58, "Streaming");
+        { Fl_Group* o = new Fl_Group(15, 242, 265, 58, "Streaming");
           o->box(FL_ENGRAVED_FRAME);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          { choice_cfg_codec = new Fl_Choice(20, 232, 125, 20, "Codec");
+          { choice_cfg_codec = new Fl_Choice(20, 262, 125, 20, "Codec");
             choice_cfg_codec->tooltip("Select streaming codec");
             choice_cfg_codec->box(FL_ENGRAVED_BOX);
             choice_cfg_codec->down_box(FL_BORDER_BOX);
             choice_cfg_codec->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             choice_cfg_codec->menu(menu_choice_cfg_codec);
           } // Fl_Choice* choice_cfg_codec
-          { choice_cfg_bitrate = new Fl_Choice(160, 232, 115, 20, "Bitrate");
+          { choice_cfg_bitrate = new Fl_Choice(160, 262, 115, 20, "Bitrate");
             choice_cfg_bitrate->tooltip("Select streaming bitrate");
             choice_cfg_bitrate->box(FL_ENGRAVED_BOX);
             choice_cfg_bitrate->down_box(FL_BORDER_BOX);
@@ -1332,17 +1345,17 @@ flgui::flgui() {
           } // Fl_Choice* choice_cfg_bitrate
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(15, 282, 265, 58, "Recording");
+        { Fl_Group* o = new Fl_Group(15, 312, 265, 58, "Recording");
           o->box(FL_ENGRAVED_FRAME);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          { choice_rec_codec = new Fl_Choice(20, 302, 125, 20, "Codec");
+          { choice_rec_codec = new Fl_Choice(20, 332, 125, 20, "Codec");
             choice_rec_codec->tooltip("Select recording codec");
             choice_rec_codec->box(FL_ENGRAVED_BOX);
             choice_rec_codec->down_box(FL_BORDER_BOX);
             choice_rec_codec->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             choice_rec_codec->menu(menu_choice_rec_codec);
           } // Fl_Choice* choice_rec_codec
-          { choice_rec_bitrate = new Fl_Choice(160, 302, 115, 20, "Bitrate");
+          { choice_rec_bitrate = new Fl_Choice(160, 332, 115, 20, "Bitrate");
             choice_rec_bitrate->tooltip("Select recording bitrate");
             choice_rec_bitrate->down_box(FL_BORDER_BOX);
             choice_rec_bitrate->callback((Fl_Callback*)cb_choice_rec_bitrate);
@@ -1351,18 +1364,18 @@ flgui::flgui() {
           } // Fl_Choice* choice_rec_bitrate
           o->end();
         } // Fl_Group* o
-        { button_advanced = new Fl_Button(15, 355, 89, 25, "Advanced...");
+        { button_advanced = new Fl_Button(15, 385, 89, 25, "Advanced...");
           button_advanced->box(FL_ENGRAVED_BOX);
           button_advanced->callback((Fl_Callback*)cb_button_advanced);
         } // Fl_Button* button_advanced
-        { input_cfg_buffer = new Fl_Value_Input(15, 435, 75, 20, "Buffer (ms)");
+        { input_cfg_buffer = new Fl_Value_Input(15, 465, 75, 20, "Buffer (ms)");
           input_cfg_buffer->maximum(0);
           input_cfg_buffer->value(50);
           input_cfg_buffer->callback((Fl_Callback*)cb_input_cfg_buffer);
           input_cfg_buffer->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           input_cfg_buffer->when(FL_WHEN_ENTER_KEY);
         } // Fl_Value_Input* input_cfg_buffer
-        { choice_cfg_resample_mode = new Fl_Choice(155, 405, 125, 20, "Resample Quality");
+        { choice_cfg_resample_mode = new Fl_Choice(155, 435, 125, 20, "Resample Quality");
           choice_cfg_resample_mode->down_box(FL_BORDER_BOX);
           choice_cfg_resample_mode->callback((Fl_Callback*)cb_choice_cfg_resample_mode);
           choice_cfg_resample_mode->align(Fl_Align(FL_ALIGN_TOP_LEFT));

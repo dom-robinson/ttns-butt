@@ -33,6 +33,7 @@ void button_record_cb(void);
 void button_connect_cb(void);
 void choice_cfg_dev_cb(void);
 void choice_cfg_ttns_mic_cb(void);
+void choice_cfg_ttns_monitor_out_cb(void);
 void button_disconnect_cb(void);
 void button_add_icy_add_cb(void);
 void button_cfg_del_srv_cb(void);

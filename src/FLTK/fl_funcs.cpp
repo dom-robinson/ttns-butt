@@ -67,6 +67,14 @@ void fill_cfg_widgets(void)
         fl_g->choice_cfg_dev->value(cfg.audio.dev_num);
     }
 
+    if (fl_g->choice_cfg_ttns_monitor_out)
+    {
+        for (i = 0; i < cfg.audio.out_dev_count; i++)
+            fl_g->choice_cfg_ttns_monitor_out->add(cfg.audio.out_pcm_list[i]->name);
+        if (cfg.audio.out_dev_count > 0)
+            fl_g->choice_cfg_ttns_monitor_out->value(cfg.ttns.monitor_out_dev_num);
+    }
+
     fl_g->choice_cfg_act_srv->clear();
     fl_g->choice_cfg_act_srv->redraw();
     for(i = 0; i < cfg.main.num_of_srv; i++)

@@ -98,6 +98,8 @@ typedef struct
         int dev_count;
         int dev_num;
         snd_dev_t **pcm_list;
+        int out_dev_count;
+        snd_dev_t **out_pcm_list;
         int samplerate;
         int resolution;
         int channel;
@@ -143,6 +145,7 @@ typedef struct
         float line_gain;
         int mic_monitor;
         int mic_monitor_mute;
+        int monitor_out_dev_num;
         int mic_mute;
         int zone;
         int slot;

@@ -169,6 +169,7 @@ int cfg_write_file(char *path)
             "line_gain = %.4f\n"
             "mic_monitor = %d\n"
             "mic_monitor_mute = %d\n"
+            "monitor_output_device = %d\n"
             "mic_mute = %d\n"
             "zone = %d\n"
             "slot = %d\n"
@@ -182,6 +183,7 @@ int cfg_write_file(char *path)
             cfg.ttns.line_gain,
             cfg.ttns.mic_monitor,
             cfg.ttns.mic_monitor_mute,
+            cfg.ttns.monitor_out_dev_num,
             cfg.ttns.mic_mute,
             cfg.ttns.zone,
             cfg.ttns.slot,
@@ -307,6 +309,7 @@ int cfg_set_values(char *path)
     cfg.audio.aac_aot    = cfg_get_int("audio", "aac_aot");
     cfg.audio.aac_overwrite_aot = cfg_get_int("audio", "aac_overwrite_aot");
     cfg.audio.pcm_list   = snd_get_devices(&cfg.audio.dev_count);
+    cfg.audio.out_pcm_list = snd_get_output_devices(&cfg.audio.out_dev_count);
 
     cfg.audio.resample_mode  = cfg_get_int("audio", "resample_mode");
     
@@ -581,6 +584,7 @@ int cfg_set_values(char *path)
     cfg.ttns.line_gain = cfg_get_float("ttns", "line_gain");
     cfg.ttns.mic_monitor = cfg_get_int("ttns", "mic_monitor");
     cfg.ttns.mic_monitor_mute = cfg_get_int("ttns", "mic_monitor_mute");
+    cfg.ttns.monitor_out_dev_num = cfg_get_int("ttns", "monitor_output_device");
     cfg.ttns.mic_mute = cfg_get_int("ttns", "mic_mute");
     cfg.ttns.zone = cfg_get_int("ttns", "zone");
     cfg.ttns.slot = cfg_get_int("ttns", "slot");
@@ -597,6 +601,8 @@ int cfg_set_values(char *path)
         cfg.ttns.mic_monitor = 0;
     if (cfg.ttns.mic_monitor_mute == -1)
         cfg.ttns.mic_monitor_mute = 0;
+    if (cfg.ttns.monitor_out_dev_num == -1)
+        cfg.ttns.monitor_out_dev_num = 0;
     if (cfg.ttns.mic_mute == -1)
         cfg.ttns.mic_mute = 0;
     if (cfg.ttns.zone == -1)
@@ -608,6 +614,8 @@ int cfg_set_values(char *path)
         cfg.ttns.line_dev_num = cfg.audio.dev_num;
     if (cfg.ttns.mic_dev_num > cfg.audio.dev_count - 1)
         cfg.ttns.mic_dev_num = cfg.audio.dev_num;
+    if (cfg.ttns.monitor_out_dev_num > cfg.audio.out_dev_count - 1)
+        cfg.ttns.monitor_out_dev_num = 0;
 
     cfg.ttns.duck_depth_db = cfg_get_float("ttns", "duck_depth_db");
     cfg.ttns.duck_threshold = cfg_get_float("ttns", "duck_threshold");
@@ -738,6 +746,7 @@ int cfg_create_default(void)
             "line_gain = 1.0\n"
             "mic_monitor = 0\n"
             "mic_monitor_mute = 0\n"
+            "monitor_output_device = 0\n"
             "mic_mute = 0\n"
             "zone = 1\n"
             "slot = 1\n"

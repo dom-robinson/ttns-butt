@@ -215,6 +215,8 @@ void button_connect_cb(void)
     fl_g->choice_cfg_dev->deactivate();
     if (fl_g->choice_cfg_ttns_mic)
         fl_g->choice_cfg_ttns_mic->deactivate();
+    if (fl_g->choice_cfg_ttns_monitor_out)
+        fl_g->choice_cfg_ttns_monitor_out->deactivate();
     //the sames applies to the codecs
     fl_g->choice_cfg_codec->deactivate();
 
@@ -587,6 +589,8 @@ void button_disconnect_cb(void)
                     fl_g->choice_cfg_dev->activate();
                     if (fl_g->choice_cfg_ttns_mic)
                         fl_g->choice_cfg_ttns_mic->activate();
+                    if (fl_g->choice_cfg_ttns_monitor_out)
+                        fl_g->choice_cfg_ttns_monitor_out->activate();
                     fl_g->choice_cfg_samplerate->activate();
                 }
 
@@ -609,6 +613,8 @@ void button_disconnect_cb(void)
     fl_g->choice_cfg_dev->activate();
     if (fl_g->choice_cfg_ttns_mic)
         fl_g->choice_cfg_ttns_mic->activate();
+    if (fl_g->choice_cfg_ttns_monitor_out)
+        fl_g->choice_cfg_ttns_monitor_out->activate();
     fl_g->choice_cfg_codec->activate();
 
     fl_g->choice_cfg_bitrate->activate();
@@ -690,6 +696,8 @@ void button_record_cb(void)
             fl_g->choice_cfg_dev->activate();
             if (fl_g->choice_cfg_ttns_mic)
                 fl_g->choice_cfg_ttns_mic->activate();
+            if (fl_g->choice_cfg_ttns_monitor_out)
+                fl_g->choice_cfg_ttns_monitor_out->activate();
             fl_g->choice_cfg_samplerate->activate();
         }
 
@@ -837,6 +845,8 @@ void button_record_cb(void)
     fl_g->choice_cfg_dev->deactivate();
     if (fl_g->choice_cfg_ttns_mic)
         fl_g->choice_cfg_ttns_mic->deactivate();
+    if (fl_g->choice_cfg_ttns_monitor_out)
+        fl_g->choice_cfg_ttns_monitor_out->deactivate();
     fl_g->choice_cfg_samplerate->deactivate();
 
     //create the recording thread
@@ -2310,6 +2320,13 @@ void choice_cfg_ttns_mic_cb(void)
     cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
     snd_reinit();
     ttns_mixer_reset();
+    unsaved_changes = 1;
+}
+
+void choice_cfg_ttns_monitor_out_cb(void)
+{
+    cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
+    snd_reopen_monitor();
     unsaved_changes = 1;
 }
 

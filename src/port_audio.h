@@ -46,6 +46,8 @@ extern FILE *next_fd;
 
 int *snd_get_samplerates(int *sr_count);
 snd_dev_t **snd_get_devices(int *dev_count);
+snd_dev_t **snd_get_output_devices(int *dev_count);
+void snd_reopen_monitor(void);
 void *snd_rec_thread(void *data);
 void *snd_stream_thread(void *data);
 

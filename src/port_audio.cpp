@@ -376,7 +376,18 @@ static int snd_open_monitor(int samplerate)
     if (!cfg.ttns.mic_monitor || !ttns_use_dual_mic)
         return 0;
 
-    out_dev = Pa_GetDefaultOutputDevice();
+    {
+        int out_dev_num = cfg.ttns.monitor_out_dev_num;
+
+        if (out_dev_num < 0 || out_dev_num >= cfg.audio.out_dev_count)
+            out_dev_num = 0;
+
+        if (cfg.audio.out_dev_count > 0 && cfg.audio.out_pcm_list != NULL)
+            out_dev = cfg.audio.out_pcm_list[out_dev_num]->dev_id;
+        else
+            out_dev = Pa_GetDefaultOutputDevice();
+    }
+
     if (out_dev == paNoDevice)
     {
         print_info("Mic monitor: no output device", 1);
@@ -411,8 +422,52 @@ static int snd_open_monitor(int samplerate)
     }
 
     monitor_out_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
-    Pa_StartStream(monitor_stream);
+    if (!monitor_out_buf)
+    {
+        Pa_CloseStream(monitor_stream);
+        monitor_stream = NULL;
+        print_info("Mic monitor: out of memory", 1);
+        return 1;
+    }
+
+    pa_err = Pa_StartStream(monitor_stream);
+    if (pa_err != paNoError)
+    {
+        snprintf(info_buf, sizeof(info_buf), "Mic monitor start failed: %s",
+                 Pa_GetErrorText(pa_err));
+        print_info(info_buf, 1);
+        Pa_CloseStream(monitor_stream);
+        monitor_stream = NULL;
+        free(monitor_out_buf);
+        monitor_out_buf = NULL;
+        return 1;
+    }
+
+    {
+        int out_dev_num = cfg.ttns.monitor_out_dev_num;
+
+        if (out_dev_num < 0 || out_dev_num >= cfg.audio.out_dev_count)
+            out_dev_num = 0;
+        if (cfg.audio.out_dev_count > 0 && cfg.audio.out_pcm_list != NULL)
+        {
+            snprintf(info_buf, sizeof(info_buf), "Mic monitor: %s",
+                     cfg.audio.out_pcm_list[out_dev_num]->name);
+            print_info(info_buf, 0);
+        }
+    }
+
     return 0;
+}
+
+void snd_reopen_monitor(void)
+{
+    if (!stream || !snd_audio_active)
+    {
+        snd_close_monitor();
+        return;
+    }
+
+    snd_open_monitor(cfg.audio.samplerate);
 }
 
 int snd_open_stream(void)
@@ -1352,6 +1407,70 @@ snd_dev_t **snd_get_devices(int *dev_count)
 
 
     if(dev_num == 1)
+        *dev_count = 0;
+    else
+        *dev_count = dev_num;
+
+    return dev_list;
+}
+
+snd_dev_t **snd_get_output_devices(int *dev_count)
+{
+    int i;
+    int devcount, dev_num;
+    const PaDeviceInfo *p_di;
+    char info_buf[256];
+    PaStreamParameters pa_params;
+    snd_dev_t **dev_list;
+
+    dev_num = 0;
+    dev_list = (snd_dev_t**)malloc(100 * sizeof(snd_dev_t*));
+
+    for (i = 0; i < 100; i++)
+        dev_list[i] = (snd_dev_t*)malloc(sizeof(snd_dev_t));
+
+    dev_list[dev_num]->name = (char*)malloc(strlen("Default output (default)") + 1);
+    strcpy(dev_list[dev_num]->name, "Default output (default)");
+    dev_list[dev_num]->dev_id = Pa_GetDefaultOutputDevice();
+    dev_list[dev_num]->num_of_sr = 0;
+    dev_list[dev_num]->sr_list[0] = 0;
+    dev_num++;
+
+    devcount = Pa_GetDeviceCount();
+    if (devcount < 0)
+    {
+        snprintf(info_buf, sizeof(info_buf), "PaError: %s", Pa_GetErrorText(devcount));
+        print_info(info_buf, 1);
+    }
+
+    for (i = 0; i < devcount && i < 100; i++)
+    {
+        p_di = Pa_GetDeviceInfo(i);
+        if (p_di == NULL)
+            continue;
+
+        if (p_di->maxOutputChannels < 1)
+            continue;
+
+        pa_params.device = i;
+        pa_params.channelCount = (p_di->maxOutputChannels > 1) ? 2 : 1;
+        pa_params.sampleFormat = paInt16;
+        pa_params.suggestedLatency = p_di->defaultLowOutputLatency;
+        pa_params.hostApiSpecificStreamInfo = NULL;
+
+        if (Pa_IsFormatSupported(NULL, &pa_params, cfg.audio.samplerate) != paFormatIsSupported)
+            continue;
+
+        dev_list[dev_num]->num_of_sr = 0;
+        dev_list[dev_num]->sr_list[0] = 0;
+        dev_list[dev_num]->name = (char*)malloc(strlen(p_di->name) + 1);
+        strcpy(dev_list[dev_num]->name, p_di->name);
+        dev_list[dev_num]->dev_id = i;
+        strrpl(&dev_list[dev_num]->name, (char*)"/", (char*)"\\/", MODE_ALL);
+        dev_num++;
+    }
+
+    if (dev_num == 1)
         *dev_count = 0;
     else
         *dev_count = dev_num;

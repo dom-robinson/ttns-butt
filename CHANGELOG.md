@@ -18,7 +18,7 @@ Upstream BUTT release notes remain in `NEWS`.
 
 ### Changed
 
-- **Settings → GUI** — removed Display Color pickers (text/background); TTNS theme sets LCD colours automatically
+- **Settings → Audio → Monitor Output** — choose which output device mic monitor uses (saved as `monitor_output_device` in config) (text/background); TTNS theme sets LCD colours automatically
 - **Settings → Audio** — more spacing between Line Input (Deck) and Mic Input rows
 - Startup log shows active TTNS audio path: dual device, shared device, or line-only (see **More** panel)
 
