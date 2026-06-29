@@ -89,20 +89,8 @@ jobs:
           bash scripts/generate-icons.sh || true
       - name: Build
         run: |
-          pacman -S --needed --noconfirm mingw-w64-x86_64-libjpeg-turbo mingw-w64-x86_64-libpng mingw-w64-x86_64-zlib
           autoreconf -fi
           ./configure --disable-dependency-tracking
-          ls -la /mingw64/lib/libjpeg* /mingw64/lib/libpng* /mingw64/lib/libz* 2>&1 || true
-          fixlib() {
-            want="$1"
-            got=$(find /mingw64/lib -maxdepth 1 -name "${want}*" \( -name "*.dll.a" -o -name "*.a" \) 2>/dev/null | head -1)
-            if [ -n "$got" ]; then
-              sed -i "s|/mingw64/lib/${want}.dll.a|${got}|g" src/Makefile
-            fi
-          }
-          fixlib libjpeg
-          fixlib libpng
-          fixlib libz
           mingw32-make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh

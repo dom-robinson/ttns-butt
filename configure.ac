@@ -71,7 +71,13 @@ AC_CHECK_PROG([FLTKCONFIG],[fltk-config], [fltk-config])
 if test "$FLTKCONFIG" = "fltk-config"; then
     AC_CHECK_LIB([fltk], [main], 
 		    [
-		    LIBS="$LIBS `fltk-config --ldflags --use-images`"
+		    if test "$host_os" = "windows"; then
+			# fltk-config --use-images emits /mingw64/lib/*.a paths that
+			# MinGW ld cannot resolve on GitHub Actions; -l* import libs work.
+			LIBS="$LIBS `fltk-config --ldflags` -lfltk_images -ljpeg -lpng -lz"
+		    else
+			LIBS="$LIBS `fltk-config --ldflags --use-images`"
+		    fi
 		    CXXFLAGS="$CXXFLAGS `fltk-config --cxxflags`"
 		    ],
 		    [AC_MSG_ERROR([**** Could not find libfltk     ****])]
