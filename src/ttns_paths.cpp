@@ -5,6 +5,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <direct.h>
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <limits.h>
@@ -144,4 +145,96 @@ int ttns_path_data_file(const char *filename, char *out, size_t outlen)
 int ttns_path_asset_file(const char *filename, char *out, size_t outlen)
 {
     return ttns_resolve_bundle_file("assets", filename, out, outlen);
+}
+
+static void ttns_mkdir_p(char *path)
+{
+    char *p;
+
+#ifdef _WIN32
+    for (p = path + 1; *p; p++)
+    {
+        if (*p == '\\' || *p == '/')
+        {
+            char c = *p;
+            *p = '\0';
+            _mkdir(path);
+            *p = c;
+        }
+    }
+    _mkdir(path);
+#else
+    for (p = path + 1; *p; p++)
+    {
+        if (*p == '/')
+        {
+            *p = '\0';
+            mkdir(path, 0755);
+            *p = '/';
+        }
+    }
+    mkdir(path, 0755);
+#endif
+}
+
+int ttns_default_log_path(char *out, size_t outlen)
+{
+    const char *home;
+
+    if (!out || outlen == 0)
+        return -1;
+
+#ifdef _WIN32
+    home = getenv("LOCALAPPDATA");
+    if (!home || !home[0])
+        home = getenv("USERPROFILE");
+    if (!home || !home[0])
+        return -1;
+    snprintf(out, outlen, "%s\\TTNS Deck\\ttns-deck.log", home);
+#elif defined(__APPLE__)
+    home = getenv("HOME");
+    if (!home || !home[0])
+        return -1;
+    snprintf(out, outlen, "%s/Library/Logs/TTNS Deck/ttns-deck.log", home);
+#else
+    home = getenv("HOME");
+    if (!home || !home[0])
+        return -1;
+    snprintf(out, outlen, "%s/.local/state/ttns-deck/ttns-deck.log", home);
+#endif
+
+    return 0;
+}
+
+int ttns_ensure_log_file_ready(const char *log_path)
+{
+    char dir[PATH_MAX];
+    char *sep;
+    FILE *f;
+
+    if (!log_path || !log_path[0])
+        return -1;
+
+    strncpy(dir, log_path, sizeof(dir) - 1);
+    dir[sizeof(dir) - 1] = '\0';
+
+#ifdef _WIN32
+    sep = strrchr(dir, '\\');
+    if (!sep)
+        sep = strrchr(dir, '/');
+#else
+    sep = strrchr(dir, '/');
+#endif
+    if (!sep)
+        return -1;
+
+    *sep = '\0';
+    ttns_mkdir_p(dir);
+    *sep = '/';
+
+    f = fopen(log_path, "ab");
+    if (!f)
+        return -1;
+    fclose(f);
+    return 0;
 }

@@ -21,6 +21,7 @@
 #include <lame/lame.h>
 #include <signal.h>
 #include <limits.h>
+#include <time.h>
 #include <pthread.h>
 
 #ifdef _WIN32
@@ -48,6 +49,7 @@
 #include "flgui.h"
 #include "ttns_ui.h"
 #include "cart_player.h"
+#include "ttns_paths.h"
 #include "fl_funcs.h"
 #include "fl_timer_funcs.h"
 
@@ -186,6 +188,21 @@ int main(int argc, char *argv[])
     }
 
     ttns_ui_init(fl_g);
+
+    if (cfg.main.log_file && cfg.main.log_file[0])
+    {
+        FILE *log_fd = fopen(cfg.main.log_file, "ab");
+
+        snprintf(info_buf, sizeof(info_buf), "Session log: %s", cfg.main.log_file);
+        print_info(info_buf, 0);
+
+        if (log_fd)
+        {
+            time_t now = time(NULL);
+            fprintf(log_fd, "\n--- TTNS Deck %s started %s", PACKAGE_VERSION, ctime(&now));
+            fclose(log_fd);
+        }
+    }
 
     ttns_cart_init(cfg.audio.samplerate);
     init_main_gui_and_audio();

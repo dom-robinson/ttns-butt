@@ -26,6 +26,7 @@
 #include "fl_funcs.h"
 #include "cart_player.h"
 #include "ttns_ui.h"
+#include "ttns_paths.h"
 
 #ifdef _WIN32
  const char CONFIG_FILE[] = "buttrc";
@@ -301,6 +302,21 @@ int cfg_set_values(char *path)
     unsaved_changes = 0;
 
     cfg.main.log_file    = cfg_get_str("main", "log_file");
+
+    if (!cfg.main.log_file || !cfg.main.log_file[0])
+    {
+        char log_path[PATH_MAX];
+
+        if (ttns_default_log_path(log_path, sizeof(log_path)) == 0)
+        {
+            if (cfg.main.log_file)
+                free(cfg.main.log_file);
+            cfg.main.log_file = strdup(log_path);
+        }
+    }
+
+    if (cfg.main.log_file && cfg.main.log_file[0])
+        ttns_ensure_log_file_ready(cfg.main.log_file);
 
     cfg.audio.dev_num    = cfg_get_int("audio", "device");
     cfg.audio.samplerate = cfg_get_int("audio", "samplerate");
@@ -698,6 +714,11 @@ int cfg_create_default(void)
         snprintf(def_rec_folder, PATH_MAX, "./");
 #endif
 
+    {
+        char log_default[PATH_MAX];
+
+        if (ttns_default_log_path(log_default, sizeof(log_default)) != 0)
+            log_default[0] = '\0';
 
     fprintf(cfg_fd, "#This is a configuration file for butt (broadcast using this tool)\n\n");
     fprintf(cfg_fd, 
@@ -710,10 +731,11 @@ int cfg_create_default(void)
             "icy_ent =\n"
             "song_path =\n"
             "song_update = 0\n"
-            "log_file =\n"
+            "log_file = %s\n"
             "gain = 1.0\n"
-            "connect_at_startup = 0\n\n"
-           );
+            "connect_at_startup = 0\n\n",
+            log_default[0] ? log_default : "");
+    }
 
     fprintf(cfg_fd,
             "[audio]\n"
