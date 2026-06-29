@@ -92,9 +92,9 @@ jobs:
           pacman -S --needed --noconfirm mingw-w64-x86_64-libjpeg-turbo mingw-w64-x86_64-libpng mingw-w64-x86_64-zlib
           autoreconf -fi
           ./configure --disable-dependency-tracking
-          # MSYS2 import libraries use versioned names (libpng16, libjpeg-8)
-          sed -i 's/-lpng /-lpng16 /g; s/-lpng$/-lpng16/g' src/Makefile
-          sed -i 's/-ljpeg /-ljpeg-8 /g; s/-ljpeg$/-ljpeg-8/g' src/Makefile
+          sed -i 's|/mingw64/lib/libjpeg.dll.a|-ljpeg-8|g' src/Makefile
+          sed -i 's|/mingw64/lib/libpng.dll.a|-lpng16|g' src/Makefile
+          sed -i 's|/mingw64/lib/libz.dll.a|-lz|g' src/Makefile
           mingw32-make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh
