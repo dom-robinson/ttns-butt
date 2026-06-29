@@ -3,6 +3,29 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns.1] — Audio metering and settings layout (2026-06-29)
+
+### Fixed
+
+- **Post-fader metering** — Line and Mic fader VU bars now reflect fader gain and mic mute (not raw input level)
+- **Dual mic capture on macOS** — mic input uses a dedicated PortAudio callback + mutex instead of `Pa_ReadStream` in the main callback (fixes stale/zero mic meter and unreliable mic mix)
+- **Mono line input** — line-only and dual-device paths honour single-channel deck devices via `ttns_copy_line_to_stereo()`
+- **Streaming/Codec label overlap** — Audio tab layout corrected after Mic Input row was added (codec/bitrate moved inside frame)
+- **Settings checkbox alignment** — Stream, Record, and GUI tabs use consistent full-width rows; GUI tab labels line up in one column
+- **Device enumeration** — reset `sr_supported` per device so mono devices are not mis-reported as stereo
+- **Stream open failure** — startup warns in the log panel if PortAudio fails to open
+
+### Changed
+
+- **Settings → GUI** — removed Display Color pickers (text/background); TTNS theme sets LCD colours automatically
+- **Settings → Audio** — more spacing between Line Input (Deck) and Mic Input rows
+- Startup log shows active TTNS audio path: dual device, shared device, or line-only (see **More** panel)
+
+### Notes for DJs
+
+- **Line** and **Mic** must be **different devices** to split voice from deck audio and for ducking to work
+- Using the same mono device for both buses duplicates the signal on both faders — pick e.g. Wirecast/SplitCam for deck and built-in/USB mic for voice
+
 ## [0.1.16-ttns] — TTNS Deck UI polish (2026-06-26)
 
 ### Added

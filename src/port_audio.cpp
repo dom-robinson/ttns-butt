@@ -88,8 +88,160 @@ static short *monitor_out_buf = NULL;
 static short *ttns_mix_buf = NULL;
 static short *ttns_cart_buf = NULL;
 static short *ttns_line_buf = NULL;
+static int line_input_channels = 2;
 static int mic_input_channels = 1;
 static int ttns_use_dual_mic = 0;
+static int ttns_use_shared_input = 0;
+static pthread_mutex_t mic_capture_mutex;
+static volatile unsigned long mic_capture_frames = 0;
+static volatile int mic_capture_peak = 0;
+
+static int ttns_peak_apply_gain(int peak, float gain)
+{
+    if (peak <= 0 || gain <= 0.0f)
+        return 0;
+
+    return (int)((float)peak * gain);
+}
+
+static void ttns_push_fader_meters(int line_pk_raw, int mic_pk_raw)
+{
+    int line_meter = ttns_peak_apply_gain(line_pk_raw, cfg.ttns.line_gain);
+    int mic_meter = ttns_peak_apply_gain(mic_pk_raw, cfg.ttns.mic_gain);
+
+    if (ttns_mic_effective_mute())
+        mic_meter = 0;
+
+    ttns_meters_push(line_meter, mic_meter);
+}
+
+static int ttns_peak_line_bus(const short *line_stereo, int frameCount)
+{
+    int fi;
+    int line_pk = 0;
+
+    for (fi = 0; fi < frameCount; fi++)
+    {
+        int ll = line_stereo[fi * 2] + ttns_cart_buf[fi * 2];
+        int lr = line_stereo[fi * 2 + 1] + ttns_cart_buf[fi * 2 + 1];
+
+        ll = abs(ll);
+        lr = abs(lr);
+        if (ll > line_pk)
+            line_pk = ll;
+        if (lr > line_pk)
+            line_pk = lr;
+    }
+
+    return line_pk;
+}
+
+static int ttns_device_input_channels(int dev_num)
+{
+    const PaDeviceInfo *info;
+    PaDeviceIndex pa_id;
+
+    if (dev_num < 0 || dev_num >= cfg.audio.dev_count)
+        return 1;
+
+    pa_id = cfg.audio.pcm_list[dev_num]->dev_id;
+    info = Pa_GetDeviceInfo(pa_id);
+    if (!info || info->maxInputChannels < 1)
+        return 1;
+
+    return info->maxInputChannels;
+}
+
+static int ttns_pick_open_channels(int dev_num, int want)
+{
+    int max_ch = ttns_device_input_channels(dev_num);
+
+    if (want > max_ch)
+        want = max_ch;
+    if (want < 1)
+        want = 1;
+
+    return want;
+}
+
+static int ttns_mic_capture_cb(const void *inputBuffer, void *outputBuffer,
+                               unsigned long framesPerBuffer,
+                               const PaStreamCallbackTimeInfo *timeInfo,
+                               PaStreamCallbackFlags statusFlags,
+                               void *userData)
+{
+    size_t bytes;
+
+    (void)outputBuffer;
+    (void)timeInfo;
+    (void)statusFlags;
+    (void)userData;
+
+    if (!inputBuffer || !mic_pcm_buf || framesPerBuffer == 0)
+        return paContinue;
+
+    if (framesPerBuffer > (unsigned long)pa_frames)
+        framesPerBuffer = (unsigned long)pa_frames;
+
+    bytes = framesPerBuffer * (size_t)mic_input_channels * sizeof(short);
+    pthread_mutex_lock(&mic_capture_mutex);
+    memcpy(mic_pcm_buf, inputBuffer, bytes);
+    mic_capture_frames = framesPerBuffer;
+    mic_capture_peak = ttns_mic_peak((const short*)inputBuffer, mic_input_channels,
+                                     (int)framesPerBuffer);
+    pthread_mutex_unlock(&mic_capture_mutex);
+
+    return paContinue;
+}
+
+static void ttns_copy_line_to_stereo(short *line_stereo, const short *line_in,
+                                     int frameCount, int in_channels)
+{
+    int i;
+
+    for (i = 0; i < frameCount; i++)
+    {
+        if (in_channels >= 2)
+        {
+            line_stereo[i * 2] = line_in[i * 2];
+            line_stereo[i * 2 + 1] = line_in[i * 2 + 1];
+        }
+        else
+        {
+            line_stereo[i * 2] = line_in[i];
+            line_stereo[i * 2 + 1] = line_in[i];
+        }
+    }
+}
+
+static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
+                                  const short *mic_in, int mic_channels)
+{
+    int mic_pk_raw;
+    float duck_depth;
+    float duck_gain;
+    float mic_g;
+
+    if (ttns_use_dual_mic)
+        mic_pk_raw = mic_capture_peak;
+    else
+        mic_pk_raw = ttns_mic_peak(mic_in, mic_channels, frameCount);
+
+    duck_depth = util_db_to_factor(cfg.ttns.duck_depth_db);
+    duck_gain = ttns_duck_gain_update(mic_pk_raw, cfg.audio.samplerate, frameCount,
+                                      cfg.ttns.duck_threshold, duck_depth,
+                                      cfg.ttns.duck_attack_ms, cfg.ttns.duck_release_ms);
+
+    mic_g = cfg.ttns.mic_gain;
+    if (ttns_mic_effective_mute())
+        mic_g = 0.0f;
+
+    ttns_process_mix(ttns_mix_buf, mic_in, mic_channels, line_stereo, ttns_cart_buf,
+                     frameCount, mic_g, cfg.ttns.line_gain, duck_gain);
+    memcpy(pa_pcm_buf, ttns_mix_buf, (size_t)frameCount * 2 * sizeof(short));
+
+    ttns_push_fader_meters(ttns_peak_line_bus(line_stereo, frameCount), mic_pk_raw);
+}
 
 int snd_init(void)
 {
@@ -117,6 +269,8 @@ int snd_init(void)
 
     reconnect = 0;
     buf_index = 0;
+    pthread_mutex_init(&mic_capture_mutex, NULL);
+    mic_capture_frames = 0;
     return 0;
 }
 
@@ -241,7 +395,11 @@ int snd_open_stream(void)
     }
 
     pa_params.device = pa_dev_id;
-    pa_params.channelCount = cfg.audio.channel;
+    line_input_channels = ttns_pick_open_channels(
+        (cfg.ttns.line_dev_num >= 0 && cfg.ttns.line_dev_num < cfg.audio.dev_count)
+            ? cfg.ttns.line_dev_num : cfg.audio.dev_num,
+        cfg.audio.channel);
+    pa_params.channelCount = line_input_channels;
     pa_params.sampleFormat = paInt16;
     pa_params.suggestedLatency = pa_dev_info->defaultHighInputLatency;
     pa_params.hostApiSpecificStreamInfo = NULL;
@@ -249,7 +407,14 @@ int snd_open_stream(void)
     pa_err = Pa_IsFormatSupported(&pa_params, NULL, samplerate);
     if(pa_err != paFormatIsSupported)
     {
-        if(pa_err == paInvalidSampleRate)
+        if (line_input_channels > 1)
+        {
+            line_input_channels = 1;
+            pa_params.channelCount = 1;
+            pa_err = Pa_IsFormatSupported(&pa_params, NULL, samplerate);
+        }
+
+        if(pa_err != paFormatIsSupported && pa_err == paInvalidSampleRate)
         {
             snprintf(info_buf, sizeof(info_buf),
                     "Samplerate not supported: %dHz\n"
@@ -329,12 +494,14 @@ int snd_open_stream(void)
                 {
                     pa_err = Pa_OpenStream(&mic_stream, &mic_params, NULL,
                                            samplerate, pa_frames,
-                                           paInputOverflow, NULL, NULL);
+                                           paClipOff, ttns_mic_capture_cb, NULL);
                     if (pa_err == paNoError)
                     {
                         mic_pcm_buf = (short*)malloc(pa_frames * mic_input_channels * sizeof(short));
                         ttns_mix_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
                         ttns_use_dual_mic = 1;
+                        mic_capture_frames = 0;
+                        mic_capture_peak = 0;
                         Pa_StartStream(mic_stream);
                     }
                     else
@@ -346,15 +513,63 @@ int snd_open_stream(void)
                 }
                 else
                 {
-                    print_info("Mic device format not supported at stream samplerate", 1);
+                    snprintf(info_buf, sizeof(info_buf),
+                             "Mic device format not supported at %d Hz — check Settings → Audio",
+                             samplerate);
+                    print_info(info_buf, 1);
                 }
             }
+        }
+        else
+        {
+            int line_ch = ttns_device_input_channels(line_dev_num);
+
+            ttns_use_shared_input = 1;
+            mic_pcm_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+            ttns_mix_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+            mic_input_channels = 1;
+            if (line_ch >= 2)
+                print_info("TTNS: Deck and Mic share one device (stereo: L=mic, R=deck)", 0);
+            else
+                print_info("TTNS: Deck and Mic share one mono device — use separate devices to split mic from deck", 1);
         }
     }
 
     snd_open_monitor(samplerate);
 
     Pa_StartStream(stream);
+
+    {
+        int line_dev_num = cfg.ttns.line_dev_num;
+        int mic_dev_num = cfg.ttns.mic_dev_num;
+
+        if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
+            line_dev_num = cfg.audio.dev_num;
+        if (mic_dev_num < 0 || mic_dev_num >= cfg.audio.dev_count)
+            mic_dev_num = cfg.audio.dev_num;
+
+        if (ttns_use_dual_mic)
+        {
+            snprintf(info_buf, sizeof(info_buf),
+                     "TTNS audio: deck=%s (%d ch), mic=%s (%d ch)",
+                     cfg.audio.pcm_list[line_dev_num]->name, line_input_channels,
+                     cfg.audio.pcm_list[mic_dev_num]->name, mic_input_channels);
+        }
+        else if (ttns_use_shared_input)
+        {
+            snprintf(info_buf, sizeof(info_buf),
+                     "TTNS audio: shared device %s (stereo L=mic, R=deck)",
+                     cfg.audio.pcm_list[line_dev_num]->name);
+        }
+        else
+        {
+            snprintf(info_buf, sizeof(info_buf),
+                     "TTNS audio: deck=%s (%d ch) — mic capture inactive",
+                     cfg.audio.pcm_list[line_dev_num]->name, line_input_channels);
+        }
+        print_info(info_buf, 0);
+    }
+
     return 0;
 }
 
@@ -681,12 +896,22 @@ int snd_callback(const void *input,
     {
         const short *line_in = (const short*)input;
         const short *mic_in;
-        float duck_depth;
-        float duck_gain;
-        int mic_peak;
+        short mic_copy[4096];
+        size_t mic_bytes;
 
-        Pa_ReadStream(mic_stream, mic_pcm_buf, frameCount);
-        mic_in = mic_pcm_buf;
+        pthread_mutex_lock(&mic_capture_mutex);
+        if (mic_capture_frames > frameCount)
+            mic_capture_frames = frameCount;
+        mic_bytes = mic_capture_frames * (size_t)mic_input_channels * sizeof(short);
+        if (mic_bytes > sizeof(mic_copy))
+            mic_bytes = sizeof(mic_copy);
+        if (mic_bytes > 0)
+            memcpy(mic_copy, mic_pcm_buf, mic_bytes);
+        if (mic_bytes < frameCount * (size_t)mic_input_channels * sizeof(short))
+            memset((char*)mic_copy + mic_bytes, 0,
+                   frameCount * (size_t)mic_input_channels * sizeof(short) - mic_bytes);
+        pthread_mutex_unlock(&mic_capture_mutex);
+        mic_in = mic_copy;
 
         if (cfg.ttns.mic_monitor && !cfg.ttns.mic_monitor_mute &&
             monitor_stream != NULL && monitor_out_buf != NULL)
@@ -697,12 +922,12 @@ int snd_callback(const void *input,
                 int ml, mr;
                 if (mic_input_channels >= 2)
                 {
-                    ml = (int)(mic_pcm_buf[fi * 2] * cfg.ttns.mic_gain);
-                    mr = (int)(mic_pcm_buf[fi * 2 + 1] * cfg.ttns.mic_gain);
+                    ml = (int)(mic_copy[fi * 2] * cfg.ttns.mic_gain);
+                    mr = (int)(mic_copy[fi * 2 + 1] * cfg.ttns.mic_gain);
                 }
                 else
                 {
-                    ml = mr = (int)(mic_pcm_buf[fi] * cfg.ttns.mic_gain);
+                    ml = mr = (int)(mic_copy[fi] * cfg.ttns.mic_gain);
                 }
                 monitor_out_buf[fi * 2] = ttns_clamp16(ml);
                 monitor_out_buf[fi * 2 + 1] = ttns_clamp16(mr);
@@ -717,62 +942,66 @@ int snd_callback(const void *input,
 
         ttns_cart_render(ttns_cart_buf, (int)frameCount);
 
-        for (i = 0; i < (int)frameCount; i++)
+        ttns_copy_line_to_stereo(ttns_line_buf, line_in, (int)frameCount, line_input_channels);
+
+        ttns_finish_mix_block((int)frameCount, ttns_line_buf, mic_in, mic_input_channels);
+    }
+    else if (ttns_use_shared_input && ttns_mix_buf != NULL && mic_pcm_buf != NULL)
+    {
+        const short *in = (const short*)input;
+        const short *mic_in;
+        int mic_ch;
+
+        if (!ttns_cart_buf)
+            ttns_cart_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+        if (!ttns_line_buf)
+            ttns_line_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+
+        ttns_cart_render(ttns_cart_buf, (int)frameCount);
+
+        if (cfg.audio.channel >= 2 && line_input_channels >= 2)
         {
-            ttns_line_buf[i * 2] = line_in[i * 2];
-            ttns_line_buf[i * 2 + 1] = line_in[i * 2 + 1];
-        }
-
-        mic_peak = ttns_mic_peak(mic_in, mic_input_channels, (int)frameCount);
-        mic_peak = (int)((float)mic_peak * cfg.ttns.mic_gain);
-        duck_depth = util_db_to_factor(cfg.ttns.duck_depth_db);
-        duck_gain = ttns_duck_gain_update(mic_peak, cfg.audio.samplerate, (int)frameCount,
-                                          cfg.ttns.duck_threshold, duck_depth,
-                                          cfg.ttns.duck_attack_ms, cfg.ttns.duck_release_ms);
-
-        {
-            float mic_g = cfg.ttns.mic_gain;
-            if (ttns_mic_effective_mute())
-                mic_g = 0.0f;
-
-            ttns_process_mix(ttns_mix_buf, mic_in, mic_input_channels, ttns_line_buf, ttns_cart_buf,
-                             (int)frameCount, mic_g, cfg.ttns.line_gain, duck_gain);
-        }
-        memcpy(pa_pcm_buf, ttns_mix_buf, frameCount * 2 * sizeof(short));
-
-        {
-            int fi;
-            int line_pk = 0;
-
-            for (fi = 0; fi < (int)frameCount; fi++)
+            for (i = 0; i < (int)frameCount; i++)
             {
-                int ll = ttns_line_buf[fi * 2] + ttns_cart_buf[fi * 2];
-                int lr = ttns_line_buf[fi * 2 + 1] + ttns_cart_buf[fi * 2 + 1];
-                ll = abs((int)((float)ll * cfg.ttns.line_gain * duck_gain));
-                lr = abs((int)((float)lr * cfg.ttns.line_gain * duck_gain));
-                if (ll > line_pk)
-                    line_pk = ll;
-                if (lr > line_pk)
-                    line_pk = lr;
+                mic_pcm_buf[i] = in[i * 2];
+                ttns_line_buf[i * 2] = in[i * 2 + 1];
+                ttns_line_buf[i * 2 + 1] = in[i * 2 + 1];
             }
-            ttns_meters_push(line_pk, mic_peak);
+            mic_in = mic_pcm_buf;
+            mic_ch = 1;
         }
+        else
+        {
+            for (i = 0; i < (int)frameCount; i++)
+            {
+                ttns_line_buf[i * 2] = in[i];
+                ttns_line_buf[i * 2 + 1] = in[i];
+            }
+            mic_in = in;
+            mic_ch = 1;
+        }
+
+        ttns_finish_mix_block((int)frameCount, ttns_line_buf, mic_in, mic_ch);
     }
     else
     {
         const short *line_in = (const short*)input;
+        int line_pk_raw;
 
         if (!ttns_cart_buf)
             ttns_cart_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
         if (!ttns_mix_buf)
             ttns_mix_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
+        if (!ttns_line_buf)
+            ttns_line_buf = (short*)malloc(pa_frames * 2 * sizeof(short));
 
         ttns_cart_render(ttns_cart_buf, (int)frameCount);
+        ttns_copy_line_to_stereo(ttns_line_buf, line_in, (int)frameCount, line_input_channels);
 
         for (i = 0; i < (int)frameCount; i++)
         {
-            int l = line_in[i * 2];
-            int r = line_in[i * 2 + 1];
+            int l = ttns_line_buf[i * 2];
+            int r = ttns_line_buf[i * 2 + 1];
             int cl = ttns_cart_buf[i * 2];
             int cr = ttns_cart_buf[i * 2 + 1];
             float g = cfg.ttns.line_gain;
@@ -782,22 +1011,8 @@ int snd_callback(const void *input,
         }
         memcpy(pa_pcm_buf, ttns_mix_buf, frameCount * cfg.audio.channel * sizeof(short));
 
-        {
-            int fi;
-            int line_pk = 0;
-            float g = cfg.ttns.line_gain;
-
-            for (fi = 0; fi < (int)frameCount; fi++)
-            {
-                int ll = abs((int)((float)(line_in[fi * 2] + ttns_cart_buf[fi * 2]) * g));
-                int lr = abs((int)((float)(line_in[fi * 2 + 1] + ttns_cart_buf[fi * 2 + 1]) * g));
-                if (ll > line_pk)
-                    line_pk = ll;
-                if (lr > line_pk)
-                    line_pk = lr;
-            }
-            ttns_meters_push(line_pk, 0);
-        }
+        line_pk_raw = ttns_peak_line_bus(ttns_line_buf, (int)frameCount);
+        ttns_push_fader_meters(line_pk_raw, 0);
     }
     samplerate_out = cfg.audio.samplerate;
 	
@@ -927,6 +1142,7 @@ snd_dev_t **snd_get_devices(int *dev_count)
     for(i = 0; i < devcount && i < 100; i++)
     {
         sr_count = 0;
+        sr_supported = 0;
         p_di = Pa_GetDeviceInfo(i);
         if(p_di == NULL)
         {
@@ -941,7 +1157,14 @@ snd_dev_t **snd_get_devices(int *dev_count)
             continue;
 
         pa_params.device = i;
-        pa_params.channelCount = cfg.audio.channel;
+        {
+            int dev_ch = cfg.audio.channel;
+            if ((int)p_di->maxInputChannels < dev_ch)
+                dev_ch = p_di->maxInputChannels;
+            if (dev_ch < 1)
+                dev_ch = 1;
+            pa_params.channelCount = dev_ch;
+        }
         pa_params.sampleFormat = paInt16;
         pa_params.suggestedLatency = p_di->defaultHighInputLatency;
         pa_params.hostApiSpecificStreamInfo = NULL;
@@ -1062,6 +1285,9 @@ void snd_close(void)
     ttns_cart_buf = NULL;
     ttns_line_buf = NULL;
     ttns_use_dual_mic = 0;
+    ttns_use_shared_input = 0;
+
+    pthread_mutex_destroy(&mic_capture_mutex);
 
     free(pa_pcm_buf);
     free(encode_buf);

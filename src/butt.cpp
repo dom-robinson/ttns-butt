@@ -191,7 +191,8 @@ int main(int argc, char *argv[])
     init_main_gui_and_audio();
     ttns_ui_sync_from_cfg();
 
-    snd_open_stream();
+    if (snd_open_stream() != 0)
+        print_info("WARNING: Audio input failed to open — check Settings → Audio devices", 1);
 
     vu_init();
 

@@ -40,10 +40,12 @@ Open **Settings** (bottom-right) → **Audio** tab and pick **Line Input (Deck)*
 
 ### 2. Levels
 
-- **Line** fader — music / deck level (VU meter in the track)  
-- **Mic** fader — voice level  
+- **Line** fader — music / deck level (VU meter in the track reflects fader gain)  
+- **Mic** fader — voice level (meter follows fader and mute state)  
 - **Gate** / **Depth** — ducking threshold and how far music drops when you speak  
 - **Duck** indicator (top right) turns **yellow** when music is being ducked  
+
+After launch, open **More** and look for a line like `TTNS audio: deck=… mic=…` — that confirms separate devices are in use.
 
 ### 3. Mount
 
@@ -91,6 +93,8 @@ Useful to avoid Bluetooth latency when you don’t want to hear yourself.
 
 Click **Settings** (above **More**, bottom-right) for codec (MP3/OGG/Opus/AAC), bitrate, buffer size, and recording options. TTNS DJs rarely need to change server settings — Mount handles that.
 
+The **GUI** tab only has window behaviour options (attach, always on top, LCD auto-cycle). Display colours are fixed by the TTNS theme.
+
 ---
 
 ## Building from source (developers)
@@ -129,6 +133,8 @@ bash scripts/build-windows.sh
 |---------|--------|
 | No connect | Internet, correct Mount, firewall allows outbound :8080 |
 | Ducking never triggers | Line and Mic must be separate devices |
+| Mic level on wrong fader | Same device selected for Line and Mic — use deck loopback + separate mic |
+| Mic meter flat but line moves | Mic device failed to open; check **More** log and **Settings → Audio** |
 | Carts silent | Assign a supported file (WAV/MP3/FLAC/OGG); right-click to re-assign |
 | Mic won’t unmute | Click LIVE/MUTED button or Space — both toggle the same state |
 | macOS “unidentified developer” | Right-click app → Open, or ops team re-signs build |

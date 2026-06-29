@@ -2841,54 +2841,6 @@ void check_gui_lcd_auto_cb(void)
     unsaved_changes = 1;
 }
 
-void button_gui_bg_color_cb(void)
-{
-    uchar r, g, b;
-
-    Fl_Color bg;
-    bg  = (Fl_Color)cfg.main.bg_color;
-
-    //Set the r g b values the color_chooser should start with
-    r = (bg & 0xFF000000) >> 24;
-    g = (bg & 0x00FF0000) >> 16;
-    b = (bg & 0x0000FF00) >>  8;
-
-    fl_color_chooser((const char*)"select background color", r, g, b);
-
-    //The color_chooser changes the r, g, b, values to selected color
-    cfg.main.bg_color = fl_rgb_color(r, g, b);
-
-    fl_g->button_gui_bg_color->color(cfg.main.bg_color, fl_lighter((Fl_Color)cfg.main.bg_color));
-    fl_g->button_gui_bg_color->redraw();
-    fl_g->lcd->redraw();
-
-    unsaved_changes = 1;
-}
-
-void button_gui_text_color_cb(void)
-{
-    uchar r, g, b;
-
-    Fl_Color txt;
-    txt = (Fl_Color)cfg.main.txt_color;
-
-    //Set the r g b values the color_chooser should start with
-    r = (txt & 0xFF000000) >> 24;
-    g = (txt & 0x00FF0000) >> 16;
-    b = (txt & 0x0000FF00) >>  8;
-
-    fl_color_chooser((const char*)"select text color", r, g, b);
-
-    //The color_chooser changes the r, g, b, values to selected color
-    cfg.main.txt_color = fl_rgb_color(r, g, b);
-
-    fl_g->button_gui_text_color->color(cfg.main.txt_color, fl_lighter((Fl_Color)cfg.main.txt_color));
-    fl_g->button_gui_text_color->redraw();
-    fl_g->lcd->redraw();
-
-    unsaved_changes = 1;
-}
-
 void check_cfg_rec_cb(void)
 {
     cfg.rec.start_rec = fl_g->check_cfg_rec->value();

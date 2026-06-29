@@ -182,11 +182,6 @@ void fill_cfg_widgets(void)
 
     update_samplerates();
 
-    //fill the GUI section
-    fl_g->button_gui_bg_color->color(cfg.main.bg_color,
-            fl_lighter((Fl_Color)cfg.main.bg_color));
-    fl_g->button_gui_text_color->color(cfg.main.txt_color,
-            fl_lighter((Fl_Color)cfg.main.txt_color));
     fl_g->check_gui_attach->value(cfg.gui.attach);
     fl_g->check_gui_ontop->value(cfg.gui.ontop);
     if(cfg.gui.ontop)

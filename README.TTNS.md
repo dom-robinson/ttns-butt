@@ -64,10 +64,11 @@ See **[`docs/TTNS_DJ_GUIDE.md`](docs/TTNS_DJ_GUIDE.md)** for the full presenter 
 
 1. **Settings → Audio** — set **Line Input (Deck)** and **Mic Input** (different devices for ducking).  
 2. Pick **Mount** (`ttnszone 1-1` … `4-5`) → **Connect**.  
-3. Balance **Line** / **Mic** faders; watch **Duck** LED (yellow when ducking).  
-4. Use the large **LIVE / MUTED** mic button (or **Space**) to toggle mic on air.  
-5. Right-click carts to assign audio; click or press **1–8** to play.  
-6. **Settings** (bottom-right) → codec/bitrate if needed.
+3. Balance **Line** / **Mic** faders; VU bars in each track follow fader position (post-fader).  
+4. Watch **Duck** LED (yellow when ducking).  
+5. Use the large **LIVE / MUTED** mic button (or **Space**) to toggle mic on air.  
+6. Right-click carts to assign audio; click or press **1–8** to play.  
+7. **Settings** (bottom-right) → codec/bitrate if needed. Check **More** after launch for the audio path log line.
 
 Stream target: `decks.thethursdaynightshow.com:8080` (presets in bundled `data/ttns-zones.json`).
 
@@ -96,7 +97,9 @@ Theme: black background, terminal green text, red accents.
 - [x] Mic monitor + Mic to Mon checkboxes  
 - [x] TTNS-themed faders, carts, transport, LCD frame  
 - [x] Cross-platform resource paths (app bundle / install dir / dev tree)  
-- [x] Packaging scripts + CI for macOS, Linux, Windows  
+- [x] Post-fader VU meters on Line/Mic faders  
+- [x] Reliable dual-device mic capture (macOS)  
+- [x] Settings layout cleanup (Audio / Stream / Record / GUI tabs)  
 
 ---
 

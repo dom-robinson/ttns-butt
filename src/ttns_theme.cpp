@@ -326,16 +326,6 @@ static void ttns_theme_apply_lcd_cfg(flgui *g)
     cfg.main.bg_color = (int)ttns_col_bg();
     cfg.main.txt_color = (int)ttns_col_green();
 
-    if (g->button_gui_bg_color)
-    {
-        g->button_gui_bg_color->color(ttns_col_bg());
-        g->button_gui_bg_color->selection_color(ttns_col_dark());
-    }
-    if (g->button_gui_text_color)
-    {
-        g->button_gui_text_color->color(ttns_col_green());
-        g->button_gui_text_color->selection_color(ttns_col_dark());
-    }
     if (g->lcd)
         g->lcd->redraw();
 }

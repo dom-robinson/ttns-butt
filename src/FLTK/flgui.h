@@ -300,16 +300,6 @@ private:
   inline void cb_check_cfg_rec_i(Fl_Check_Button*, void*);
   static void cb_check_cfg_rec(Fl_Check_Button*, void*);
 public:
-  Fl_Button *button_gui_text_color;
-private:
-  inline void cb_button_gui_text_color_i(Fl_Button*, void*);
-  static void cb_button_gui_text_color(Fl_Button*, void*);
-public:
-  Fl_Button *button_gui_bg_color;
-private:
-  inline void cb_button_gui_bg_color_i(Fl_Button*, void*);
-  static void cb_button_gui_bg_color(Fl_Button*, void*);
-public:
   Fl_Check_Button *check_gui_attach;
 private:
   inline void cb_check_gui_attach_i(Fl_Check_Button*, void*);

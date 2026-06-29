@@ -93,9 +93,6 @@ void button_cfg_log_browse_cb(void);
 void check_gui_attach_cb(void);
 void check_gui_ontop_cb(void);
 void check_gui_lcd_auto_cb(void);
-void button_gui_bg_color_cb(void);
-void button_gui_text_color_cb(void);
-
 void slider_gain_cb(void);
 
 void check_cfg_rec_cb(void);

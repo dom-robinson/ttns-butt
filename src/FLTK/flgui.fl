@@ -333,11 +333,11 @@ button_cfg->label("Settings@>");} open
           }
           Fl_Group {} {
             label Streaming open
-            xywh {15 179 265 60} box ENGRAVED_FRAME align 5
+            xywh {15 212 265 58} box ENGRAVED_FRAME align 5
           } {
             Fl_Choice choice_cfg_codec {
               label Codec open
-              tooltip {Select streaming codec} xywh {20 207 125 20} box ENGRAVED_BOX down_box BORDER_BOX align 5
+              tooltip {Select streaming codec} xywh {20 232 125 20} box ENGRAVED_BOX down_box BORDER_BOX align 5
             } {
               MenuItem {} {
                 label MP3
@@ -363,7 +363,7 @@ button_cfg->label("Settings@>");} open
             Fl_Choice choice_cfg_bitrate {
               label Bitrate
               callback {choice_cfg_bitrate_cb();}
-              tooltip {Select streaming bitrate} xywh {160 207 115 20} box ENGRAVED_BOX down_box BORDER_BOX align 5
+              tooltip {Select streaming bitrate} xywh {160 232 115 20} box ENGRAVED_BOX down_box BORDER_BOX align 5
             } {
               MenuItem {} {
                 label 8k
@@ -437,11 +437,11 @@ button_cfg->label("Settings@>");} open
           }
           Fl_Group {} {
             label Recording open
-            xywh {15 266 265 60} box ENGRAVED_FRAME align 5
+            xywh {15 282 265 58} box ENGRAVED_FRAME align 5
           } {
             Fl_Choice choice_rec_codec {
               label Codec open
-              tooltip {Select recording codec} xywh {20 295 125 20} box ENGRAVED_BOX down_box BORDER_BOX align 5
+              tooltip {Select recording codec} xywh {20 302 125 20} box ENGRAVED_BOX down_box BORDER_BOX align 5
             } {
               MenuItem {} {
                 label MP3
@@ -477,7 +477,7 @@ button_cfg->label("Settings@>");} open
             Fl_Choice choice_rec_bitrate {
               label Bitrate
               callback {choice_rec_bitrate_cb();} open
-              tooltip {Select recording bitrate} xywh {160 295 115 20} down_box BORDER_BOX align 5
+              tooltip {Select recording bitrate} xywh {160 302 115 20} down_box BORDER_BOX align 5
             } {
               MenuItem {} {
                 label 8k
@@ -640,7 +640,7 @@ else
           Fl_Check_Button check_cfg_connect {
             label {Start streaming at startup}
             callback {check_cfg_connect_cb();}
-            tooltip {Connect automatically to a server at startup} xywh {15 202 159 18} down_box DOWN_BOX
+            tooltip {Connect automatically to a server at startup} xywh {15 205 265 22} down_box DOWN_BOX
           }
         }
         Fl_Group {} {
@@ -690,42 +690,27 @@ else
           Fl_Check_Button check_cfg_rec {
             label {Start recording when connected}
             callback {check_cfg_rec_cb();}
-            tooltip {Start recording when connected} xywh {15 246 265 15} down_box DOWN_BOX
+            tooltip {Start recording when connected} xywh {15 232 265 22} down_box DOWN_BOX
           }
         }
         Fl_Group {} {
           label GUI open
           xywh {0 19 300 450} hide
         } {
-          Fl_Group {} {
-            label {Display Color:} open
-            xywh {15 50 265 80} box ENGRAVED_FRAME align 5
-          } {
-            Fl_Button button_gui_text_color {
-              label {Select text color}
-              callback {button_gui_text_color_cb();}
-              tooltip {Select text color} xywh {23 60 25 25} box SHADOW_BOX color 7 align 8
-            }
-            Fl_Button button_gui_bg_color {
-              label {Select background color}
-              callback {button_gui_bg_color_cb();}
-              tooltip {Select background color} xywh {23 95 25 25} box SHADOW_BOX color 15 align 8
-            }
-          }
           Fl_Check_Button check_gui_attach {
             label {Attach this window to butt window}
             callback {check_gui_attach_cb();}
-            tooltip {Attach this window to the butt window} xywh {15 153 245 22} down_box DOWN_BOX
+            tooltip {Attach this window to the butt window} xywh {15 55 265 22} down_box DOWN_BOX
           }
           Fl_Check_Button check_gui_ontop {
             label {Stay always on top}
             callback {check_gui_ontop_cb();}
-            tooltip {Stay always on top} xywh {15 178 175 20} down_box DOWN_BOX
+            tooltip {Stay always on top} xywh {15 85 265 22} down_box DOWN_BOX
           }
           Fl_Check_Button check_gui_lcd_auto {
             label {Change LCD mode every 5 secs}
             callback {check_gui_lcd_auto_cb()}
-            tooltip {Change LCD mode every 5 seconds} xywh {15 198 230 27} down_box DOWN_BOX
+            tooltip {Change LCD mode every 5 seconds} xywh {15 115 265 22} down_box DOWN_BOX
           }
         }
       }

@@ -858,20 +858,6 @@ void flgui::cb_check_cfg_rec(Fl_Check_Button* o, void* v) {
   ((flgui*)(o->parent()->parent()->parent()->user_data()))->cb_check_cfg_rec_i(o,v);
 }
 
-void flgui::cb_button_gui_text_color_i(Fl_Button*, void*) {
-  button_gui_text_color_cb();
-}
-void flgui::cb_button_gui_text_color(Fl_Button* o, void* v) {
-  ((flgui*)(o->parent()->parent()->parent()->parent()->user_data()))->cb_button_gui_text_color_i(o,v);
-}
-
-void flgui::cb_button_gui_bg_color_i(Fl_Button*, void*) {
-  button_gui_bg_color_cb();
-}
-void flgui::cb_button_gui_bg_color(Fl_Button* o, void* v) {
-  ((flgui*)(o->parent()->parent()->parent()->parent()->user_data()))->cb_button_gui_bg_color_i(o,v);
-}
-
 void flgui::cb_check_gui_attach_i(Fl_Check_Button*, void*) {
   check_gui_attach_cb();
 }
@@ -1296,29 +1282,29 @@ flgui::flgui() {
       } // Fl_Group* o
       { Fl_Group* o = new Fl_Group(0, 19, 300, 450, "Audio");
         o->hide();
-        { Fl_Group* o = new Fl_Group(15, 55, 265, 130, "Main Audio Settings");
+        { Fl_Group* o = new Fl_Group(15, 55, 265, 148, "Main Audio Settings");
           o->box(FL_ENGRAVED_FRAME);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          { choice_cfg_dev = new Fl_Choice(23, 84, 250, 20, "Line Input (Deck)");
+          { choice_cfg_dev = new Fl_Choice(23, 72, 250, 20, "Line Input (Deck)");
             choice_cfg_dev->tooltip("Audio device for line/deck input (carts + line fader)");
             choice_cfg_dev->down_box(FL_FLAT_BOX);
             choice_cfg_dev->callback((Fl_Callback*)cb_choice_cfg_dev);
             choice_cfg_dev->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Choice* choice_cfg_dev
-          { choice_cfg_ttns_mic = new Fl_Choice(23, 114, 250, 20, "Mic Input");
+          { choice_cfg_ttns_mic = new Fl_Choice(23, 112, 250, 20, "Mic Input");
             choice_cfg_ttns_mic->tooltip("Audio device for microphone input");
             choice_cfg_ttns_mic->down_box(FL_FLAT_BOX);
             choice_cfg_ttns_mic->callback((Fl_Callback*)cb_choice_cfg_ttns_mic);
             choice_cfg_ttns_mic->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Choice* choice_cfg_ttns_mic
-          { choice_cfg_channel = new Fl_Choice(23, 154, 114, 20, "Channel");
+          { choice_cfg_channel = new Fl_Choice(23, 162, 114, 20, "Channel");
             choice_cfg_channel->tooltip("Select input channel");
             choice_cfg_channel->box(FL_ENGRAVED_BOX);
             choice_cfg_channel->down_box(FL_BORDER_BOX);
             choice_cfg_channel->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             choice_cfg_channel->menu(menu_choice_cfg_channel);
           } // Fl_Choice* choice_cfg_channel
-          { choice_cfg_samplerate = new Fl_Choice(158, 154, 115, 20, "Samplerate");
+          { choice_cfg_samplerate = new Fl_Choice(158, 162, 115, 20, "Samplerate");
             choice_cfg_samplerate->tooltip("Select input sample rate");
             choice_cfg_samplerate->down_box(FL_BORDER_BOX);
             choice_cfg_samplerate->callback((Fl_Callback*)cb_choice_cfg_samplerate);
@@ -1326,17 +1312,17 @@ flgui::flgui() {
           } // Fl_Choice* choice_cfg_samplerate
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(15, 209, 265, 60, "Streaming");
+        { Fl_Group* o = new Fl_Group(15, 212, 265, 58, "Streaming");
           o->box(FL_ENGRAVED_FRAME);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          { choice_cfg_codec = new Fl_Choice(20, 207, 125, 20, "Codec");
+          { choice_cfg_codec = new Fl_Choice(20, 232, 125, 20, "Codec");
             choice_cfg_codec->tooltip("Select streaming codec");
             choice_cfg_codec->box(FL_ENGRAVED_BOX);
             choice_cfg_codec->down_box(FL_BORDER_BOX);
             choice_cfg_codec->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             choice_cfg_codec->menu(menu_choice_cfg_codec);
           } // Fl_Choice* choice_cfg_codec
-          { choice_cfg_bitrate = new Fl_Choice(160, 207, 115, 20, "Bitrate");
+          { choice_cfg_bitrate = new Fl_Choice(160, 232, 115, 20, "Bitrate");
             choice_cfg_bitrate->tooltip("Select streaming bitrate");
             choice_cfg_bitrate->box(FL_ENGRAVED_BOX);
             choice_cfg_bitrate->down_box(FL_BORDER_BOX);
@@ -1346,17 +1332,17 @@ flgui::flgui() {
           } // Fl_Choice* choice_cfg_bitrate
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(15, 296, 265, 60, "Recording");
+        { Fl_Group* o = new Fl_Group(15, 282, 265, 58, "Recording");
           o->box(FL_ENGRAVED_FRAME);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          { choice_rec_codec = new Fl_Choice(20, 295, 125, 20, "Codec");
+          { choice_rec_codec = new Fl_Choice(20, 302, 125, 20, "Codec");
             choice_rec_codec->tooltip("Select recording codec");
             choice_rec_codec->box(FL_ENGRAVED_BOX);
             choice_rec_codec->down_box(FL_BORDER_BOX);
             choice_rec_codec->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             choice_rec_codec->menu(menu_choice_rec_codec);
           } // Fl_Choice* choice_rec_codec
-          { choice_rec_bitrate = new Fl_Choice(160, 295, 115, 20, "Bitrate");
+          { choice_rec_bitrate = new Fl_Choice(160, 302, 115, 20, "Bitrate");
             choice_rec_bitrate->tooltip("Select recording bitrate");
             choice_rec_bitrate->down_box(FL_BORDER_BOX);
             choice_rec_bitrate->callback((Fl_Callback*)cb_choice_rec_bitrate);
@@ -1365,7 +1351,7 @@ flgui::flgui() {
           } // Fl_Choice* choice_rec_bitrate
           o->end();
         } // Fl_Group* o
-        { button_advanced = new Fl_Button(15, 375, 89, 25, "Advanced...");
+        { button_advanced = new Fl_Button(15, 355, 89, 25, "Advanced...");
           button_advanced->box(FL_ENGRAVED_BOX);
           button_advanced->callback((Fl_Callback*)cb_button_advanced);
         } // Fl_Button* button_advanced
@@ -1426,7 +1412,7 @@ flgui::flgui() {
           } // Fl_Button* o
           o->end();
         } // Fl_Group* o
-        { check_cfg_connect = new Fl_Ttns_Check_Button(15, 202, 159, 18, "Start streaming at startup");
+        { check_cfg_connect = new Fl_Ttns_Check_Button(15, 205, 265, 22, "Start streaming at startup");
           check_cfg_connect->tooltip("Connect automatically to a server at startup");
           check_cfg_connect->down_box(FL_DOWN_BOX);
           check_cfg_connect->callback((Fl_Callback*)cb_check_cfg_connect);
@@ -1472,7 +1458,7 @@ flgui::flgui() {
           } // Fl_Button* o
           o->end();
         } // Fl_Group* o
-        { check_cfg_rec = new Fl_Ttns_Check_Button(15, 246, 265, 15, "Start recording when connected");
+        { check_cfg_rec = new Fl_Ttns_Check_Button(15, 232, 265, 22, "Start recording when connected");
           check_cfg_rec->tooltip("Start recording when connected");
           check_cfg_rec->down_box(FL_DOWN_BOX);
           check_cfg_rec->callback((Fl_Callback*)cb_check_cfg_rec);
@@ -1481,36 +1467,17 @@ flgui::flgui() {
       } // Fl_Group* o
       { Fl_Group* o = new Fl_Group(0, 19, 300, 450, "GUI");
         o->hide();
-        { Fl_Group* o = new Fl_Group(15, 50, 265, 80, "Display Color:");
-          o->box(FL_ENGRAVED_FRAME);
-          o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          { button_gui_text_color = new Fl_Button(23, 60, 25, 25, "Select text color");
-            button_gui_text_color->tooltip("Select text color");
-            button_gui_text_color->box(FL_SHADOW_BOX);
-            button_gui_text_color->color(FL_BACKGROUND2_COLOR);
-            button_gui_text_color->callback((Fl_Callback*)cb_button_gui_text_color);
-            button_gui_text_color->align(Fl_Align(FL_ALIGN_RIGHT));
-          } // Fl_Button* button_gui_text_color
-          { button_gui_bg_color = new Fl_Button(23, 95, 25, 25, "Select background color");
-            button_gui_bg_color->tooltip("Select background color");
-            button_gui_bg_color->box(FL_SHADOW_BOX);
-            button_gui_bg_color->color(FL_SELECTION_COLOR);
-            button_gui_bg_color->callback((Fl_Callback*)cb_button_gui_bg_color);
-            button_gui_bg_color->align(Fl_Align(FL_ALIGN_RIGHT));
-          } // Fl_Button* button_gui_bg_color
-          o->end();
-        } // Fl_Group* o
-        { check_gui_attach = new Fl_Ttns_Check_Button(15, 153, 245, 22, "Attach this window to butt window");
+        { check_gui_attach = new Fl_Ttns_Check_Button(15, 55, 265, 22, "Attach this window to butt window");
           check_gui_attach->tooltip("Attach this window to the butt window");
           check_gui_attach->down_box(FL_DOWN_BOX);
           check_gui_attach->callback((Fl_Callback*)cb_check_gui_attach);
         } // Fl_Check_Button* check_gui_attach
-        { check_gui_ontop = new Fl_Ttns_Check_Button(15, 178, 175, 20, "Stay always on top");
+        { check_gui_ontop = new Fl_Ttns_Check_Button(15, 85, 265, 22, "Stay always on top");
           check_gui_ontop->tooltip("Stay always on top");
           check_gui_ontop->down_box(FL_DOWN_BOX);
           check_gui_ontop->callback((Fl_Callback*)cb_check_gui_ontop);
         } // Fl_Check_Button* check_gui_ontop
-        { check_gui_lcd_auto = new Fl_Ttns_Check_Button(15, 198, 230, 27, "Change LCD mode every 5 secs");
+        { check_gui_lcd_auto = new Fl_Ttns_Check_Button(15, 115, 265, 22, "Change LCD mode every 5 secs");
           check_gui_lcd_auto->tooltip("Change LCD mode every 5 seconds");
           check_gui_lcd_auto->down_box(FL_DOWN_BOX);
           check_gui_lcd_auto->callback((Fl_Callback*)cb_check_gui_lcd_auto);
