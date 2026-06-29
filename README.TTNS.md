@@ -53,7 +53,7 @@ Apple Silicon uses `/opt/homebrew`; Intel uses `/usr/local` — handled by `conf
 
 ```bash
 sudo apt install build-essential autoconf automake libtool pkg-config \
-  libfltk1.3-dev libportaudio2 libportaudio-dev libmp3lame-dev \
+  libfltk1.3-dev libportaudio2 portaudio19-dev libmp3lame-dev \
   libvorbis-dev libogg-dev libflac-dev libopus-dev libsamplerate0-dev libfdk-aac-dev
 autoreconf -fi && ./configure && make -C src
 ./scripts/build-release.sh

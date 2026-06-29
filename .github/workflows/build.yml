@@ -47,7 +47,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential autoconf automake libtool pkg-config \
-            libfltk1.3-dev libportaudio2 libportaudio-dev libmp3lame-dev \
+            libfltk1.3-dev libportaudio2 portaudio19-dev libmp3lame-dev \
             libvorbis-dev libogg-dev libflac-dev libopus-dev libsamplerate0-dev \
             libfdk-aac-dev python3-pillow
       - name: Build
@@ -77,7 +77,7 @@ jobs:
           msystem: MINGW64
           update: true
           install: >-
-            mingw-w64-x86_64-toolchain mingw-w64-x86_64-fltk mingw-w64-x86_64-portaudio
+            mingw-w64-x86_64-toolchain mingw-w64-x86_64-make mingw-w64-x86_64-fltk mingw-w64-x86_64-portaudio
             mingw-w64-x86_64-lame mingw-w64-x86_64-libvorbis mingw-w64-x86_64-flac
             mingw-w64-x86_64-opus mingw-w64-x86_64-libsamplerate mingw-w64-x86_64-fdk-aac
             autoconf automake libtool pkg-config git zip
