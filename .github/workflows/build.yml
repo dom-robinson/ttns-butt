@@ -92,9 +92,16 @@ jobs:
           pacman -S --needed --noconfirm mingw-w64-x86_64-libjpeg-turbo mingw-w64-x86_64-libpng mingw-w64-x86_64-zlib
           autoreconf -fi
           ./configure --disable-dependency-tracking
-          sed -i 's|/mingw64/lib/libjpeg.dll.a|-ljpeg-8|g' src/Makefile
-          sed -i 's|/mingw64/lib/libpng.dll.a|-lpng16|g' src/Makefile
-          sed -i 's|/mingw64/lib/libz.dll.a|-lz|g' src/Makefile
+          fixlib() {
+            want="$1"
+            got=$(ls /mingw64/lib/${want}*.dll.a 2>/dev/null | head -1)
+            if [ -n "$got" ]; then
+              sed -i "s|/mingw64/lib/${want}.dll.a|${got}|g" src/Makefile
+            fi
+          }
+          fixlib libjpeg
+          fixlib libpng
+          fixlib libz
           mingw32-make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh
