@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([ttns-deck], [0.1.16-ttns-pre.3], [https://thethursdaynightshow.com])
+AC_INIT([ttns-deck], [0.1.16-ttns-pre.4], [https://thethursdaynightshow.com])
 AM_INIT_AUTOMAKE([subdir-objects foreign])
 
 AC_CONFIG_SRCDIR([config.h.in])

@@ -3,6 +3,18 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-pre.4] — GitHub release packaging fix (2026-07-01)
+
+**Tag:** `v0.1.16-ttns-pre.4`
+
+### Fixed
+
+- **GitHub Release** — attach only the four platform archives; avoid duplicate asset upload failures from merged CI trees
+- **`scripts/stage-release-packages.sh`** — collect release zips from CI artifacts or local `dist/`
+- **`scripts/package-dj-testers.sh`** — renamed DJ handoff packages; accepts CI artifact directory
+
+---
+
 ## [0.1.16-ttns-pre.3] — Licensing and distribution compliance (2026-07-01)
 
 **Tag:** `v0.1.16-ttns-pre.3`

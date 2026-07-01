@@ -111,9 +111,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts
-          merge-multiple: true
-      - name: List packages
-        run: find release-artifacts -type f | sort
+      - name: Stage release packages
+        run: |
+          chmod +x scripts/stage-release-packages.sh
+          ./scripts/stage-release-packages.sh release-packages release-artifacts
       - name: Create GitHub pre-release
         uses: softprops/action-gh-release@v2
         with:
@@ -124,10 +125,10 @@ jobs:
 
             DJ testing build. See [docs/TTNS_DJ_GUIDE.md](docs/TTNS_DJ_GUIDE.md) and [docs/RELEASE.md](docs/RELEASE.md).
 
-            **v0.1.16-ttns-pre.3** — binary packages include `legal/` with GPL and third-party license texts ([docs/LICENSING.md](docs/LICENSING.md)).
+            Binary packages include `legal/` with GPL and third-party license texts ([docs/LICENSING.md](docs/LICENSING.md)).
 
-            | Platform | Look for |
-            |----------|----------|
+            | Platform | File |
+            |----------|------|
             | macOS Apple Silicon | `ttns-deck-arm64-macos.zip` |
             | macOS Intel | `ttns-deck-x86_64-macos.zip` |
             | Linux x64 | `ttns-deck-linux-x86_64.tar.gz` |
@@ -136,7 +137,6 @@ jobs:
             **Unsigned macOS:** right-click app → Open the first time.
 
             Config contains Icecast passwords — distribute only to TTNS DJs.
-          files: |
-            release-artifacts/**/*
+          files: release-packages/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

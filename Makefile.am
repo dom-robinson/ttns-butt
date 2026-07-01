@@ -7,7 +7,7 @@ EXTRA_DIST = src/xpm config.h src/butt.manifest xcode player_plugins icons usr C
 	     src/FLTK/Fl_My_Native_File_Chooser_GTK.cxx \
 	     README.TTNS.md CHANGELOG.md docs/TTNS_DEVELOPMENT_PLAN.md docs/TTNS_DJ_GUIDE.md docs/RELEASE.md docs/TESTER_FEEDBACK.md \
 	     docs/DISTRIBUTION_LICENSE.txt docs/THIRD_PARTY_NOTICES.md docs/licenses/fdk-aac-LICENSE.txt docs/LICENSING.md \
-	     scripts/copy-distribution-licenses.sh \
+	     scripts/copy-distribution-licenses.sh scripts/stage-release-packages.sh \
 	     data/ttns-zones.json data/README.md assets/ttns-logo.png assets/README.md \
 	     assets/ttns-deck.desktop assets/ttns-deck.icns assets/ttns-deck.ico \
 	     src/cart_loader_mac.mm \
