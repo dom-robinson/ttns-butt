@@ -1,6 +1,6 @@
 # TTNS Deck — binary releases
 
-**Preliminary release:** `v0.1.16-ttns-pre.1` (tag on `ttns-mixer`)
+**Preliminary release:** `v0.1.16-ttns-pre.2` (tag on `ttns-mixer`)
 
 Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned separately.
 
@@ -71,7 +71,7 @@ Workflow: [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 | `build-linux` | `ubuntu-latest` | apt dev packages; `build-linux.sh` |
 | `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs |
 
-Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tag `v0.1.16-ttns-pre.1` creates a **pre-release** on GitHub with attached artifacts.
+Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.2` create a **pre-release** on GitHub with attached artifacts.
 
 ---
 
@@ -91,5 +91,5 @@ xcrun notarytool submit dist/macos/ttns-deck-arm64-macos.zip --wait
 ## Known gaps (preliminary)
 
 - Linux **arm64** tarball: build on arm64 runner or hardware (`build-linux.sh` already names arch).
-- Windows: requires full zip (DLLs bundled); do not ship bare `ttns-deck.exe`.
+- Windows: requires full zip (DLLs bundled); do not ship bare `ttns-deck.exe`. `v0.1.16-ttns-pre.2` fixes missing `libFLAC.dll` / FLTK 1.4 DLLs in older Windows packages.
 - Intel macOS CI uses `macos-15-intel` (GitHub’s last x86_64 macOS image; retires ~2027).

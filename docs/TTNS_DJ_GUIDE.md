@@ -4,7 +4,7 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Preliminary build:** `v0.1.16-ttns-pre.1` — see [`RELEASE.md`](RELEASE.md) for downloads.
+**Preliminary build:** `v0.1.16-ttns-pre.2` — see [`RELEASE.md`](RELEASE.md) for downloads.
 
 ---
 
@@ -120,7 +120,7 @@ Platform-specific deps: see [`README.TTNS.md`](../README.TTNS.md) and [`RELEASE.
 | MP3 cart crash (old build) | Use `v0.1.16-ttns-pre.1` or newer |
 | Carts silent | Supported format; right-click to re-assign |
 | macOS “unidentified developer” | Right-click app → Open |
-| Windows missing DLL | Use full zip from release, not bare exe |
+| Windows “libFLAC.dll / libfltk not found” | **Re-download** the latest `ttns-deck-win64.zip` (builds before `v0.1.16-ttns-pre.2` were missing DLLs). Unzip fully, run **Run TTNS Deck.bat** — do not copy only `ttns-deck.exe` |
 
 ---
 
