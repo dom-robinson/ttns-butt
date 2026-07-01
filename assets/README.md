@@ -1,5 +1,16 @@
 # TTNS assets
 
+## Copyright
+
+`ttns-logo.png`, `ttns-deck.icns`, `ttns-deck.ico`, and derived platform icons
+are **copyright The Thursday Night Show**. They are not licensed under GPL-2.0
+(only the butt-derived *program code* is). Official TTNS Deck builds may include
+these assets for TTNS presenters; do not reuse the TTNS mark outside TTNS
+without permission.
+
+Upstream butt UI bitmaps in `src/xpm/` and `usr/share/pixmaps/` remain under
+the same GPL-2.0 as the butt source code.
+
 ## `ttns-logo.png`
 
 Embossed TTNS logo on black (307×282 PNG, RGBA). Used for:

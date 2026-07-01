@@ -17,6 +17,7 @@ fi
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/data" "$APP/Contents/Resources/assets"
+"$ROOT/scripts/copy-distribution-licenses.sh" "$APP/Contents/Resources/legal"
 
 cp "$ROOT/src/butt" "$APP/Contents/MacOS/ttns-deck-bin"
 cp "$ROOT/data/ttns-zones.json" "$APP/Contents/Resources/data/"
@@ -41,7 +42,7 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.16-ttns-pre.1</string>
+    <string>0.1.16-ttns-pre.3</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>

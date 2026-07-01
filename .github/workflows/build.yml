@@ -124,6 +124,8 @@ jobs:
 
             DJ testing build. See [docs/TTNS_DJ_GUIDE.md](docs/TTNS_DJ_GUIDE.md) and [docs/RELEASE.md](docs/RELEASE.md).
 
+            **v0.1.16-ttns-pre.3** — binary packages include `legal/` with GPL and third-party license texts ([docs/LICENSING.md](docs/LICENSING.md)).
+
             | Platform | Look for |
             |----------|----------|
             | macOS Apple Silicon | `ttns-deck-arm64-macos.zip` |

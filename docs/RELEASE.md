@@ -1,6 +1,6 @@
 # TTNS Deck — binary releases
 
-**Preliminary release:** `v0.1.16-ttns-pre.2` (tag on `ttns-mixer`)
+**Preliminary release:** `v0.1.16-ttns-pre.3` (tag on `ttns-mixer`)
 
 Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned separately.
 
@@ -14,6 +14,10 @@ Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned sep
 | **macOS Intel** | `ttns-deck-macos-x64` | `TTNS Deck.app`, `ttns-deck-x86_64-macos.zip` |
 | **Linux x86_64** | `ttns-deck-linux-x64` | `ttns-deck-linux-x86_64.tar.gz` |
 | **Windows x64** | `ttns-deck-windows-x64` | `ttns-deck-win64.zip` |
+
+Each package includes `legal/` (or `Resources/legal/` on macOS) with `COPYING`,
+`DISTRIBUTION_LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, and the Fraunhofer
+FDK-AAC license text.
 
 1. Open [Actions](https://github.com/dom-robinson/ttns-butt/actions) → latest workflow run on `ttns-mixer` or the release tag.
 2. Download the artifact for your OS.
@@ -71,7 +75,7 @@ Workflow: [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 | `build-linux` | `ubuntu-latest` | apt dev packages; `build-linux.sh` |
 | `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs |
 
-Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.2` create a **pre-release** on GitHub with attached artifacts.
+Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.3` create a **pre-release** on GitHub with attached artifacts.
 
 ---
 

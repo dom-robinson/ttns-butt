@@ -3,6 +3,35 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-pre.3] — Licensing and distribution compliance (2026-07-01)
+
+**Tag:** `v0.1.16-ttns-pre.3`
+
+### Added
+
+- **`docs/LICENSING.md`** — GPL obligations, third-party summary, branding note
+- **`docs/DISTRIBUTION_LICENSE.txt`** — short notice shipped in binary packages
+- **`docs/THIRD_PARTY_NOTICES.md`** — attribution for linked libraries
+- **`docs/licenses/fdk-aac-LICENSE.txt`** — full Fraunhofer FDK-AAC text (binary redistribution requirement)
+- **`scripts/copy-distribution-licenses.sh`** — stages `legal/` into macOS, Linux, and Windows packages
+
+### Changed
+
+- Release packages now include `legal/` (`Resources/legal/` on macOS) with GPL + third-party notices
+- **`assets/README.md`** — TTNS logo copyright documented
+
+---
+
+## [0.1.16-ttns-pre.2] — Windows DLL bundling (2026-07-01)
+
+**Tag:** `v0.1.16-ttns-pre.2`
+
+### Fixed
+
+- **Windows** — bundle FLTK 1.4, `libFLAC.dll`, and transitive MinGW deps; CI fails if any import DLL is missing
+
+---
+
 ## [0.1.16-ttns-pre.1] — Preliminary release (2026-06-29)
 
 **Tag:** `v0.1.16-ttns-pre.1` — first binary release candidate for DJ testing.

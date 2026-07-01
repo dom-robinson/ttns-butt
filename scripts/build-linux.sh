@@ -18,7 +18,8 @@ if [ ! -x "$ROOT/src/butt" ]; then
 fi
 
 rm -rf "$STAGE"
-mkdir -p "$STAGE/bin" "$STAGE/share/ttns-deck/data" "$STAGE/share/ttns-deck/assets"
+mkdir -p "$STAGE/bin" "$STAGE/share/ttns-deck/data" "$STAGE/share/ttns-deck/assets" "$STAGE/share/ttns-deck/legal"
+"$ROOT/scripts/copy-distribution-licenses.sh" "$STAGE/share/ttns-deck/legal"
 
 cp "$ROOT/src/butt" "$STAGE/bin/ttns-deck"
 cp "$ROOT/data/ttns-zones.json" "$STAGE/share/ttns-deck/data/"

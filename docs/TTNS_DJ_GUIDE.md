@@ -4,7 +4,7 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Preliminary build:** `v0.1.16-ttns-pre.2` — see [`RELEASE.md`](RELEASE.md) for downloads.
+**Preliminary build:** `v0.1.16-ttns-pre.3` — see [`RELEASE.md`](RELEASE.md) for downloads.
 
 ---
 

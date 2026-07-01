@@ -30,8 +30,9 @@ else
 fi
 
 rm -rf "$STAGE"
-mkdir -p "$STAGE/bin" "$STAGE/data" "$STAGE/assets"
+mkdir -p "$STAGE/bin" "$STAGE/data" "$STAGE/assets" "$STAGE/legal"
 : > "$BUNDLED_LIST"
+"$ROOT/scripts/copy-distribution-licenses.sh" "$STAGE/legal"
 
 cp "$ROOT/src/butt.exe" "$STAGE/bin/ttns-deck.exe" 2>/dev/null || cp "$ROOT/src/butt" "$STAGE/bin/ttns-deck.exe"
 cp "$ROOT/data/ttns-zones.json" "$STAGE/data/"

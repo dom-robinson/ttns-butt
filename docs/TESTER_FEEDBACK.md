@@ -1,6 +1,6 @@
 # TTNS Deck — tester feedback guide
 
-**Build:** `v0.1.16-ttns-pre.1` (preliminary)
+**Build:** `v0.1.16-ttns-pre.3` (preliminary)
 
 Thank you for testing. Please report issues with the **session log file** attached (see below).
 
