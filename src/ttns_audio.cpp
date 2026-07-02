@@ -24,6 +24,18 @@ void ttns_meters_push(int line_peak, int mic_peak, int cart_peak)
     meter_cart_peak = cart_peak;
 }
 
+void ttns_meters_reset(void)
+{
+    meter_line_peak = 0;
+    meter_mic_peak = 0;
+    meter_cart_peak = 0;
+}
+
+void ttns_meters_reset_mic(void)
+{
+    meter_mic_peak = 0;
+}
+
 void ttns_meters_poll(int *line_peak, int *mic_peak, int *cart_peak)
 {
     if (line_peak)

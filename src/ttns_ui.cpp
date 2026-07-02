@@ -227,27 +227,243 @@ static void ttns_about_cb(Fl_Widget *, void *)
     ttns_show_about();
 }
 
-static void ttns_reopen_audio_idle(void *);
+static void ttns_reopen_audio_deferred(void);
+static void ttns_reopen_mic_deferred(void);
+static void ttns_reopen_monitor_deferred(void);
+static void ttns_full_reopen_timeout(void *);
+static void ttns_mic_reopen_timeout(void *);
+static void ttns_monitor_reopen_timeout(void *);
+static void ttns_reopen_debounce_timeout(void *);
+static void ttns_sync_audio_devices_from_ui(void);
+static int ttns_applied_line_dev = -1;
+static int ttns_applied_mic_dev = -1;
+static int ttns_applied_monitor_out = -1;
+static int ttns_applied_mic_monitor = -1;
 static char ttns_audio_reopen_pending = 0;
+static char ttns_audio_reopen_queued = 0;
+static char ttns_audio_reopen_busy = 0;
 
-static void ttns_reopen_audio(void)
+void ttns_audio_mark_applied(void)
 {
-    snd_reinit();
-    ttns_mixer_reset();
+    ttns_applied_line_dev = cfg.ttns.line_dev_num;
+    ttns_applied_mic_dev = cfg.ttns.mic_dev_num;
+    ttns_applied_monitor_out = cfg.ttns.monitor_out_dev_num;
+    ttns_applied_mic_monitor = cfg.ttns.mic_monitor;
 }
 
-static void ttns_reopen_audio_idle(void *)
+static int ttns_applied_dual_mic(void)
 {
+    return (ttns_applied_line_dev >= 0 && ttns_applied_mic_dev >= 0
+            && ttns_applied_line_dev != ttns_applied_mic_dev);
+}
+
+static int ttns_wants_dual_mic(void)
+{
+    return cfg.ttns.line_dev_num != cfg.ttns.mic_dev_num;
+}
+
+static int ttns_input_unchanged(void)
+{
+    if (ttns_applied_line_dev < 0)
+        return 0;
+
+    return (cfg.ttns.line_dev_num == ttns_applied_line_dev
+            && cfg.ttns.mic_dev_num == ttns_applied_mic_dev
+            && ttns_wants_dual_mic() == ttns_applied_dual_mic());
+}
+
+static int ttns_monitor_unchanged(void)
+{
+    return (cfg.ttns.monitor_out_dev_num == ttns_applied_monitor_out
+            && cfg.ttns.mic_monitor == ttns_applied_mic_monitor);
+}
+
+static int ttns_can_mic_only_reopen(void)
+{
+    if (ttns_applied_line_dev < 0)
+        return 0;
+    if (cfg.ttns.line_dev_num != ttns_applied_line_dev)
+        return 0;
+    if (ttns_wants_dual_mic() != ttns_applied_dual_mic())
+        return 0;
+    if (cfg.ttns.mic_dev_num == ttns_applied_mic_dev)
+        return 0;
+    return ttns_wants_dual_mic();
+}
+
+void ttns_audio_settings_changed(void)
+{
+    unsaved_changes = 1;
+    while (Fl::has_timeout(ttns_reopen_debounce_timeout))
+        Fl::remove_timeout(ttns_reopen_debounce_timeout);
+    Fl::add_timeout(0.45, ttns_reopen_debounce_timeout);
+}
+
+static void ttns_full_reopen_timeout(void *)
+{
+    snd_reinit();
+    ttns_audio_reopen_busy = 0;
     ttns_audio_reopen_pending = 0;
-    ttns_reopen_audio();
+
+    if (snd_audio_is_active())
+    {
+        ttns_audio_mark_applied();
+        ttns_mixer_reset();
+        print_info("Audio devices ready", 0);
+    }
+    else
+        print_info("Audio reopen failed — try another device or samplerate in Settings", 1);
+
+    if (ttns_audio_reopen_queued)
+    {
+        ttns_audio_reopen_queued = 0;
+        ttns_apply_audio_settings();
+    }
+}
+
+static void ttns_mic_reopen_timeout(void *)
+{
+    int r;
+
+    if (!snd_audio_is_active())
+    {
+        ttns_audio_reopen_busy = 0;
+        ttns_audio_reopen_pending = 0;
+        ttns_reopen_audio_deferred();
+        return;
+    }
+
+    r = snd_reopen_mic_only();
+    ttns_audio_reopen_busy = 0;
+    ttns_audio_reopen_pending = 0;
+
+    if (r == 0)
+    {
+        ttns_applied_mic_dev = cfg.ttns.mic_dev_num;
+        ttns_mixer_reset();
+        print_info("Mic device ready", 0);
+    }
+    else
+        print_info("Mic reopen failed — try another device in Settings", 1);
+
+    if (ttns_audio_reopen_queued)
+    {
+        ttns_audio_reopen_queued = 0;
+        ttns_apply_audio_settings();
+    }
+}
+
+static void ttns_monitor_reopen_timeout(void *)
+{
+    if (!snd_audio_is_active())
+    {
+        ttns_audio_reopen_busy = 0;
+        ttns_audio_reopen_pending = 0;
+        ttns_reopen_audio_deferred();
+        return;
+    }
+
+    snd_reopen_monitor();
+    ttns_applied_monitor_out = cfg.ttns.monitor_out_dev_num;
+    ttns_applied_mic_monitor = cfg.ttns.mic_monitor;
+    ttns_audio_reopen_busy = 0;
+    ttns_audio_reopen_pending = 0;
+    print_info("Monitor output ready", 0);
+
+    if (ttns_audio_reopen_queued)
+    {
+        ttns_audio_reopen_queued = 0;
+        ttns_apply_audio_settings();
+    }
 }
 
 static void ttns_reopen_audio_deferred(void)
 {
-    if (ttns_audio_reopen_pending)
+    if (ttns_audio_reopen_pending || ttns_audio_reopen_busy)
+    {
+        ttns_audio_reopen_queued = 1;
         return;
+    }
     ttns_audio_reopen_pending = 1;
-    Fl::add_idle(ttns_reopen_audio_idle);
+    ttns_audio_reopen_busy = 1;
+    print_info("Applying audio devices…", 0);
+    Fl::add_timeout(0.0, ttns_full_reopen_timeout);
+}
+
+static void ttns_reopen_debounce_timeout(void *)
+{
+    ttns_apply_audio_settings();
+}
+
+void ttns_schedule_audio_reopen(void)
+{
+    ttns_audio_settings_changed();
+}
+
+void ttns_apply_audio_settings(void)
+{
+    int input_changed;
+    int monitor_changed;
+
+    ttns_sync_audio_devices_from_ui();
+    while (Fl::has_timeout(ttns_reopen_debounce_timeout))
+        Fl::remove_timeout(ttns_reopen_debounce_timeout);
+
+    input_changed = !ttns_input_unchanged();
+    monitor_changed = !ttns_monitor_unchanged();
+
+    if (!input_changed && !monitor_changed)
+        return;
+
+    if (input_changed)
+    {
+        if (ttns_can_mic_only_reopen())
+            ttns_reopen_mic_deferred();
+        else
+            ttns_reopen_audio_deferred();
+        return;
+    }
+
+    ttns_reopen_monitor_deferred();
+}
+
+static void ttns_sync_audio_devices_from_ui(void)
+{
+    if (fl_g && fl_g->choice_cfg_dev)
+    {
+        cfg.ttns.line_dev_num = fl_g->choice_cfg_dev->value();
+        cfg.audio.dev_num = cfg.ttns.line_dev_num;
+    }
+    if (fl_g && fl_g->choice_cfg_ttns_mic)
+        cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
+    if (fl_g && fl_g->choice_cfg_ttns_monitor_out)
+        cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
+}
+
+static void ttns_reopen_monitor_deferred(void)
+{
+    if (ttns_audio_reopen_pending || ttns_audio_reopen_busy)
+    {
+        ttns_audio_reopen_queued = 1;
+        return;
+    }
+    ttns_audio_reopen_pending = 1;
+    ttns_audio_reopen_busy = 1;
+    print_info("Applying monitor output…", 0);
+    Fl::add_timeout(0.0, ttns_monitor_reopen_timeout);
+}
+
+static void ttns_reopen_mic_deferred(void)
+{
+    if (ttns_audio_reopen_pending || ttns_audio_reopen_busy)
+    {
+        ttns_audio_reopen_queued = 1;
+        return;
+    }
+    ttns_audio_reopen_pending = 1;
+    ttns_audio_reopen_busy = 1;
+    print_info("Applying mic device…", 0);
+    Fl::add_timeout(0.0, ttns_mic_reopen_timeout);
 }
 
 static void ttns_dev_cb(Fl_Widget *w, void *which)
@@ -265,9 +481,18 @@ static void ttns_dev_cb(Fl_Widget *w, void *which)
     }
     else if (w == (Fl_Widget*)fl_g->choice_cfg_ttns_mic)
         cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
+    else if (w == (Fl_Widget*)fl_g->choice_cfg_ttns_monitor_out)
+    {
+        int n = fl_g->choice_cfg_ttns_monitor_out->value();
+        cfg.ttns.monitor_out_dev_num = n;
+        if (n >= 0 && n < cfg.audio.out_dev_count && cfg.audio.out_pcm_list != NULL
+            && cfg.audio.out_pcm_list[n]->dev_id != TTNS_MONITOR_OFF)
+            cfg.ttns.mic_monitor = 1;
+        else
+            cfg.ttns.mic_monitor = 0;
+    }
 
-    unsaved_changes = 1;
-    ttns_reopen_audio_deferred();
+    ttns_audio_settings_changed();
 }
 
 static void ttns_gain_cb(Fl_Widget *w, void *which)
@@ -324,7 +549,6 @@ static void ttns_mic_mute_cb(Fl_Widget *w, void *)
 static void ttns_monitor_cb(Fl_Widget *w, void *)
 {
     (void)w;
-    cfg.ttns.mic_monitor = 1;
     cfg.ttns.mic_monitor_mute = (ttns_chk_monitor_mute && ttns_chk_monitor_mute->value())
         ? 0 : 1;
     unsaved_changes = 1;
@@ -759,7 +983,6 @@ void ttns_cfg_sync_from_ui(void)
         cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
     if (fl_g && fl_g->choice_cfg_ttns_monitor_out)
         cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
-    cfg.ttns.mic_monitor = 1;
     if (ttns_chk_monitor_mute)
         cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute->value() ? 0 : 1;
     if (ttns_btn_mic)
@@ -925,6 +1148,8 @@ void ttns_ui_init(flgui *g)
         fl_g->choice_cfg_dev->callback(ttns_dev_cb, NULL);
     if (fl_g->choice_cfg_ttns_mic)
         fl_g->choice_cfg_ttns_mic->callback(ttns_dev_cb, NULL);
+    if (fl_g->choice_cfg_ttns_monitor_out)
+        fl_g->choice_cfg_ttns_monitor_out->callback(ttns_dev_cb, NULL);
 
     Fl::add_handler(ttns_global_key_handler);
 

@@ -1,6 +1,6 @@
 # TTNS Deck — binary releases
 
-**Preliminary release:** `v0.1.16-ttns-pre.6` (tag on `ttns-mixer`)
+**Preliminary release:** `v0.1.16-ttns-pre.7` (tag on `ttns-mixer`)
 
 Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned separately.
 
@@ -77,7 +77,7 @@ Workflow: [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 | `build-linux` | `ubuntu-latest` | apt dev packages; `build-linux.sh` |
 | `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs; pacman install retries on mirror failures |
 
-Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.6` create a **pre-release** on GitHub with the four platform archives attached.
+Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.7` create a **pre-release** on GitHub with the four platform archives attached.
 
 ---
 

@@ -10,5 +10,9 @@ void ttns_ui_apply_zone_selection(void);
 void ttns_ui_sync_advanced(void);
 void ttns_ui_timer_tick(void);
 void ttns_ui_trigger_cart(int slot);
+void ttns_schedule_audio_reopen(void);
+void ttns_apply_audio_settings(void);
+void ttns_audio_mark_applied(void);
+void ttns_audio_settings_changed(void);
 
 #endif

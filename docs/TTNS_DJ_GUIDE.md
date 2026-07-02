@@ -4,7 +4,7 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Preliminary build:** `v0.1.16-ttns-pre.6` — see [`RELEASE.md`](RELEASE.md) for downloads.
+**Preliminary build:** `v0.1.16-ttns-pre.7` — see [`RELEASE.md`](RELEASE.md) for downloads.
 
 ---
 
@@ -38,7 +38,7 @@ You need **two inputs**:
 | **Deck** (line) | Music / mixer / app audio | USB interface, BlackHole/loopback for Spotify |
 | **Mic** | Voice | USB mic, built-in, Bluetooth headset |
 
-Open **Settings** (bottom-right) → **Audio** and pick **Line Input (Deck)** and **Mic Input**. They must be **different devices** for ducking and mic monitor to work.
+Open **Settings** (bottom-right) → **Audio** and pick **Line Input (Deck)** and **Mic Input**. They must be **different devices** for ducking and mic monitor to work. Meters update ~½ second after you change a device. Click **Save** to persist settings to `~/.buttrc`.
 
 ### 2. Levels
 
@@ -85,7 +85,7 @@ Press **Connect**. Server, mount, password and metadata are filled from the moun
 
 ## Headphones / monitor
 
-- **Line + carts** are always sent to **Monitor Output** (Settings → Audio).
+- **Line + carts** are sent to **Monitor Output** only after you pick a real output in Settings → Audio (not “Off”).
 - **Monitor** (checkbox under the mic button) — add **mic** to headphones when checked.
 - Uncheck **Monitor** if you only want to hear the deck (e.g. Bluetooth mic latency).
 
@@ -122,7 +122,9 @@ Platform-specific deps: see [`README.TTNS.md`](../README.TTNS.md) and [`RELEASE.
 | macOS “unidentified developer” | Right-click app → Open |
 | Windows “libFLAC.dll / libfltk not found” | **Re-download** the latest `ttns-deck-win64.zip` (builds before `v0.1.16-ttns-pre.2` were missing DLLs). Unzip fully, run **Run TTNS Deck.bat** — do not copy only `ttns-deck.exe` |
 | Windows crash changing Line/Mic device | Fixed in `v0.1.16-ttns-pre.5` and later |
-| macOS crash changing Line/Mic device | Fixed in `v0.1.16-ttns-pre.6` (double-free in monitor buffer teardown) |
+| macOS crash changing Line/Mic device | Fixed in `v0.1.16-ttns-pre.6` and later |
+| Meters stuck / no audio after device change | Fixed in `v0.1.16-ttns-pre.7` — use latest build; wait for “Audio devices ready” in the log |
+| Speaker feedback on launch (macOS) | Fixed in `v0.1.16-ttns-pre.7` — monitor stays off until you choose Monitor Output |
 
 ---
 

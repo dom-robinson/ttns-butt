@@ -283,6 +283,8 @@ int cfg_write_file(char *path)
 
     unsaved_changes = 0;
 
+    ttns_apply_audio_settings();
+
     return 0;
 }
 
@@ -619,10 +621,10 @@ int cfg_set_values(char *path)
         cfg.ttns.line_gain = 1.0f;
     if ((int)cfg.ttns.cart_gain == -1)
         cfg.ttns.cart_gain = 1.0f;
-    if (cfg.ttns.mic_monitor == -1 || cfg.ttns.mic_monitor == 0)
-        cfg.ttns.mic_monitor = 1;
+    if (cfg.ttns.mic_monitor == -1)
+        cfg.ttns.mic_monitor = 0;
     if (cfg.ttns.mic_monitor_mute == -1)
-        cfg.ttns.mic_monitor_mute = 0;
+        cfg.ttns.mic_monitor_mute = 1;
     if (cfg.ttns.monitor_out_dev_num == -1)
         cfg.ttns.monitor_out_dev_num = 0;
     if (cfg.ttns.mic_mute == -1)
@@ -777,7 +779,7 @@ int cfg_create_default(void)
             "mic_gain = 1.0\n"
             "line_gain = 1.0\n"
             "cart_gain = 1.0\n"
-            "mic_monitor = 1\n"
+            "mic_monitor = 0\n"
             "mic_monitor_mute = 1\n"
             "monitor_output_device = 0\n"
             "mic_mute = 0\n"

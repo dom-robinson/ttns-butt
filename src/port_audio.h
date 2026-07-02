@@ -32,6 +32,8 @@ typedef struct
 
 }snd_dev_t;
 
+#define TTNS_MONITOR_OFF  (-997)
+
 enum {
     SND_STREAM = 0,
     SND_REC = 1
@@ -59,6 +61,8 @@ void snd_stop_stream(void);
 void snd_start_rec(void);
 void snd_stop_rec(void);
 void snd_reinit(void);
+int snd_reopen_mic_only(void);
+void snd_reopen_monitor(void);
 void snd_stop_input(void);
 int snd_audio_is_active(void);
 

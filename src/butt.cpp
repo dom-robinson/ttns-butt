@@ -208,8 +208,17 @@ int main(int argc, char *argv[])
     init_main_gui_and_audio();
     ttns_ui_sync_from_cfg();
 
+    /* Never play monitor audio on cold start — prevents speaker feedback before
+     * the DJ picks headphones. Monitor turns on when a real output is selected. */
+    cfg.ttns.mic_monitor = 0;
+
     if (snd_open_stream() != 0)
         print_info("WARNING: Audio input failed to open — check Settings → Audio devices", 1);
+    else
+    {
+        ttns_audio_mark_applied();
+        print_info("Audio inputs open (monitor off until you pick Monitor Output)", 0);
+    }
 
     vu_init();
 

@@ -238,13 +238,11 @@ static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
 
 static void ttns_free_mix_buffers(void)
 {
-    free(mic_pcm_buf);
     free(ttns_mix_buf);
     free(ttns_cart_buf);
     free(ttns_line_buf);
     free(ttns_mic_work_buf);
     free(monitor_mix_buf);
-    mic_pcm_buf = NULL;
     ttns_mix_buf = NULL;
     ttns_cart_buf = NULL;
     ttns_line_buf = NULL;
@@ -258,7 +256,7 @@ static int ttns_alloc_mix_buffers(void)
     size_t mic_samples = (size_t)pa_frames * 2;
 
     /* snd_stop_streams() should have cleared these; guard stale pointers if not. */
-    if (mic_pcm_buf || ttns_mix_buf || ttns_cart_buf || ttns_line_buf
+    if (ttns_mix_buf || ttns_cart_buf || ttns_line_buf
         || ttns_mic_work_buf || monitor_mix_buf)
         ttns_free_mix_buffers();
 
@@ -468,9 +466,19 @@ int snd_audio_is_active(void)
     return snd_audio_active;
 }
 
+static void snd_pause_after_stop(void)
+{
+#ifdef _WIN32
+    Pa_Sleep(50);
+#elif defined(__APPLE__)
+    Pa_Sleep(200);
+#endif
+}
+
 void snd_reinit(void)
 {
     snd_stop_streams();
+    snd_pause_after_stop();
     snd_open_stream();
 }
 
@@ -479,17 +487,175 @@ static void snd_abort_open(void)
     snd_stop_streams();
 }
 
-static void snd_stop_streams(void)
+static void snd_stop_mic_capture(void)
 {
-    snd_audio_active = 0;
-    pa_new_frames = 0;
-
     if (mic_stream != NULL)
     {
         Pa_StopStream(mic_stream);
         Pa_CloseStream(mic_stream);
         mic_stream = NULL;
     }
+
+    ttns_mic_rb_shutdown();
+    ttns_use_dual_mic = 0;
+    mic_capture_peak = 0;
+    ttns_meters_reset_mic();
+}
+
+static int snd_run_mic_capture(void)
+{
+    char info_buf[256];
+    int mic_dev_num = cfg.ttns.mic_dev_num;
+    PaError pa_err;
+
+    if (!mic_stream)
+        return 1;
+
+    pa_err = Pa_StartStream(mic_stream);
+    if (pa_err != paNoError)
+    {
+        snprintf(info_buf, sizeof(info_buf),
+                 "Mic capture start failed: %s", Pa_GetErrorText(pa_err));
+        print_info(info_buf, 1);
+        Pa_CloseStream(mic_stream);
+        mic_stream = NULL;
+        ttns_mic_rb_shutdown();
+        ttns_use_dual_mic = 0;
+        return 1;
+    }
+
+    if (mic_dev_num < 0 || mic_dev_num >= cfg.audio.dev_count)
+        mic_dev_num = cfg.audio.dev_num;
+    snprintf(info_buf, sizeof(info_buf), "Mic capture: %s",
+             cfg.audio.pcm_list[mic_dev_num]->name);
+    print_info(info_buf, 0);
+    return 0;
+}
+
+static int snd_open_mic_capture(int samplerate)
+{
+    char info_buf[256];
+    int line_dev_num = cfg.ttns.line_dev_num;
+    int mic_dev_num = cfg.ttns.mic_dev_num;
+    PaStreamParameters mic_params;
+    const PaDeviceInfo *mic_dev_info;
+    PaDeviceIndex mic_pa_dev_id;
+    PaError pa_err;
+
+    if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
+        line_dev_num = cfg.audio.dev_num;
+    if (mic_dev_num < 0 || mic_dev_num >= cfg.audio.dev_count)
+        mic_dev_num = cfg.audio.dev_num;
+
+    if (mic_dev_num == line_dev_num)
+        return 1;
+
+    mic_pa_dev_id = cfg.audio.pcm_list[mic_dev_num]->dev_id;
+    mic_dev_info = Pa_GetDeviceInfo(mic_pa_dev_id);
+    if (mic_dev_info == NULL)
+    {
+        snprintf(info_buf, sizeof(info_buf), "Error getting mic device info (%d)", mic_pa_dev_id);
+        print_info(info_buf, 1);
+        return 1;
+    }
+
+    /* Mono avoids channel/format issues on virtual devices (SplitCam, Zoom, etc.). */
+    mic_input_channels = 1;
+    if (mic_dev_info->maxInputChannels < 1)
+        return 1;
+
+    mic_params.device = mic_pa_dev_id;
+    mic_params.channelCount = mic_input_channels;
+    mic_params.sampleFormat = paInt16;
+    mic_params.suggestedLatency = mic_dev_info->defaultHighInputLatency;
+    mic_params.hostApiSpecificStreamInfo = NULL;
+
+    pa_err = Pa_IsFormatSupported(&mic_params, NULL, samplerate);
+    if (pa_err != paFormatIsSupported)
+    {
+        snprintf(info_buf, sizeof(info_buf),
+                 "Mic device format not supported at %d Hz — check Settings → Audio",
+                 samplerate);
+        print_info(info_buf, 1);
+        return 1;
+    }
+
+    pa_err = Pa_OpenStream(&mic_stream, &mic_params, NULL,
+                           samplerate, pa_frames,
+                           paClipOff, ttns_mic_capture_cb, NULL);
+    if (pa_err != paNoError)
+    {
+        snprintf(info_buf, sizeof(info_buf),
+                 "Mic device open failed: %s", Pa_GetErrorText(pa_err));
+        print_info(info_buf, 1);
+        return 1;
+    }
+
+    if (ttns_mic_rb_start() != 0)
+    {
+        Pa_CloseStream(mic_stream);
+        mic_stream = NULL;
+        print_info("Mic capture: out of memory", 1);
+        return 1;
+    }
+
+    ttns_use_dual_mic = 1;
+    mic_capture_peak = 0;
+    return 0;
+}
+
+static int snd_start_mic_capture(int samplerate)
+{
+    if (snd_open_mic_capture(samplerate) != 0)
+        return 1;
+    return snd_run_mic_capture();
+}
+
+int snd_reopen_mic_only(void)
+{
+    int line_dev_num = cfg.ttns.line_dev_num;
+    int mic_dev_num = cfg.ttns.mic_dev_num;
+
+    if (stream == NULL)
+        return snd_open_stream();
+
+    if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
+        line_dev_num = cfg.audio.dev_num;
+    if (mic_dev_num < 0 || mic_dev_num >= cfg.audio.dev_count)
+        mic_dev_num = cfg.audio.dev_num;
+
+    if (mic_dev_num == line_dev_num)
+    {
+        snd_reinit();
+        return 0;
+    }
+
+    snd_stop_mic_capture();
+#ifdef __APPLE__
+    Pa_Sleep(300);
+#elif defined(_WIN32)
+    Pa_Sleep(100);
+#endif
+
+    if (snd_open_mic_capture(cfg.audio.samplerate) != 0)
+        return 1;
+
+    return snd_run_mic_capture();
+}
+
+static void snd_stop_streams(void)
+{
+    snd_audio_active = 0;
+    pa_new_frames = 0;
+
+    if (monitor_stream != NULL)
+    {
+        Pa_StopStream(monitor_stream);
+        Pa_CloseStream(monitor_stream);
+        monitor_stream = NULL;
+    }
+
+    snd_stop_mic_capture();
 
     if (stream != NULL)
     {
@@ -498,8 +664,9 @@ static void snd_stop_streams(void)
         stream = NULL;
     }
 
-    snd_close_monitor();
-    ttns_mic_rb_shutdown();
+    ttns_monitor_rb_shutdown();
+    free(mic_pcm_buf);
+    mic_pcm_buf = NULL;
     ttns_free_mix_buffers();
     rb_free(&rec_rb);
     rb_free(&stream_rb);
@@ -512,14 +679,7 @@ static void snd_stop_streams(void)
     ttns_use_dual_mic = 0;
     ttns_use_shared_input = 0;
     mic_capture_peak = 0;
-
-#ifdef _WIN32
-    /* WASAPI needs a beat between close and reopen on the same UI thread. */
-    Pa_Sleep(50);
-#elif defined(__APPLE__)
-    /* CoreAudio can fault if capture streams reopen immediately after close. */
-    Pa_Sleep(50);
-#endif
+    ttns_meters_reset();
 }
 
 static void snd_close_monitor(void)
@@ -544,6 +704,9 @@ static int snd_open_monitor(int samplerate)
 
     snd_close_monitor();
 
+    if (!cfg.ttns.mic_monitor)
+        return 0;
+
     if (cfg.audio.out_dev_count <= 0)
         return 0;
 
@@ -558,6 +721,9 @@ static int snd_open_monitor(int samplerate)
         else
             out_dev = Pa_GetDefaultOutputDevice();
     }
+
+    if (out_dev == TTNS_MONITOR_OFF)
+        return 0;
 
     if (out_dev == paNoDevice)
     {
@@ -671,6 +837,12 @@ int snd_open_stream(void)
     PaStreamParameters pa_params;
     PaError pa_err;
     const PaDeviceInfo *pa_dev_info;
+
+    if (stream != NULL || mic_stream != NULL || monitor_stream != NULL)
+    {
+        snd_stop_streams();
+        snd_pause_after_stop();
+    }
 
     if(cfg.audio.dev_count == 0)
     {
@@ -811,9 +983,6 @@ int snd_open_stream(void)
     {
         int line_dev_num = cfg.ttns.line_dev_num;
         int mic_dev_num = cfg.ttns.mic_dev_num;
-        PaStreamParameters mic_params;
-        const PaDeviceInfo *mic_dev_info;
-        PaDeviceIndex mic_pa_dev_id;
 
         if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
             line_dev_num = cfg.audio.dev_num;
@@ -822,73 +991,8 @@ int snd_open_stream(void)
 
         if (mic_dev_num != line_dev_num)
         {
-            mic_pa_dev_id = cfg.audio.pcm_list[mic_dev_num]->dev_id;
-            mic_dev_info = Pa_GetDeviceInfo(mic_pa_dev_id);
-            if (mic_dev_info == NULL)
-            {
-                snprintf(info_buf, sizeof(info_buf), "Error getting mic device info (%d)", mic_pa_dev_id);
-                print_info(info_buf, 1);
-            }
-            else
-            {
-                mic_input_channels = (mic_dev_info->maxInputChannels > 1) ? 2 : 1;
-                mic_params.device = mic_pa_dev_id;
-                mic_params.channelCount = mic_input_channels;
-                mic_params.sampleFormat = paInt16;
-                mic_params.suggestedLatency = mic_dev_info->defaultHighInputLatency;
-                mic_params.hostApiSpecificStreamInfo = NULL;
-
-                pa_err = Pa_IsFormatSupported(&mic_params, NULL, samplerate);
-                if (pa_err == paFormatIsSupported)
-                {
-                    pa_err = Pa_OpenStream(&mic_stream, &mic_params, NULL,
-                                           samplerate, pa_frames,
-                                           paClipOff, ttns_mic_capture_cb, NULL);
-                    if (pa_err == paNoError)
-                    {
-                        if (ttns_mic_rb_start() != 0)
-                        {
-                            Pa_CloseStream(mic_stream);
-                            mic_stream = NULL;
-                            print_info("Mic capture: out of memory", 1);
-                        }
-                        else
-                        {
-                            size_t prefill_bytes;
-                            int prefill_wait;
-
-                            ttns_use_dual_mic = 1;
-                            mic_capture_peak = 0;
-                            Pa_StartStream(mic_stream);
-
-                            /* Brief prefill only — long Pa_Sleep loops block FLTK and
-                             * let vu_meter_timer run while buffers are being rebuilt. */
-                            prefill_bytes = (size_t)pa_frames * (size_t)mic_input_channels
-                                            * sizeof(short) * 2;
-                            prefill_wait = 0;
-                            while (rb_filled(&ttns_mic_rb) < (int)prefill_bytes
-                                   && prefill_wait < 8)
-                            {
-                                Pa_Sleep(1);
-                                prefill_wait++;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        snprintf(info_buf, sizeof(info_buf),
-                                 "Mic device open failed: %s", Pa_GetErrorText(pa_err));
-                        print_info(info_buf, 1);
-                    }
-                }
-                else
-                {
-                    snprintf(info_buf, sizeof(info_buf),
-                             "Mic device format not supported at %d Hz — check Settings → Audio",
-                             samplerate);
-                    print_info(info_buf, 1);
-                }
-            }
+            if (snd_open_mic_capture(samplerate) != 0)
+                print_info("Mic capture inactive — deck-only mode", 1);
         }
         else
         {
@@ -919,6 +1023,12 @@ int snd_open_stream(void)
         print_info("ERROR: Could not start audio input stream", 1);
         snd_abort_open();
         return 1;
+    }
+
+    if (ttns_use_dual_mic && mic_stream != NULL)
+    {
+        if (snd_run_mic_capture() != 0)
+            print_info("Mic capture inactive — deck-only mode", 1);
     }
 
     snd_audio_active = 1;
@@ -1604,6 +1714,13 @@ snd_dev_t **snd_get_output_devices(int *dev_count)
 
     for (i = 0; i < 100; i++)
         dev_list[i] = (snd_dev_t*)malloc(sizeof(snd_dev_t));
+
+    dev_list[dev_num]->name = (char*)malloc(strlen("Off (no monitor playback)") + 1);
+    strcpy(dev_list[dev_num]->name, "Off (no monitor playback)");
+    dev_list[dev_num]->dev_id = TTNS_MONITOR_OFF;
+    dev_list[dev_num]->num_of_sr = 0;
+    dev_list[dev_num]->sr_list[0] = 0;
+    dev_num++;
 
     dev_list[dev_num]->name = (char*)malloc(strlen("Default output (default)") + 1);
     strcpy(dev_list[dev_num]->name, "Default output (default)");

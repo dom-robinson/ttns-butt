@@ -12,6 +12,8 @@ int ttns_mic_peak(const short *mic, int mic_channels, int frames);
 
 void ttns_meters_push(int line_peak, int mic_peak, int cart_peak);
 void ttns_meters_poll(int *line_peak, int *mic_peak, int *cart_peak);
+void ttns_meters_reset(void);
+void ttns_meters_reset_mic(void);
 
 int ttns_mic_effective_mute(void);
 

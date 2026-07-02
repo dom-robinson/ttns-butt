@@ -2310,24 +2310,27 @@ void choice_cfg_dev_cb(void)
     cfg.ttns.line_dev_num = fl_g->choice_cfg_dev->value();
     cfg.audio.dev_num = cfg.ttns.line_dev_num;
     update_samplerates();
-    snd_reinit();
-    ttns_mixer_reset();
-    unsaved_changes = 1;
+    ttns_audio_settings_changed();
 }
 
 void choice_cfg_ttns_mic_cb(void)
 {
     cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
-    snd_reinit();
-    ttns_mixer_reset();
-    unsaved_changes = 1;
+    ttns_audio_settings_changed();
 }
 
 void choice_cfg_ttns_monitor_out_cb(void)
 {
+    int n;
+
     cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
-    snd_reopen_monitor();
-    unsaved_changes = 1;
+    n = cfg.ttns.monitor_out_dev_num;
+    if (n >= 0 && n < cfg.audio.out_dev_count && cfg.audio.out_pcm_list != NULL
+        && cfg.audio.out_pcm_list[n]->dev_id != TTNS_MONITOR_OFF)
+        cfg.ttns.mic_monitor = 1;
+    else
+        cfg.ttns.mic_monitor = 0;
+    ttns_audio_settings_changed();
 }
 
 void choice_cfg_codec_mp3_cb(void)

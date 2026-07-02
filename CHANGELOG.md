@@ -3,6 +3,24 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-pre.7] — Safe audio device switching (2026-07-03)
+
+**Tag:** `v0.1.16-ttns-pre.7`
+
+### Fixed
+
+- **All platforms** — changing Line/Mic/Monitor devices no longer crashes; meters follow the selected device
+- **macOS** — debounced reopen via `snd_reinit()`; mic-only path avoids tearing down deck input when only mic changes
+- **macOS** — no speaker feedback on cold start (monitor off until Monitor Output is chosen); mono mic capture for virtual devices (SplitCam, Zoom)
+- **All platforms** — monitor output changes handled separately from input device reopen; meter peaks reset on stream stop
+
+### Changed
+
+- New configs default `mic_monitor = 0` and `mic_monitor_mute = 1` (monitor playback off until explicitly enabled)
+- Save applies pending audio settings; device dropdowns apply after ~0.45s debounce
+
+---
+
 ## [0.1.16-ttns-pre.6] — macOS device change double-free (2026-07-02)
 
 **Tag:** `v0.1.16-ttns-pre.6`
