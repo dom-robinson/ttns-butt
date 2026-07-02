@@ -454,6 +454,16 @@ int snd_init(void)
 static void snd_stop_streams(void);
 static void snd_close_monitor(void);
 
+void snd_stop_input(void)
+{
+    snd_stop_streams();
+}
+
+int snd_audio_is_active(void)
+{
+    return snd_audio_active;
+}
+
 void snd_reinit(void)
 {
     snd_stop_streams();
@@ -468,6 +478,7 @@ static void snd_abort_open(void)
 static void snd_stop_streams(void)
 {
     snd_audio_active = 0;
+    pa_new_frames = 0;
 
     if (mic_stream != NULL)
     {
@@ -486,6 +497,8 @@ static void snd_stop_streams(void)
     snd_close_monitor();
     ttns_mic_rb_shutdown();
     ttns_free_mix_buffers();
+    rb_free(&rec_rb);
+    rb_free(&stream_rb);
     free(snd_conv_work_buf);
     snd_conv_work_buf = NULL;
     free(pa_pcm_buf);
@@ -495,6 +508,11 @@ static void snd_stop_streams(void)
     ttns_use_dual_mic = 0;
     ttns_use_shared_input = 0;
     mic_capture_peak = 0;
+
+#ifdef _WIN32
+    /* WASAPI needs a beat between close and reopen on the same UI thread. */
+    Pa_Sleep(50);
+#endif
 }
 
 static void snd_close_monitor(void)
@@ -829,13 +847,15 @@ int snd_open_stream(void)
                             mic_capture_peak = 0;
                             Pa_StartStream(mic_stream);
 
+                            /* Brief prefill only — long Pa_Sleep loops block FLTK and
+                             * let vu_meter_timer run while buffers are being rebuilt. */
                             prefill_bytes = (size_t)pa_frames * (size_t)mic_input_channels
                                             * sizeof(short) * 2;
                             prefill_wait = 0;
                             while (rb_filled(&ttns_mic_rb) < (int)prefill_bytes
-                                   && prefill_wait < 250)
+                                   && prefill_wait < 8)
                             {
-                                Pa_Sleep(2);
+                                Pa_Sleep(1);
                                 prefill_wait++;
                             }
                         }
@@ -1690,6 +1710,8 @@ void snd_close(void)
 
     ttns_free_mix_buffers();
     ttns_mic_rb_shutdown();
+    rb_free(&rec_rb);
+    rb_free(&stream_rb);
     free(snd_conv_work_buf);
     snd_conv_work_buf = NULL;
 

@@ -49,6 +49,8 @@ void fill_cfg_widgets(void)
     //fill the main section
     if (fl_g->choice_cfg_dev && fl_g->choice_cfg_ttns_mic)
     {
+        fl_g->choice_cfg_dev->clear();
+        fl_g->choice_cfg_ttns_mic->clear();
         for(i = 0; i < cfg.audio.dev_count; i++)
         {
             fl_g->choice_cfg_dev->add(cfg.audio.pcm_list[i]->name);
@@ -61,6 +63,7 @@ void fill_cfg_widgets(void)
     }
     else if (fl_g->choice_cfg_dev)
     {
+        fl_g->choice_cfg_dev->clear();
         for(i = 0; i < cfg.audio.dev_count; i++)
             fl_g->choice_cfg_dev->add(cfg.audio.pcm_list[i]->name);
 
@@ -69,6 +72,7 @@ void fill_cfg_widgets(void)
 
     if (fl_g->choice_cfg_ttns_monitor_out)
     {
+        fl_g->choice_cfg_ttns_monitor_out->clear();
         for (i = 0; i < cfg.audio.out_dev_count; i++)
             fl_g->choice_cfg_ttns_monitor_out->add(cfg.audio.out_pcm_list[i]->name);
         if (cfg.audio.out_dev_count > 0)

@@ -59,6 +59,8 @@ void snd_stop_stream(void);
 void snd_start_rec(void);
 void snd_stop_rec(void);
 void snd_reinit(void);
+void snd_stop_input(void);
+int snd_audio_is_active(void);
 
 int snd_init(void);
 int snd_open_stream(void);

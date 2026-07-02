@@ -42,7 +42,7 @@
 
 void vu_meter_timer(void*)
 {
-    if(pa_new_frames)
+    if(pa_new_frames && snd_audio_is_active())
         snd_update_vu();
 
     ttns_ui_timer_tick();

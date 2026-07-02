@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <math.h>
 
+#include <FL/Fl.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Check_Button.H>
@@ -226,10 +227,27 @@ static void ttns_about_cb(Fl_Widget *, void *)
     ttns_show_about();
 }
 
+static void ttns_reopen_audio_idle(void *);
+static char ttns_audio_reopen_pending = 0;
+
 static void ttns_reopen_audio(void)
 {
     snd_reinit();
     ttns_mixer_reset();
+}
+
+static void ttns_reopen_audio_idle(void *)
+{
+    ttns_audio_reopen_pending = 0;
+    ttns_reopen_audio();
+}
+
+static void ttns_reopen_audio_deferred(void)
+{
+    if (ttns_audio_reopen_pending)
+        return;
+    ttns_audio_reopen_pending = 1;
+    Fl::add_idle(ttns_reopen_audio_idle);
 }
 
 static void ttns_dev_cb(Fl_Widget *w, void *which)
@@ -242,13 +260,14 @@ static void ttns_dev_cb(Fl_Widget *w, void *which)
     {
         cfg.ttns.line_dev_num = fl_g->choice_cfg_dev->value();
         cfg.audio.dev_num = cfg.ttns.line_dev_num;
-        update_samplerates();
+        if (cfg.audio.dev_num >= 0 && cfg.audio.dev_num < cfg.audio.dev_count)
+            update_samplerates();
     }
     else if (w == (Fl_Widget*)fl_g->choice_cfg_ttns_mic)
         cfg.ttns.mic_dev_num = fl_g->choice_cfg_ttns_mic->value();
 
     unsaved_changes = 1;
-    ttns_reopen_audio();
+    ttns_reopen_audio_deferred();
 }
 
 static void ttns_gain_cb(Fl_Widget *w, void *which)

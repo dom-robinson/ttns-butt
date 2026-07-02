@@ -22,6 +22,8 @@
 
 int rb_init(struct ringbuf *rb, unsigned int len)
 {
+    rb_free(rb);
+
 	rb->buf = (char*)malloc(len * sizeof(char));
 	if(!rb->buf)
 		return -1;
@@ -228,7 +230,15 @@ int rb_write_drop(struct ringbuf *rb, char *src, unsigned int len)
 
 int rb_free(struct ringbuf *rb)
 {
+    if (!rb || !rb->buf)
+        return 0;
+
 	free(rb->buf);
+    rb->buf = NULL;
+    rb->r_ptr = NULL;
+    rb->w_ptr = NULL;
+    rb->size = 0;
+    rb->full = 0;
     pthread_mutex_destroy(&rb->mutex);
 	return 0;
 }

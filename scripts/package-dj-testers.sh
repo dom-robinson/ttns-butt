@@ -4,7 +4,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VER="0.1.16-ttns-pre.4"
+VER="0.1.16-ttns-pre.5"
 OUT="$ROOT/dist/dj-testers"
 PREFIX="TTNS-Deck-${VER}"
 SEARCH="${1:-$ROOT/dist}"

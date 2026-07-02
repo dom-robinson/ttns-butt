@@ -3,6 +3,20 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-pre.5] — Windows audio device change crash (2026-07-01)
+
+**Tag:** `v0.1.16-ttns-pre.5`
+
+### Fixed
+
+- **Windows** — crash when changing Line/Mic input device or importing config with edited device index
+- Ring buffers (`rec_rb`, `stream_rb`) now torn down before re-init on device change
+- Audio reopen deferred off FLTK choice callback; VU meter paused during teardown
+- Config import stops open streams before re-enumerating devices
+- Device dropdowns cleared before refill on import
+
+---
+
 ## [0.1.16-ttns-pre.4] — GitHub release packaging fix (2026-07-01)
 
 **Tag:** `v0.1.16-ttns-pre.4`

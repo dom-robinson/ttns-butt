@@ -2987,6 +2987,7 @@ void button_cfg_import_cb(void)
     }
 
     //read config and initialize config struct
+    snd_stop_input();
     if(cfg_set_values(filename) != 0)     
     {
         snprintf(info_buf, sizeof(info_buf), "Could not import config %s", filename);
