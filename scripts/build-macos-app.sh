@@ -8,12 +8,12 @@ APP="$ROOT/dist/macos/TTNS Deck.app"
 cd "$ROOT"
 "$ROOT/scripts/generate-icons.sh" 2>/dev/null || true
 
-if [ ! -x "$ROOT/src/butt" ]; then
-    echo "Building binary..."
+echo "Building binary..."
+if [ ! -f "$ROOT/configure" ]; then
     autoreconf -fi
     ./configure -q
-    make -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 fi
+make -C "$ROOT/src" -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/data" "$APP/Contents/Resources/assets"

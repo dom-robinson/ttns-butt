@@ -257,7 +257,10 @@ static int ttns_alloc_mix_buffers(void)
     size_t line_samples = (size_t)pa_frames * 2;
     size_t mic_samples = (size_t)pa_frames * 2;
 
-    ttns_free_mix_buffers();
+    /* snd_stop_streams() should have cleared these; guard stale pointers if not. */
+    if (mic_pcm_buf || ttns_mix_buf || ttns_cart_buf || ttns_line_buf
+        || ttns_mic_work_buf || monitor_mix_buf)
+        ttns_free_mix_buffers();
 
     ttns_cart_buf = (short*)malloc(line_samples * sizeof(short));
     ttns_line_buf = (short*)malloc(line_samples * sizeof(short));
@@ -687,6 +690,13 @@ int snd_open_stream(void)
 
 
     framepacket_size = pa_frames * cfg.audio.channel;
+
+    free(pa_pcm_buf);
+    pa_pcm_buf = NULL;
+    free(encode_buf);
+    encode_buf = NULL;
+    free(snd_conv_work_buf);
+    snd_conv_work_buf = NULL;
 
     pa_pcm_buf = (short*)malloc(16 * framepacket_size * sizeof(short));
     encode_buf = (char*)malloc(16 * framepacket_size * sizeof(char));
