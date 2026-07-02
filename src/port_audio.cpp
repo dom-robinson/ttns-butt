@@ -249,6 +249,7 @@ static void ttns_free_mix_buffers(void)
     ttns_cart_buf = NULL;
     ttns_line_buf = NULL;
     ttns_mic_work_buf = NULL;
+    monitor_mix_buf = NULL;
 }
 
 static int ttns_alloc_mix_buffers(void)
@@ -511,6 +512,9 @@ static void snd_stop_streams(void)
 
 #ifdef _WIN32
     /* WASAPI needs a beat between close and reopen on the same UI thread. */
+    Pa_Sleep(50);
+#elif defined(__APPLE__)
+    /* CoreAudio can fault if capture streams reopen immediately after close. */
     Pa_Sleep(50);
 #endif
 }

@@ -3,6 +3,17 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-pre.6] — macOS device change double-free (2026-07-02)
+
+**Tag:** `v0.1.16-ttns-pre.6`
+
+### Fixed
+
+- **macOS / all platforms** — double-free crash changing audio device (`monitor_mix_buf` not nulled after `free`)
+- **macOS** — brief pause after closing PortAudio streams before reopen (CoreAudio)
+
+---
+
 ## [0.1.16-ttns-pre.5] — Windows audio device change crash (2026-07-01)
 
 **Tag:** `v0.1.16-ttns-pre.5`

@@ -5,7 +5,7 @@ TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and
 | | |
 |---|---|
 | **Product name** | TTNS Deck |
-| **Version** | `0.1.16-ttns-pre.5` (preliminary) |
+| **Version** | `0.1.16-ttns-pre.6` (preliminary) |
 | **Upstream** | butt 0.1.16 |
 | **Repository** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
 | **DJ guide** | [`docs/TTNS_DJ_GUIDE.md`](docs/TTNS_DJ_GUIDE.md) |
@@ -16,10 +16,10 @@ TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and
 
 ## Preliminary release
 
-Tag **`v0.1.16-ttns-pre.5`** — DJ testing build. Download CI artifacts or the GitHub pre-release; see [`docs/RELEASE.md`](docs/RELEASE.md).
+Tag **`v0.1.16-ttns-pre.6`** — DJ testing build. Download CI artifacts or the GitHub pre-release; see [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ```bash
-git checkout v0.1.16-ttns-pre.5
+git checkout v0.1.16-ttns-pre.6
 ./scripts/build-release.sh
 ```
 
