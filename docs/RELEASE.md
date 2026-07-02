@@ -75,7 +75,7 @@ Workflow: [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 |-----|--------|-------|
 | `build-macos` | `macos-latest` (arm64), `macos-15-intel` (x64) | Homebrew deps; `generate-icons.sh` + `build-macos-app.sh` |
 | `build-linux` | `ubuntu-latest` | apt dev packages; `build-linux.sh` |
-| `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs |
+| `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs; pacman install retries on mirror failures |
 
 Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.5` create a **pre-release** on GitHub with the four platform archives attached.
 
