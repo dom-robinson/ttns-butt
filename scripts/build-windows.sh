@@ -53,7 +53,8 @@ is_system_dll() {
         kernel32.dll|kernelbase.dll|msimg32.dll|msvcrt.dll|ntdll.dll|ole32.dll|\
         oleaut32.dll|powrprof.dll|profapi.dll|rpcrt4.dll|secur32.dll|setupapi.dll|\
         shell32.dll|shlwapi.dll|user32.dll|userenv.dll|uuid.dll|version.dll|\
-        winmm.dll|ws2_32.dll|wtsapi32.dll|uxtheme.dll|windows.storage.dll) return 0 ;;
+        winmm.dll|ws2_32.dll|wtsapi32.dll|uxtheme.dll|windows.storage.dll|\
+        wldap32.dll|normaliz.dll|cryptbase.dll) return 0 ;;
     esac
     return 1
 }
