@@ -38,6 +38,7 @@
 #include "ttns_remote_wan.h"
 
 #ifdef _WIN32
+#include <winsock2.h>
 #include <direct.h>
 #else
 #include <sys/stat.h>
