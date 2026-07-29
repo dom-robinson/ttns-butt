@@ -35,9 +35,16 @@ mkdir -p "$STAGE/bin" "$STAGE/data" "$STAGE/assets" "$STAGE/legal"
 "$ROOT/scripts/copy-distribution-licenses.sh" "$STAGE/legal"
 
 cp "$ROOT/src/butt.exe" "$STAGE/bin/ttns-deck.exe" 2>/dev/null || cp "$ROOT/src/butt" "$STAGE/bin/ttns-deck.exe"
+if [ -f "$ROOT/src/ttns_remote.exe" ]; then
+    cp "$ROOT/src/ttns_remote.exe" "$STAGE/bin/ttns-remote.exe"
+elif [ -f "$ROOT/src/ttns_remote" ]; then
+    cp "$ROOT/src/ttns_remote" "$STAGE/bin/ttns-remote.exe"
+fi
 cp "$ROOT/data/ttns-zones.json" "$STAGE/data/"
 cp "$ROOT/assets/ttns-logo.png" "$STAGE/assets/"
 cp "$ROOT/docs/TTNS_DJ_GUIDE.md" "$STAGE/README.txt"
+[ -f "$ROOT/docs/REMOTE_DIALIN.md" ] && cp "$ROOT/docs/REMOTE_DIALIN.md" "$STAGE/" || true
+[ -f "$ROOT/docs/REMOTE_WAN.md" ] && cp "$ROOT/docs/REMOTE_WAN.md" "$STAGE/" || true
 
 is_system_dll() {
     case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
@@ -129,6 +136,9 @@ if ! command -v objdump >/dev/null 2>&1; then
 fi
 
 bundle_pe_tree "$EXE"
+if [ -f "$STAGE/bin/ttns-remote.exe" ]; then
+    bundle_pe_tree "$STAGE/bin/ttns-remote.exe"
+fi
 
 missing=()
 while IFS= read -r dll; do
@@ -151,6 +161,14 @@ cat > "$STAGE/Run TTNS Deck.bat" <<'EOF'
 cd /d "%~dp0"
 bin\ttns-deck.exe %*
 EOF
+
+if [ -f "$STAGE/bin/ttns-remote.exe" ]; then
+    cat > "$STAGE/Run TTNS Remote.bat" <<'EOF'
+@echo off
+cd /d "%~dp0"
+bin\ttns-remote.exe %*
+EOF
+fi
 
 mkdir -p "$DIST"
 rm -f "$ZIP"

@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <limits.h>
+#include <time.h>
 
 #include <string.h>
 #include <pthread.h>
@@ -44,10 +46,12 @@
 #include "flgui.h"
 #include "fl_funcs.h"
 #include "util.h"
+#include "wav_header.h"
 #include "ttns_audio.h"
 #include "ttns_remote.h"
+#include "ttns_remote_session.h"
 #include "cart_player.h"
-
+#include "ttns_paths.h"
 
 int pa_frames = 2048;
 
@@ -102,6 +106,269 @@ static struct ringbuf ttns_mic_rb;
 static struct ringbuf monitor_rb;
 static int ttns_mic_rb_inited = 0;
 static int monitor_rb_inited = 0;
+static int monitor_rate = 0;           /* actual PortAudio output rate */
+static double monitor_pll = 1.0;       /* slow clock-drift correction vs capture */
+static SRC_STATE *monitor_write_src = NULL;
+static float *monitor_f_in = NULL;
+static float *monitor_f_out = NULL;
+static int monitor_f_cap = 0;
+
+#define TTNS_MON_FRAME_BYTES ((unsigned int)(2 * sizeof(short)))
+#define TTNS_MON_TARGET_MS   250
+#define TTNS_MON_DIAG_SEC    12
+
+typedef struct {
+    FILE *line_fd;
+    FILE *mon_fd;
+    FILE *play_fd;
+    FILE *stats_fd;
+    int active;
+    int frames_left;          /* mix-rate frames still to capture */
+    unsigned long long line_cbs;
+    unsigned long long mon_cbs;
+    unsigned long long mon_underruns;   /* short reads in monitor cb */
+    unsigned long long mon_write_drops; /* skipped writes (RB full) */
+    unsigned long long line_overflow_flags;
+    unsigned long long mon_underflow_flags;
+    double pll_min;
+    double pll_max;
+    int fill_min;
+    int fill_max;
+    double line_dt_sum;
+    double line_dt_max;
+    int line_dt_n;
+    double mon_dt_sum;
+    double mon_dt_max;
+    int mon_dt_n;
+    double last_line_sec;
+    double last_mon_sec;
+    int used_src;
+    int used_direct;
+} ttns_mon_diag_t;
+
+static ttns_mon_diag_t mon_diag;
+static int mon_diag_session_done = 0;
+
+static double ttns_monotonic_sec(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+}
+
+static void ttns_mon_diag_close(void)
+{
+    char info_buf[512];
+
+    if (!mon_diag.active && !mon_diag.line_fd && !mon_diag.mon_fd && !mon_diag.play_fd)
+        return;
+
+    if (mon_diag.line_fd)
+    {
+        wav_write_header(mon_diag.line_fd, 2, cfg.audio.samplerate, 16);
+        fclose(mon_diag.line_fd);
+        mon_diag.line_fd = NULL;
+    }
+    if (mon_diag.mon_fd)
+    {
+        int rate = monitor_rate > 0 ? monitor_rate : cfg.audio.samplerate;
+        wav_write_header(mon_diag.mon_fd, 2, rate, 16);
+        fclose(mon_diag.mon_fd);
+        mon_diag.mon_fd = NULL;
+    }
+    if (mon_diag.play_fd)
+    {
+        int rate = monitor_rate > 0 ? monitor_rate : cfg.audio.samplerate;
+        wav_write_header(mon_diag.play_fd, 2, rate, 16);
+        fclose(mon_diag.play_fd);
+        mon_diag.play_fd = NULL;
+    }
+
+    if (mon_diag.stats_fd)
+    {
+        fprintf(mon_diag.stats_fd,
+                "line_cbs=%llu mon_cbs=%llu\n"
+                "mon_underruns=%llu mon_write_drops=%llu\n"
+                "line_overflow_flags=%llu mon_underflow_flags=%llu\n"
+                "pll_min=%.6f pll_max=%.6f\n"
+                "fill_min=%d fill_max=%d (bytes)\n"
+                "line_dt_ms avg=%.3f max=%.3f n=%d\n"
+                "mon_dt_ms avg=%.3f max=%.3f n=%d\n"
+                "path_direct_blocks=%d path_src_blocks=%d\n"
+                "samplerate_mix=%d monitor_rate=%d\n",
+                mon_diag.line_cbs, mon_diag.mon_cbs,
+                mon_diag.mon_underruns, mon_diag.mon_write_drops,
+                mon_diag.line_overflow_flags, mon_diag.mon_underflow_flags,
+                mon_diag.pll_min, mon_diag.pll_max,
+                mon_diag.fill_min, mon_diag.fill_max,
+                mon_diag.line_dt_n ? (1000.0 * mon_diag.line_dt_sum / mon_diag.line_dt_n) : 0.0,
+                1000.0 * mon_diag.line_dt_max, mon_diag.line_dt_n,
+                mon_diag.mon_dt_n ? (1000.0 * mon_diag.mon_dt_sum / mon_diag.mon_dt_n) : 0.0,
+                1000.0 * mon_diag.mon_dt_max, mon_diag.mon_dt_n,
+                mon_diag.used_direct, mon_diag.used_src,
+                cfg.audio.samplerate, monitor_rate);
+        fclose(mon_diag.stats_fd);
+        mon_diag.stats_fd = NULL;
+    }
+
+    mon_diag.active = 0;
+    snprintf(info_buf, sizeof(info_buf),
+             "Monitor diag saved (~%ds). Analyze with: "
+             "python3 scripts/analyze_monitor_diag.py",
+             TTNS_MON_DIAG_SEC);
+    print_info(info_buf, 0);
+}
+
+static void ttns_mon_diag_start(void)
+{
+    char dir[PATH_MAX];
+    char line_path[PATH_MAX];
+    char mon_path[PATH_MAX];
+    char play_path[PATH_MAX];
+    char stats_path[PATH_MAX];
+    char *slash;
+
+    if (mon_diag_session_done || mon_diag.active)
+        return;
+
+    memset(&mon_diag, 0, sizeof(mon_diag));
+    mon_diag.pll_min = 1.0;
+    mon_diag.pll_max = 1.0;
+    mon_diag.fill_min = INT_MAX;
+
+    if (ttns_default_log_path(dir, sizeof(dir)) != 0)
+        return;
+    slash = strrchr(dir, '/');
+    if (slash)
+        *slash = '\0';
+    else
+        return;
+
+    snprintf(line_path, sizeof(line_path), "%s/diag-line.wav", dir);
+    snprintf(mon_path, sizeof(mon_path), "%s/diag-monitor.wav", dir);
+    snprintf(play_path, sizeof(play_path), "%s/diag-playback.wav", dir);
+    snprintf(stats_path, sizeof(stats_path), "%s/diag-stats.txt", dir);
+
+    mon_diag.line_fd = fopen(line_path, "wb");
+    mon_diag.mon_fd = fopen(mon_path, "wb");
+    mon_diag.play_fd = fopen(play_path, "wb");
+    mon_diag.stats_fd = fopen(stats_path, "wb");
+    if (!mon_diag.line_fd || !mon_diag.mon_fd || !mon_diag.play_fd || !mon_diag.stats_fd)
+    {
+        if (mon_diag.line_fd) fclose(mon_diag.line_fd);
+        if (mon_diag.mon_fd) fclose(mon_diag.mon_fd);
+        if (mon_diag.play_fd) fclose(mon_diag.play_fd);
+        if (mon_diag.stats_fd) fclose(mon_diag.stats_fd);
+        memset(&mon_diag, 0, sizeof(mon_diag));
+        print_info("Monitor diag: could not open capture files", 1);
+        return;
+    }
+
+    /* Placeholder headers; rewritten on close with final sizes. */
+    wav_write_header(mon_diag.line_fd, 2, cfg.audio.samplerate, 16);
+    wav_write_header(mon_diag.mon_fd, 2,
+                     monitor_rate > 0 ? monitor_rate : cfg.audio.samplerate, 16);
+    wav_write_header(mon_diag.play_fd, 2,
+                     monitor_rate > 0 ? monitor_rate : cfg.audio.samplerate, 16);
+
+    mon_diag.frames_left = cfg.audio.samplerate * TTNS_MON_DIAG_SEC;
+    mon_diag.active = 1;
+    mon_diag_session_done = 1;
+    print_info("Monitor diag: capturing line+monitor bitstreams for 12s…", 0);
+}
+
+static void ttns_mon_diag_line(const short *stereo, int frames,
+                               PaStreamCallbackFlags flags)
+{
+    double now;
+    double dt;
+
+    if (!mon_diag.active || !stereo || frames <= 0)
+        return;
+
+    mon_diag.line_cbs++;
+    if (flags & paInputOverflow)
+        mon_diag.line_overflow_flags++;
+
+    now = ttns_monotonic_sec();
+    if (mon_diag.last_line_sec > 0.0)
+    {
+        dt = now - mon_diag.last_line_sec;
+        mon_diag.line_dt_sum += dt;
+        if (dt > mon_diag.line_dt_max)
+            mon_diag.line_dt_max = dt;
+        mon_diag.line_dt_n++;
+    }
+    mon_diag.last_line_sec = now;
+
+    if (mon_diag.line_fd && mon_diag.frames_left > 0)
+    {
+        int n = frames;
+        if (n > mon_diag.frames_left)
+            n = mon_diag.frames_left;
+        fwrite(stereo, sizeof(short), (size_t)n * 2, mon_diag.line_fd);
+        mon_diag.frames_left -= n;
+        if (mon_diag.frames_left <= 0)
+            ttns_mon_diag_close();
+    }
+}
+
+static void ttns_mon_diag_mon_write(const short *stereo, int frames)
+{
+    if (!mon_diag.active || !mon_diag.mon_fd || !stereo || frames <= 0)
+        return;
+    fwrite(stereo, sizeof(short), (size_t)frames * 2, mon_diag.mon_fd);
+}
+
+static void ttns_mon_diag_mon_cb(const void *outputBuffer, unsigned long frames,
+                                unsigned int need, unsigned int got,
+                                PaStreamCallbackFlags flags)
+{
+    double now;
+    double dt;
+    int filled;
+
+    if (!mon_diag.active)
+        return;
+
+    mon_diag.mon_cbs++;
+    if (got < need)
+        mon_diag.mon_underruns++;
+    if (flags & paOutputUnderflow)
+        mon_diag.mon_underflow_flags++;
+
+    if (monitor_rb_inited)
+    {
+        filled = rb_filled(&monitor_rb);
+        if (filled < mon_diag.fill_min)
+            mon_diag.fill_min = filled;
+        if (filled > mon_diag.fill_max)
+            mon_diag.fill_max = filled;
+    }
+    if (monitor_pll < mon_diag.pll_min)
+        mon_diag.pll_min = monitor_pll;
+    if (monitor_pll > mon_diag.pll_max)
+        mon_diag.pll_max = monitor_pll;
+
+    now = ttns_monotonic_sec();
+    if (mon_diag.last_mon_sec > 0.0)
+    {
+        dt = now - mon_diag.last_mon_sec;
+        mon_diag.mon_dt_sum += dt;
+        if (dt > mon_diag.mon_dt_max)
+            mon_diag.mon_dt_max = dt;
+        mon_diag.mon_dt_n++;
+    }
+    mon_diag.last_mon_sec = now;
+
+    if (mon_diag.play_fd && outputBuffer && frames > 0)
+        fwrite(outputBuffer, sizeof(short), frames * 2, mon_diag.play_fd);
+}
+
+static unsigned int ttns_align_stereo16(unsigned int n)
+{
+    return n - (n % TTNS_MON_FRAME_BYTES);
+}
 
 static void ttns_mic_rb_shutdown(void)
 {
@@ -112,6 +379,20 @@ static void ttns_mic_rb_shutdown(void)
     }
 }
 
+static void ttns_monitor_write_src_shutdown(void)
+{
+    if (monitor_write_src)
+    {
+        src_delete(monitor_write_src);
+        monitor_write_src = NULL;
+    }
+    free(monitor_f_in);
+    free(monitor_f_out);
+    monitor_f_in = NULL;
+    monitor_f_out = NULL;
+    monitor_f_cap = 0;
+}
+
 static void ttns_monitor_rb_shutdown(void)
 {
     if (monitor_rb_inited)
@@ -119,6 +400,8 @@ static void ttns_monitor_rb_shutdown(void)
         rb_free(&monitor_rb);
         monitor_rb_inited = 0;
     }
+    ttns_monitor_write_src_shutdown();
+    monitor_rate = 0;
 }
 
 static int ttns_mic_rb_start(void)
@@ -132,43 +415,242 @@ static int ttns_mic_rb_start(void)
     return 0;
 }
 
-static int ttns_monitor_rb_start(void)
+static int ttns_monitor_rb_start(int out_rate)
 {
-    size_t bytes = (size_t)pa_frames * 2 * sizeof(short) * 64;
+    size_t bytes;
+    size_t min_bytes;
+    int err;
+
+    if (out_rate < 8000)
+        out_rate = cfg.audio.samplerate;
+
+    /* Capacity at the *output* rate (~2s). */
+    bytes = (size_t)out_rate * 2 * sizeof(short) * 2;
+    min_bytes = (size_t)pa_frames * 2 * sizeof(short) * 64;
+    if (bytes < min_bytes)
+        bytes = min_bytes;
 
     ttns_monitor_rb_shutdown();
     if (rb_init(&monitor_rb, (unsigned int)bytes) != 0)
         return 1;
     monitor_rb_inited = 1;
+    monitor_rate = out_rate;
+    monitor_pll = 1.0;
+
+    /* Always SRC (even 1:1) so a PLL can absorb SplitCam↔speakers clock drift
+     * without hard drops that click/warble. */
+    monitor_write_src = src_new(SRC_SINC_FASTEST, 2, &err);
+    if (!monitor_write_src)
+    {
+        ttns_monitor_rb_shutdown();
+        return 1;
+    }
     return 0;
+}
+
+static int ttns_monitor_ensure_scratch(int in_frames)
+{
+    int out_need;
+    double ratio;
+
+    if (in_frames < 1)
+        return 1;
+    ratio = (monitor_rate > 0 && cfg.audio.samplerate > 0)
+        ? ((double)monitor_rate / (double)cfg.audio.samplerate)
+        : 1.0;
+    out_need = (int)((double)in_frames * ratio) + 64;
+    if (out_need < in_frames + 64)
+        out_need = in_frames + 64;
+
+    if (in_frames + 64 <= monitor_f_cap && out_need <= monitor_f_cap)
+        return 0;
+
+    {
+        int cap = out_need > (in_frames + 64) ? out_need : (in_frames + 64);
+        float *ni = (float *)malloc((size_t)cap * 2 * sizeof(float));
+        float *no = (float *)malloc((size_t)cap * 2 * sizeof(float));
+        if (!ni || !no)
+        {
+            free(ni);
+            free(no);
+            return 1;
+        }
+        free(monitor_f_in);
+        free(monitor_f_out);
+        monitor_f_in = ni;
+        monitor_f_out = no;
+        monitor_f_cap = cap;
+    }
+    return 0;
+}
+
+static void ttns_monitor_prime(void)
+{
+    size_t frames;
+    size_t bytes;
+    char *z;
+    int rate = monitor_rate > 0 ? monitor_rate : cfg.audio.samplerate;
+
+    if (!monitor_rb_inited || rate < 8000)
+        return;
+
+    frames = (size_t)rate * TTNS_MON_TARGET_MS / 1000;
+    bytes = frames * TTNS_MON_FRAME_BYTES;
+    if (bytes == 0 || bytes > (size_t)monitor_rb.size / 3)
+        bytes = (size_t)monitor_rb.size / 4;
+    bytes = ttns_align_stereo16((unsigned int)bytes);
+
+    z = (char *)calloc(1, bytes);
+    if (!z)
+        return;
+    rb_write(&monitor_rb, z, (unsigned int)bytes);
+    free(z);
+}
+
+static void ttns_monitor_pll_tick(void)
+{
+    int filled;
+    int target;
+    double err;
+    double want;
+
+    if (!monitor_rb_inited || monitor_rate < 8000)
+        return;
+
+    filled = rb_filled(&monitor_rb);
+    target = (int)((size_t)monitor_rate * TTNS_MON_TARGET_MS / 1000 * TTNS_MON_FRAME_BYTES);
+    if (target < (int)(TTNS_MON_FRAME_BYTES * 128))
+        target = (int)(TTNS_MON_FRAME_BYTES * 128);
+
+    err = (double)(filled - target) / (double)target;
+    /* High fill → produce slightly less; low fill → produce slightly more. */
+    want = 1.0 - err * 0.012;
+    if (want < 0.997) want = 0.997;
+    if (want > 1.003) want = 1.003;
+    monitor_pll = 0.97 * monitor_pll + 0.03 * want;
+    if (monitor_pll < 0.995) monitor_pll = 0.995;
+    if (monitor_pll > 1.005) monitor_pll = 1.005;
+}
+
+static void ttns_monitor_write(const short *stereo, int frameCount)
+{
+    unsigned int bytes;
+    short *converted = NULL;
+    const short *out_ptr;
+    int out_frames;
+    double base_ratio;
+
+    if (!monitor_rb_inited || !stereo || frameCount <= 0)
+        return;
+
+    base_ratio = (monitor_rate > 0 && cfg.audio.samplerate > 0)
+        ? ((double)monitor_rate / (double)cfg.audio.samplerate)
+        : 1.0;
+
+    /* Same nominal rate: copy directly. A ±0.5% PLL here *creates* audible wow.
+     * Dual-clock drift at 48k↔48k is typically tens of ppm — skip/drop is rarer
+     * than continuous pitch modulation from an aggressive PLL. */
+    if (fabs(base_ratio - 1.0) < 0.001 || !monitor_write_src)
+    {
+        out_ptr = stereo;
+        out_frames = frameCount;
+        if (mon_diag.active)
+            mon_diag.used_direct++;
+    }
+    else
+    {
+        SRC_DATA data;
+        int i;
+        int gen;
+
+        ttns_monitor_pll_tick();
+        /* Keep PLL extremely gentle (±0.05%) when SRC is required. */
+        if (monitor_pll < 0.9995) monitor_pll = 0.9995;
+        if (monitor_pll > 1.0005) monitor_pll = 1.0005;
+
+        if (ttns_monitor_ensure_scratch(frameCount) != 0)
+            return;
+
+        for (i = 0; i < frameCount * 2; i++)
+            monitor_f_in[i] = (float)stereo[i] / 32768.0f;
+
+        memset(&data, 0, sizeof(data));
+        data.data_in = monitor_f_in;
+        data.input_frames = frameCount;
+        data.data_out = monitor_f_out;
+        data.output_frames = monitor_f_cap;
+        data.src_ratio = base_ratio * monitor_pll;
+        data.end_of_input = 0;
+
+        if (src_process(monitor_write_src, &data) != 0 || data.output_frames_gen < 1)
+            return;
+
+        gen = (int)data.output_frames_gen;
+        converted = (short *)malloc((size_t)gen * TTNS_MON_FRAME_BYTES);
+        if (!converted)
+            return;
+        for (i = 0; i < gen * 2; i++)
+        {
+            float s = monitor_f_out[i];
+            if (s > 1.0f) s = 1.0f;
+            if (s < -1.0f) s = -1.0f;
+            converted[i] = (short)(s * 32767.0f);
+        }
+        out_ptr = converted;
+        out_frames = gen;
+        if (mon_diag.active)
+            mon_diag.used_src++;
+    }
+
+    bytes = (unsigned int)out_frames * TTNS_MON_FRAME_BYTES;
+    ttns_mon_diag_mon_write(out_ptr, out_frames);
+
+    if (rb_space(&monitor_rb) < (int)bytes)
+    {
+        if (mon_diag.active)
+            mon_diag.mon_write_drops++;
+        free(converted);
+        return;
+    }
+    rb_write(&monitor_rb, (char *)out_ptr, bytes);
+    free(converted);
 }
 
 static int ttns_mic_rb_read(short *dest, int frames, int channels)
 {
     unsigned int need;
     unsigned int target;
+    unsigned int align;
     int filled;
 
     if (!ttns_mic_rb_inited || !dest || frames <= 0 || channels < 1)
         return 0;
 
-    need = (unsigned int)frames * (unsigned int)channels * sizeof(short);
+    align = (unsigned int)channels * sizeof(short);
+    need = (unsigned int)frames * align;
     filled = rb_filled(&ttns_mic_rb);
     target = need * 4;
 
     if (filled > (int)(target * 2))
-        rb_discard(&ttns_mic_rb, (unsigned int)filled - target);
+    {
+        unsigned int drop = (unsigned int)filled - target;
+        drop -= drop % align;
+        if (drop > 0)
+            rb_discard(&ttns_mic_rb, drop);
+    }
 
     filled = rb_filled(&ttns_mic_rb);
     if (filled < (int)need)
     {
+        unsigned int got = (unsigned int)filled;
+        got -= got % align;
         memset(dest, 0, need);
-        if (filled > 0)
-            rb_read_len(&ttns_mic_rb, (char*)dest, (unsigned int)filled);
+        if (got > 0)
+            rb_read_len(&ttns_mic_rb, (char *)dest, got);
         return 0;
     }
 
-    rb_read_len(&ttns_mic_rb, (char*)dest, need);
+    rb_read_len(&ttns_mic_rb, (char *)dest, need);
     return 1;
 }
 
@@ -179,34 +661,29 @@ static int monitor_out_cb(const void *inputBuffer, void *outputBuffer,
                           void *userData)
 {
     unsigned int need;
+    unsigned int got;
     int filled;
 
     (void)inputBuffer;
     (void)timeInfo;
-    (void)statusFlags;
     (void)userData;
 
     if (!outputBuffer || framesPerBuffer == 0)
         return paContinue;
 
-    need = (unsigned int)framesPerBuffer * 2 * sizeof(short);
+    need = (unsigned int)framesPerBuffer * TTNS_MON_FRAME_BYTES;
+    memset(outputBuffer, 0, need);
 
     if (!monitor_rb_inited)
-    {
-        memset(outputBuffer, 0, need);
         return paContinue;
-    }
 
     filled = rb_filled(&monitor_rb);
-    if (filled < (int)need)
-    {
-        memset(outputBuffer, 0, need);
-        if (filled > 0)
-            rb_read_len(&monitor_rb, (char*)outputBuffer, (unsigned int)filled);
-        return paContinue;
-    }
+    got = ttns_align_stereo16((unsigned int)((filled > (int)need) ? need : (unsigned int)filled));
+    if (got > 0)
+        rb_read_len(&monitor_rb, (char *)outputBuffer, got);
 
-    rb_read_len(&monitor_rb, (char*)outputBuffer, need);
+    ttns_mon_diag_mon_cb(outputBuffer, framesPerBuffer, need, got, statusFlags);
+
     return paContinue;
 }
 
@@ -229,13 +706,20 @@ static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
                                   const short *remote_stereo[TTNS_REMOTE_SLOTS],
                                   const float remote_gain[TTNS_REMOTE_SLOTS])
 {
-    size_t mon_bytes;
     float mon_mic_g;
     const short *mic_src = mic_in;
     int mic_ch = mic_channels;
 
     if (!monitor_rb_inited || !monitor_mix_buf || frameCount <= 0 || !line_stereo)
         return;
+
+    /* Master monitor mute: silence local headphones only; Icecast mix is separate. */
+    if (cfg.ttns.monitor_mute)
+    {
+        memset(monitor_mix_buf, 0, (size_t)frameCount * 2 * sizeof(short));
+        ttns_monitor_write(monitor_mix_buf, frameCount);
+        return;
+    }
 
     mon_mic_g = cfg.ttns.mic_monitor_mute ? 0.0f : mic_g;
     if (!mic_src)
@@ -249,8 +733,7 @@ static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
                         frameCount, mon_mic_g, line_gain, cart_gain, duck_gain,
                         remote_stereo, remote_gain, -1);
 
-    mon_bytes = (size_t)frameCount * 2 * sizeof(short);
-    rb_write_drop(&monitor_rb, (char*)monitor_mix_buf, (unsigned int)mon_bytes);
+    ttns_monitor_write(monitor_mix_buf, frameCount);
 }
 
 static void ttns_free_mix_buffers(void)
@@ -316,6 +799,10 @@ static void ttns_push_fader_meters(int line_pk_raw, int mic_pk_raw, int cart_pk_
     int line_meter = ttns_peak_apply_gain(line_pk_raw, cfg.ttns.line_gain);
     int mic_meter = ttns_peak_apply_gain(mic_pk_raw, cfg.ttns.mic_gain);
     int cart_meter = ttns_peak_apply_gain(cart_pk_raw, cfg.ttns.cart_gain);
+
+    /* Prefer live capture peak when dual-mic ring underruns the mix read. */
+    if (ttns_use_dual_mic && mic_capture_peak > mic_pk_raw)
+        mic_meter = ttns_peak_apply_gain(mic_capture_peak, cfg.ttns.mic_gain);
 
     ttns_meters_push(line_meter, mic_meter, cart_meter);
 }
@@ -523,6 +1010,11 @@ int snd_audio_is_active(void)
     return snd_audio_active;
 }
 
+int snd_monitor_is_open(void)
+{
+    return monitor_stream != NULL;
+}
+
 static void snd_pause_after_stop(void)
 {
 #ifdef _WIN32
@@ -598,6 +1090,9 @@ static int snd_open_mic_capture(int samplerate)
     const PaDeviceInfo *mic_dev_info;
     PaDeviceIndex mic_pa_dev_id;
     PaError pa_err;
+    int try_ch[2];
+    int ntry = 0;
+    int ti;
 
     if (line_dev_num < 0 || line_dev_num >= cfg.audio.dev_count)
         line_dev_num = cfg.audio.dev_num;
@@ -616,34 +1111,46 @@ static int snd_open_mic_capture(int samplerate)
         return 1;
     }
 
-    /* Mono avoids channel/format issues on virtual devices (SplitCam, Zoom, etc.). */
-    mic_input_channels = 1;
     if (mic_dev_info->maxInputChannels < 1)
         return 1;
 
-    mic_params.device = mic_pa_dev_id;
-    mic_params.channelCount = mic_input_channels;
-    mic_params.sampleFormat = paInt16;
-    mic_params.suggestedLatency = mic_dev_info->defaultHighInputLatency;
-    mic_params.hostApiSpecificStreamInfo = NULL;
+    /* Prefer mono (virtual devices); fall back to stereo if mono is rejected. */
+    try_ch[ntry++] = 1;
+    if (mic_dev_info->maxInputChannels >= 2)
+        try_ch[ntry++] = 2;
 
-    pa_err = Pa_IsFormatSupported(&mic_params, NULL, samplerate);
-    if (pa_err != paFormatIsSupported)
+    mic_stream = NULL;
+    for (ti = 0; ti < ntry; ti++)
     {
-        snprintf(info_buf, sizeof(info_buf),
-                 "Mic device format not supported at %d Hz — check Settings → Audio",
-                 samplerate);
-        print_info(info_buf, 1);
-        return 1;
+        memset(&mic_params, 0, sizeof(mic_params));
+        mic_input_channels = try_ch[ti];
+        mic_params.device = mic_pa_dev_id;
+        mic_params.channelCount = mic_input_channels;
+        mic_params.sampleFormat = paInt16;
+        mic_params.suggestedLatency = mic_dev_info->defaultHighInputLatency;
+        mic_params.hostApiSpecificStreamInfo = NULL;
+
+        pa_err = Pa_IsFormatSupported(&mic_params, NULL, samplerate);
+        if (pa_err != paFormatIsSupported && pa_err != paInvalidSampleRate)
+        {
+            /* Some Host APIs return non-zero even when OpenStream succeeds. */
+        }
+        else if (pa_err == paInvalidSampleRate)
+            continue;
+
+        pa_err = Pa_OpenStream(&mic_stream, &mic_params, NULL,
+                               samplerate, pa_frames,
+                               paClipOff, ttns_mic_capture_cb, NULL);
+        if (pa_err == paNoError)
+            break;
+        mic_stream = NULL;
     }
 
-    pa_err = Pa_OpenStream(&mic_stream, &mic_params, NULL,
-                           samplerate, pa_frames,
-                           paClipOff, ttns_mic_capture_cb, NULL);
-    if (pa_err != paNoError)
+    if (!mic_stream)
     {
         snprintf(info_buf, sizeof(info_buf),
-                 "Mic device open failed: %s", Pa_GetErrorText(pa_err));
+                 "Mic device open failed for %s — try another Mic device in Settings",
+                 cfg.audio.pcm_list[mic_dev_num]->name);
         print_info(info_buf, 1);
         return 1;
     }
@@ -697,7 +1204,10 @@ int snd_reopen_mic_only(void)
     if (snd_open_mic_capture(cfg.audio.samplerate) != 0)
         return 1;
 
-    return snd_run_mic_capture();
+    if (snd_run_mic_capture() != 0)
+        return 1;
+
+    return 0;
 }
 
 static void snd_stop_streams(void)
@@ -741,6 +1251,8 @@ static void snd_stop_streams(void)
 
 static void snd_close_monitor(void)
 {
+    ttns_mon_diag_close();
+
     if (monitor_stream != NULL)
     {
         Pa_StopStream(monitor_stream);
@@ -751,6 +1263,48 @@ static void snd_close_monitor(void)
     ttns_monitor_rb_shutdown();
 }
 
+/* Resolve configured monitor output device. Returns 0 if monitor should be on. */
+static int snd_monitor_out_device(PaDeviceIndex *out_dev, int *out_dev_num_ret)
+{
+    int out_dev_num;
+
+    if (!cfg.ttns.mic_monitor || cfg.audio.out_dev_count <= 0)
+        return 1;
+
+    out_dev_num = cfg.ttns.monitor_out_dev_num;
+    if (out_dev_num < 0 || out_dev_num >= cfg.audio.out_dev_count)
+        out_dev_num = 0;
+
+    if (cfg.audio.out_pcm_list != NULL)
+        *out_dev = cfg.audio.out_pcm_list[out_dev_num]->dev_id;
+    else
+        *out_dev = Pa_GetDefaultOutputDevice();
+
+    if (*out_dev == TTNS_MONITOR_OFF || *out_dev == paNoDevice)
+        return 1;
+
+    if (out_dev_num_ret)
+        *out_dev_num_ret = out_dev_num;
+    return 0;
+}
+
+static int snd_fill_monitor_out_params(PaStreamParameters *out_params,
+                                       PaDeviceIndex out_dev)
+{
+    const PaDeviceInfo *out_info;
+
+    out_info = Pa_GetDeviceInfo(out_dev);
+    if (out_info == NULL)
+        return 1;
+
+    out_params->device = out_dev;
+    out_params->channelCount = 2;
+    out_params->sampleFormat = paInt16;
+    out_params->suggestedLatency = out_info->defaultHighOutputLatency;
+    out_params->hostApiSpecificStreamInfo = NULL;
+    return 0;
+}
+
 static int snd_open_monitor(int samplerate)
 {
     char info_buf[256];
@@ -758,68 +1312,89 @@ static int snd_open_monitor(int samplerate)
     PaDeviceIndex out_dev;
     const PaDeviceInfo *out_info;
     PaError pa_err;
+    int out_dev_num = 0;
+    int try_rates[4];
+    int ntry = 0;
+    int i;
+    int chosen = 0;
 
     snd_close_monitor();
 
-    if (!cfg.ttns.mic_monitor)
+    if (snd_monitor_out_device(&out_dev, &out_dev_num) != 0)
         return 0;
 
-    if (cfg.audio.out_dev_count <= 0)
-        return 0;
-
-    {
-        int out_dev_num = cfg.ttns.monitor_out_dev_num;
-
-        if (out_dev_num < 0 || out_dev_num >= cfg.audio.out_dev_count)
-            out_dev_num = 0;
-
-        if (cfg.audio.out_dev_count > 0 && cfg.audio.out_pcm_list != NULL)
-            out_dev = cfg.audio.out_pcm_list[out_dev_num]->dev_id;
-        else
-            out_dev = Pa_GetDefaultOutputDevice();
-    }
-
-    if (out_dev == TTNS_MONITOR_OFF)
-        return 0;
-
-    if (out_dev == paNoDevice)
-    {
-        print_info("Mic monitor: no output device", 1);
+    if (snd_fill_monitor_out_params(&out_params, out_dev) != 0)
         return 1;
-    }
 
     out_info = Pa_GetDeviceInfo(out_dev);
-    if (out_info == NULL)
+    if (!out_info)
         return 1;
 
-    out_params.device = out_dev;
-    out_params.channelCount = 2;
-    out_params.sampleFormat = paInt16;
-    out_params.suggestedLatency = out_info->defaultLowOutputLatency;
-    out_params.hostApiSpecificStreamInfo = NULL;
-
-    pa_err = Pa_IsFormatSupported(NULL, &out_params, samplerate);
-    if (pa_err != paFormatIsSupported)
+    if (out_info->maxOutputChannels < 2)
     {
-        print_info("Mic monitor: output format not supported", 1);
+        snprintf(info_buf, sizeof(info_buf),
+                 "Mic monitor: %s is not stereo",
+                 (cfg.audio.out_pcm_list && out_dev_num < cfg.audio.out_dev_count)
+                     ? cfg.audio.out_pcm_list[out_dev_num]->name : "device");
+        print_info(info_buf, 1);
         return 1;
     }
 
-    if (ttns_monitor_rb_start() != 0)
+    /* Prefer mix rate (SRC ≈ 1:1 + PLL). Then device default. */
+    try_rates[ntry++] = samplerate;
+    if ((int)(out_info->defaultSampleRate + 0.5) != samplerate)
+        try_rates[ntry++] = (int)(out_info->defaultSampleRate + 0.5);
+    if (samplerate != 48000)
+        try_rates[ntry++] = 48000;
+    if (samplerate != 44100)
+        try_rates[ntry++] = 44100;
+
+    out_params.channelCount = 2;
+    for (i = 0; i < ntry; i++)
+    {
+        if (try_rates[i] < 8000)
+            continue;
+        if (Pa_IsFormatSupported(NULL, &out_params, try_rates[i]) == paFormatIsSupported)
+        {
+            chosen = try_rates[i];
+            break;
+        }
+    }
+
+    if (!chosen)
+    {
+        snprintf(info_buf, sizeof(info_buf),
+                 "Mic monitor: %s format not supported",
+                 (cfg.audio.out_pcm_list && out_dev_num < cfg.audio.out_dev_count)
+                     ? cfg.audio.out_pcm_list[out_dev_num]->name : "device");
+        print_info(info_buf, 1);
+        return 1;
+    }
+
+    out_params.suggestedLatency = out_info->defaultHighOutputLatency;
+    if (out_params.suggestedLatency < 0.08)
+        out_params.suggestedLatency = 0.08;
+
+    if (ttns_monitor_rb_start(chosen) != 0)
     {
         print_info("Mic monitor: out of memory", 1);
         return 1;
     }
 
     pa_err = Pa_OpenStream(&monitor_stream, NULL, &out_params,
-                           samplerate, pa_frames, paClipOff, monitor_out_cb, NULL);
+                           chosen, pa_frames, paClipOff, monitor_out_cb, NULL);
     if (pa_err != paNoError)
     {
-        snprintf(info_buf, sizeof(info_buf), "Mic monitor open failed: %s",
+        snprintf(info_buf, sizeof(info_buf), "Mic monitor open failed: %s (%s)",
+                 (cfg.audio.out_pcm_list && out_dev_num < cfg.audio.out_dev_count)
+                     ? cfg.audio.out_pcm_list[out_dev_num]->name : "device",
                  Pa_GetErrorText(pa_err));
         print_info(info_buf, 1);
+        ttns_monitor_rb_shutdown();
         return 1;
     }
+
+    ttns_monitor_prime();
 
     pa_err = Pa_StartStream(monitor_stream);
     if (pa_err != paNoError)
@@ -829,59 +1404,36 @@ static int snd_open_monitor(int samplerate)
         print_info(info_buf, 1);
         Pa_CloseStream(monitor_stream);
         monitor_stream = NULL;
+        ttns_monitor_rb_shutdown();
         return 1;
     }
 
+    if (cfg.audio.out_dev_count > 0 && cfg.audio.out_pcm_list != NULL)
     {
-        int out_dev_num = cfg.ttns.monitor_out_dev_num;
-
-        if (out_dev_num < 0 || out_dev_num >= cfg.audio.out_dev_count)
-            out_dev_num = 0;
-        if (cfg.audio.out_dev_count > 0 && cfg.audio.out_pcm_list != NULL)
-        {
-            snprintf(info_buf, sizeof(info_buf), "Mic monitor: %s",
-                     cfg.audio.out_pcm_list[out_dev_num]->name);
-            print_info(info_buf, 0);
-        }
+        snprintf(info_buf, sizeof(info_buf),
+                 "Monitor: %s @ %d Hz%s",
+                 cfg.audio.out_pcm_list[out_dev_num]->name, chosen,
+                 (fabs((double)chosen / (double)cfg.audio.samplerate - 1.0) < 0.001)
+                     ? " (direct)" : " (SRC)");
+        print_info(info_buf, 0);
     }
+
+    ttns_mon_diag_start();
 
     return 0;
 }
 
 void snd_reopen_monitor(void)
 {
-    PaError pa_err;
-
     if (!stream || !snd_audio_active)
     {
         snd_close_monitor();
         return;
     }
 
-    Pa_StopStream(stream);
-    if (mic_stream != NULL)
-        Pa_StopStream(mic_stream);
-
     snd_close_monitor();
-
     if (snd_open_monitor(cfg.audio.samplerate) != 0)
-    {
-        if (mic_stream != NULL)
-            Pa_StartStream(mic_stream);
-        Pa_StartStream(stream);
-        return;
-    }
-
-    if (mic_stream != NULL)
-    {
-        pa_err = Pa_StartStream(mic_stream);
-        if (pa_err != paNoError)
-            print_info("Mic capture restart failed after monitor change", 1);
-    }
-
-    pa_err = Pa_StartStream(stream);
-    if (pa_err != paNoError)
-        print_info("Audio input restart failed after monitor change", 1);
+        print_info("Monitor output failed — re-select device in Settings and Save", 1);
 }
 
 int snd_open_stream(void)
@@ -909,6 +1461,14 @@ int snd_open_stream(void)
 
 
     pa_frames = (cfg.audio.buffer_ms/1000.0)*cfg.audio.samplerate;
+    /* Keep a stable floor for dual-input + monitor. When Remote Accept is live,
+     * allow a slightly lower floor for mix-minus latency. */
+    {
+        int min_ms = ttns_remote_session_host_running() ? 80 : 100;
+        int min_frames = (int)((min_ms / 1000.0) * cfg.audio.samplerate);
+        if (pa_frames < min_frames)
+            pa_frames = min_frames;
+    }
     if (pa_frames < 256)
         pa_frames = 256;
     if (pa_frames > 8192)
@@ -964,6 +1524,15 @@ int snd_open_stream(void)
         print_info(info_buf, 1);
         snd_abort_open();
         return 1;
+    }
+
+    if (pa_dev_info->defaultSampleRate > 0
+        && fabs(pa_dev_info->defaultSampleRate - (double)samplerate) > 1.0)
+    {
+        snprintf(info_buf, sizeof(info_buf),
+                 "Note: %s prefers %.0f Hz; Deck is %d Hz (CoreAudio will convert)",
+                 pa_dev_info->name, pa_dev_info->defaultSampleRate, samplerate);
+        print_info(info_buf, 0);
     }
 
     pa_params.device = pa_dev_id;
@@ -1073,8 +1642,8 @@ int snd_open_stream(void)
         }
     }
 
-    snd_open_monitor(samplerate);
-
+    /* Start capture first, then monitor — opening monitor before inputs can
+     * leave the mic stream unstarted on some CoreAudio device combos. */
     if (Pa_StartStream(stream) != paNoError)
     {
         print_info("ERROR: Could not start audio input stream", 1);
@@ -1089,6 +1658,7 @@ int snd_open_stream(void)
     }
 
     snd_audio_active = 1;
+    snd_open_monitor(samplerate);
 
     {
         int line_dev_num = cfg.ttns.line_dev_num;
@@ -1442,7 +2012,6 @@ int snd_callback(const void *input,
 
     (void)output;
     (void)timeInfo;
-    (void)statusFlags;
     (void)userData;
 
     if (!snd_audio_active || !pa_pcm_buf || !ttns_cart_buf || !ttns_line_buf)
@@ -1543,6 +2112,9 @@ int snd_callback(const void *input,
                                    ttns_peak_stereo(ttns_cart_buf, (int)frameCount));
         }
     }
+
+    ttns_mon_diag_line(ttns_line_buf, (int)frameCount, statusFlags);
+
     samplerate_out = cfg.audio.samplerate;
 	
 	if (streaming)

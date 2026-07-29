@@ -33,6 +33,7 @@
 #include "fl_callbacks.h"
 #include "fl_funcs.h"
 #include "flgui.h"
+#include "butt.h"
 #include "port_audio.h"
 #include "ttns_audio.h"
 #include "ttns_remote.h"
@@ -48,23 +49,24 @@ static const int TTNS_WIN_W = 520;
 static const int TTNS_LOGO = 54;
 static const int TTNS_LBL_X = 72;
 static const int TTNS_VAL_X = 118;
-static const int TTNS_ZONE_LIST_W = 220;
+static const int TTNS_ZONE_LIST_W = 180;
 static const int TTNS_FADER_H = 22;
 static const int TTNS_CART_Y = 168;
 static const int TTNS_CART_H = 38;
-static const int TTNS_REMOTE_Y = TTNS_CART_Y + TTNS_CART_H + 8;
+/* Mixer + carts only — Remotes live BELOW the LCD (More-panel style). */
+static const int TTNS_EXTRA_H = TTNS_CART_Y + TTNS_CART_H;
 static const int TTNS_REMOTE_HDR_H = 26;
 static const int TTNS_REMOTE_ROW_H = 24;
-static const int TTNS_REMOTE_SECTION_H =
-    TTNS_REMOTE_HDR_H + TTNS_REMOTE_SLOTS * TTNS_REMOTE_ROW_H + 4;
-static const int TTNS_EXTRA_H = TTNS_REMOTE_Y + TTNS_REMOTE_SECTION_H;
+static const int TTNS_REMOTE_ROWS_H =
+    TTNS_REMOTE_SLOTS * TTNS_REMOTE_ROW_H + 4;
 
 static const int TTNS_MIC_BTN_X = 6;
 static const int TTNS_MIC_BTN_Y = 84;
 static const int TTNS_MIC_BTN_W = 58;
-static const int TTNS_MIC_BTN_H = 56;
+static const int TTNS_MIC_BTN_H = 40; /* leave room for Mic mon + Mon mute above carts */
 
 static Fl_Choice *ttns_choice_mount = NULL;
+static Fl_Ttns_Check_Button *ttns_chk_mount_confirm = NULL;
 static Fl_Box *ttns_duck_lbl = NULL;
 static Fl_Ttns_Fader *ttns_slider_mic = NULL;
 static Fl_Ttns_Fader *ttns_slider_line = NULL;
@@ -73,6 +75,7 @@ static Fl_Ttns_Fader *ttns_slider_duck_gate = NULL;
 static Fl_Ttns_Fader *ttns_slider_duck_depth = NULL;
 static Fl_Box *ttns_duck_led = NULL;
 static Fl_Ttns_Check_Button *ttns_chk_monitor_mute = NULL;
+static Fl_Ttns_Check_Button *ttns_chk_monitor_master = NULL;
 static Fl_Ttns_Mic_Button *ttns_btn_mic = NULL;
 static Fl_Ttns_Cart_Button *ttns_cart_btn[TTNS_CART_SLOTS];
 static Fl_Ttns_Fader *ttns_slider_remote[TTNS_REMOTE_SLOTS];
@@ -82,6 +85,8 @@ static Fl_Ttns_Check_Button *ttns_chk_remote_accept = NULL;
 static Fl_Box *ttns_remote_room_lbl = NULL;
 static Fl_Button *ttns_btn_remote_newcode = NULL;
 static Fl_Button *ttns_btn_remote_test[TTNS_REMOTE_SLOTS];
+static Fl_Button *ttns_btn_remote_toggle = NULL;
+static int ttns_remote_expanded = 0;
 
 static Fl_My_Double_Window *ttns_cart_setup_win = NULL;
 static Fl_Input *ttns_cart_setup_path = NULL;
@@ -101,6 +106,30 @@ static float ttns_thr_lin_to_db(float lin)
 static float ttns_thr_db_to_lin(float db)
 {
     return powf(10.0f, db / 20.0f);
+}
+
+/* Fader bottom (-24 dB) is hard mute; 0 dB stays exact unity. */
+static float ttns_slider_db_to_gain(float db)
+{
+    if (db <= -24.0f + 0.001f)
+        return 0.0f;
+    if ((int)db == 0)
+        return 1.0f;
+    return util_db_to_factor(db);
+}
+
+static float ttns_gain_to_slider_db(float gain)
+{
+    float db;
+
+    if (gain <= 0.0f)
+        return -24.0f;
+    db = util_factor_to_db(gain);
+    if (db < -24.0f)
+        return -24.0f;
+    if (db > 24.0f)
+        return 24.0f;
+    return db;
 }
 
 static void ttns_style_duck_slider(Fl_My_Value_Slider *s, double min_db, double max_db)
@@ -348,12 +377,20 @@ static void ttns_mic_reopen_timeout(void *)
     }
 
     r = snd_reopen_mic_only();
+    if (r != 0)
+    {
+        /* Mic-only reopen leaves capture stopped on failure — recover with full reopen. */
+        print_info("Mic reopen failed — restarting all audio…", 1);
+        snd_reinit();
+        r = snd_audio_is_active() ? 0 : 1;
+    }
+
     ttns_audio_reopen_busy = 0;
     ttns_audio_reopen_pending = 0;
 
     if (r == 0)
     {
-        ttns_applied_mic_dev = cfg.ttns.mic_dev_num;
+        ttns_audio_mark_applied();
         ttns_mixer_reset();
         print_info("Mic device ready", 0);
     }
@@ -378,11 +415,17 @@ static void ttns_monitor_reopen_timeout(void *)
     }
 
     snd_reopen_monitor();
-    ttns_applied_monitor_out = cfg.ttns.monitor_out_dev_num;
-    ttns_applied_mic_monitor = cfg.ttns.mic_monitor;
     ttns_audio_reopen_busy = 0;
     ttns_audio_reopen_pending = 0;
-    print_info("Monitor output ready", 0);
+
+    if (snd_audio_is_active() && (!cfg.ttns.mic_monitor || snd_monitor_is_open()))
+    {
+        ttns_audio_mark_applied();
+        ttns_mixer_reset();
+        print_info(cfg.ttns.mic_monitor ? "Monitor output ready" : "Monitor output off", 0);
+    }
+    else
+        print_info("Monitor reopen failed — try another device in Settings", 1);
 
     if (ttns_audio_reopen_queued)
     {
@@ -501,9 +544,19 @@ static void ttns_dev_cb(Fl_Widget *w, void *which)
         cfg.ttns.monitor_out_dev_num = n;
         if (n >= 0 && n < cfg.audio.out_dev_count && cfg.audio.out_pcm_list != NULL
             && cfg.audio.out_pcm_list[n]->dev_id != TTNS_MONITOR_OFF)
+        {
             cfg.ttns.mic_monitor = 1;
+            free(cfg.ttns.monitor_out_name);
+            cfg.ttns.monitor_out_name =
+                cfg.audio.out_pcm_list[n]->name
+                    ? strdup(cfg.audio.out_pcm_list[n]->name) : NULL;
+        }
         else
+        {
             cfg.ttns.mic_monitor = 0;
+            free(cfg.ttns.monitor_out_name);
+            cfg.ttns.monitor_out_name = NULL;
+        }
     }
 
     ttns_audio_settings_changed();
@@ -512,7 +565,7 @@ static void ttns_dev_cb(Fl_Widget *w, void *which)
 static void ttns_gain_cb(Fl_Widget *w, void *which)
 {
     float db = (float)((Fl_My_Value_Slider*)w)->value();
-    float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+    float factor = ttns_slider_db_to_gain(db);
     int bus = (int)(intptr_t)which;
 
     if (bus == 1)
@@ -541,13 +594,162 @@ static void ttns_duck_depth_cb(Fl_Widget *w, void *)
 static void ttns_remote_gain_cb(Fl_Widget *w, void *which)
 {
     float db = (float)((Fl_My_Value_Slider*)w)->value();
-    float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+    float factor = ttns_slider_db_to_gain(db);
     int slot = (int)(intptr_t)which;
 
     if (slot < 0 || slot >= TTNS_REMOTE_SLOTS)
         return;
     cfg.ttns.remote_gain[slot] = factor;
     unsaved_changes = 1;
+}
+
+static int ttns_remote_any_live(void)
+{
+    int i;
+
+    for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        if (ttns_remote_is_live(i))
+            return 1;
+    }
+    return 0;
+}
+
+/*
+ * Place Remotes under the LCD deck and size the window like the More panel:
+ * hide/show the channel rows, move info_output, resize the window.
+ * Never move the deck/LCD group (that caused the mixer overlap).
+ */
+static void ttns_remote_relayout(void)
+{
+    Fl_Widget *deck;
+    Fl_Window *win;
+    int win_w;
+    int y;
+    int body_h;
+    int remotes_bottom;
+    int h;
+    int i;
+    int mute_w = 48;
+    int test_w = 28;
+    int status_w = 36;
+    int fad_x;
+    int fad_w;
+    int row_y;
+
+    if (!fl_g || !fl_g->window_main || !fl_g->lcd || !ttns_btn_remote_toggle)
+        return;
+
+    win = fl_g->window_main;
+    deck = fl_g->lcd->parent();
+    if (!deck)
+        return;
+
+    win_w = win->w();
+    y = deck->y() + deck->h() + 6;
+
+    ttns_btn_remote_toggle->resize(8, y, 88, 22);
+    if (ttns_chk_remote_accept)
+        ttns_chk_remote_accept->resize(100, y, 72, 22);
+    if (ttns_remote_room_lbl)
+        ttns_remote_room_lbl->resize(178, y, 140, 22);
+    if (ttns_btn_remote_newcode)
+        ttns_btn_remote_newcode->resize(win_w - 78, y, 70, 22);
+
+    body_h = TTNS_REMOTE_HDR_H;
+    if (ttns_remote_expanded)
+        body_h += TTNS_REMOTE_ROWS_H;
+
+    fad_x = 8 + mute_w + 4;
+    fad_w = win_w - fad_x - status_w - test_w - 14;
+
+    for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        row_y = y + TTNS_REMOTE_HDR_H + i * TTNS_REMOTE_ROW_H;
+
+        if (ttns_chk_remote_mute[i])
+            ttns_chk_remote_mute[i]->resize(8, row_y, mute_w, 22);
+        if (ttns_slider_remote[i])
+            ttns_slider_remote[i]->resize(fad_x, row_y, fad_w, TTNS_FADER_H);
+        if (ttns_btn_remote_test[i])
+            ttns_btn_remote_test[i]->resize(fad_x + fad_w + 2, row_y, test_w, 22);
+        if (ttns_remote_status[i])
+            ttns_remote_status[i]->resize(fad_x + fad_w + test_w + 4, row_y, status_w, 22);
+
+        if (ttns_remote_expanded)
+        {
+            if (ttns_chk_remote_mute[i]) ttns_chk_remote_mute[i]->show();
+            if (ttns_slider_remote[i]) ttns_slider_remote[i]->show();
+            if (ttns_btn_remote_test[i]) ttns_btn_remote_test[i]->show();
+            if (ttns_remote_status[i]) ttns_remote_status[i]->show();
+        }
+        else
+        {
+            if (ttns_chk_remote_mute[i]) ttns_chk_remote_mute[i]->hide();
+            if (ttns_slider_remote[i]) ttns_slider_remote[i]->hide();
+            if (ttns_btn_remote_test[i]) ttns_btn_remote_test[i]->hide();
+            if (ttns_remote_status[i]) ttns_remote_status[i]->hide();
+        }
+    }
+
+    remotes_bottom = y + body_h;
+
+    if (fl_g->info_output)
+        fl_g->info_output->resize(0, remotes_bottom + 4, win_w, fl_g->info_output->h());
+
+    /* Same rule as More: collapsed height ends just under remotes. */
+    ttns_set_window_collapsed_height(remotes_bottom + 8);
+
+    if (fl_g->info_visible && fl_g->info_output && fl_g->info_output->visible())
+        h = fl_g->info_output->y() + fl_g->info_output->h();
+    else
+        h = remotes_bottom + 8;
+
+    win->resizable(NULL);
+    win->size_range(TTNS_WIN_W, 50, TTNS_WIN_W);
+    win->resize(win->x(), win->y(), TTNS_WIN_W, h);
+    win->init_sizes();
+    if (fl_g->info_output)
+        win->resizable(fl_g->info_output);
+    win->size_range(TTNS_WIN_W, 50, TTNS_WIN_W);
+    win->redraw();
+}
+
+static void ttns_remote_set_expanded(int want)
+{
+    want = want ? 1 : 0;
+    if (want == ttns_remote_expanded && ttns_btn_remote_toggle)
+    {
+        /* Still relayout in case deck moved (e.g. after theme/layout). */
+        ttns_remote_relayout();
+        return;
+    }
+    if (!fl_g || !fl_g->window_main)
+        return;
+
+    ttns_remote_expanded = want;
+
+    if (ttns_btn_remote_toggle)
+    {
+        ttns_btn_remote_toggle->copy_label(want ? "Remotes@2>" : "Remotes@>");
+        ttns_btn_remote_toggle->redraw();
+    }
+
+    ttns_remote_relayout();
+}
+
+static void ttns_remote_toggle_cb(Fl_Widget *, void *)
+{
+    ttns_remote_set_expanded(!ttns_remote_expanded);
+}
+
+static void ttns_remote_sync_expand(void)
+{
+    /* Show strip while accepting guests or anyone is connected; else tuck away. */
+    if (cfg.ttns.remote_accept || ttns_remote_any_live())
+        ttns_remote_set_expanded(1);
+    else
+        ttns_remote_set_expanded(0);
 }
 
 static void ttns_remote_mute_cb(Fl_Widget *w, void *which)
@@ -581,6 +783,7 @@ static void ttns_remote_accept_cb(Fl_Widget *w, void *)
         ttns_remote_session_host_start();
     else
         ttns_remote_session_host_stop();
+    ttns_remote_sync_expand();
     unsaved_changes = 1;
 }
 
@@ -596,12 +799,42 @@ static void ttns_remote_newcode_cb(Fl_Widget *, void *)
         ttns_remote_room_lbl->copy_label(buf);
         ttns_remote_room_lbl->redraw();
     }
+    if (ttns_remote_session_host_running())
+        ttns_remote_session_host_refresh_discovery();
     unsaved_changes = 1;
+}
+
+static void ttns_remote_style_test_button(int slot)
+{
+    Fl_Button *b;
+    int on;
+
+    if (slot < 0 || slot >= TTNS_REMOTE_SLOTS)
+        return;
+    b = ttns_btn_remote_test[slot];
+    if (!b)
+        return;
+
+    on = ttns_remote_test_tone(slot);
+    if (on)
+    {
+        b->copy_label("T*");
+        b->labelcolor(ttns_col_bg());
+        b->color(ttns_col_green());
+        b->selection_color(ttns_col_green());
+    }
+    else
+    {
+        b->copy_label("T");
+        ttns_theme_style_butt_button(b, 0);
+    }
+    b->redraw();
 }
 
 static void ttns_remote_test_cb(Fl_Widget *, void *which)
 {
     int slot = (int)(intptr_t)which;
+    char msg[192];
 
     if (slot < 0 || slot >= TTNS_REMOTE_SLOTS)
         return;
@@ -610,12 +843,40 @@ static void ttns_remote_test_cb(Fl_Widget *, void *which)
     {
         ttns_remote_set_test_tone(slot, 0);
         ttns_remote_clear_slot(slot);
+        snprintf(msg, sizeof(msg), "Remote R%d test tone OFF", slot + 1);
+        print_info(msg, 0);
     }
     else
     {
+        if (!snd_audio_is_active() || !ttns_remote_is_inited())
+        {
+            print_info("Remote test needs audio input open — check Settings → Audio devices", 1);
+            return;
+        }
+
         ttns_remote_set_name(slot, "Test tone");
         ttns_remote_set_test_tone(slot, 1);
+
+        if (!cfg.ttns.mic_monitor)
+        {
+            snprintf(msg, sizeof(msg),
+                     "Remote R%d test tone ON (in the mix). To hear it: Settings → "
+                     "Monitor Output = your headphones, then Save.",
+                     slot + 1);
+            print_info(msg, 1);
+        }
+        else
+        {
+            snprintf(msg, sizeof(msg),
+                     "Remote R%d test tone ON — should be audible on Monitor Output "
+                     "(and will duck Line/Cart if Gate allows)",
+                     slot + 1);
+            print_info(msg, 0);
+        }
     }
+
+    ttns_remote_style_test_button(slot);
+    ttns_remote_sync_expand();
 }
 
 static void ttns_mic_apply_mute(int muted)
@@ -648,11 +909,67 @@ static void ttns_monitor_cb(Fl_Widget *w, void *)
     unsaved_changes = 1;
 }
 
+static void ttns_monitor_master_cb(Fl_Widget *w, void *)
+{
+    (void)w;
+    cfg.ttns.monitor_mute = (ttns_chk_monitor_master && ttns_chk_monitor_master->value())
+        ? 1 : 0;
+    unsaved_changes = 1;
+}
+
 static void ttns_zone_cb(Fl_Widget *, void *)
 {
+    /* Changing mount clears Confirm — DJ must re-check before going live. */
+    ttns_ui_clear_mount_confirm();
     ttns_ui_apply_zone_selection();
     ttns_ui_sync_advanced();
     unsaved_changes = 1;
+}
+
+void ttns_ui_clear_mount_confirm(void)
+{
+    if (ttns_chk_mount_confirm)
+    {
+        ttns_chk_mount_confirm->value(0);
+        ttns_chk_mount_confirm->redraw();
+    }
+    ttns_ui_update_connect_armed();
+}
+
+int ttns_ui_mount_is_confirmed(void)
+{
+    return (ttns_chk_mount_confirm && ttns_chk_mount_confirm->value()) ? 1 : 0;
+}
+
+void ttns_ui_update_connect_armed(void)
+{
+    Fl_Button *btn;
+
+    if (!fl_g || !fl_g->button_connect)
+        return;
+
+    btn = fl_g->button_connect;
+    if (connected)
+    {
+        btn->deactivate();
+        btn->tooltip("Already connected — use Stop to disconnect");
+    }
+    else if (ttns_ui_mount_is_confirmed())
+    {
+        btn->activate();
+        btn->tooltip("Go live (Mount confirmed)");
+    }
+    else
+    {
+        btn->deactivate();
+        btn->tooltip("Tick Confirm next to Mount before going live");
+    }
+    btn->redraw();
+}
+
+static void ttns_mount_confirm_cb(Fl_Widget *, void *)
+{
+    ttns_ui_update_connect_armed();
 }
 
 void ttns_ui_sync_advanced(void)
@@ -722,7 +1039,7 @@ static void ttns_cart_setup_gain_cb(Fl_Widget *w, void *)
 {
     int slot = ttns_cart_setup_slot;
     float db = (float)((Fl_Ttns_Fader*)w)->value();
-    float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+    float factor = ttns_slider_db_to_gain(db);
 
     cfg.ttns.cart_slot_gain[slot] = factor;
     ttns_cart_set_gain(slot, factor);
@@ -747,7 +1064,7 @@ static void ttns_cart_setup_ok_cb(Fl_Widget *, void *)
     if (ttns_cart_setup_gain)
     {
         float db = (float)ttns_cart_setup_gain->value();
-        float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+        float factor = ttns_slider_db_to_gain(db);
 
         cfg.ttns.cart_slot_gain[slot] = factor;
         ttns_cart_set_gain(slot, factor);
@@ -810,16 +1127,19 @@ static void ttns_cart_setup_show(int slot)
 
         ttns_lbl(12, 62, 80, "Playback");
         ttns_cart_setup_oneshot = new Fl_Round_Button(12, 78, 120, 20, "One-shot");
+        ttns_cart_setup_oneshot->type(FL_RADIO_BUTTON);
         ttns_cart_setup_oneshot->labelsize(11);
         ttns_cart_setup_oneshot->color(ttns_col_bg());
         ttns_cart_setup_oneshot->labelcolor(ttns_col_fg());
         ttns_cart_setup_oneshot->selection_color(ttns_col_fg());
+        ttns_cart_setup_oneshot->tooltip("Press again while playing to stop with ~0.3s fade-out");
         ttns_cart_setup_loop = new Fl_Round_Button(140, 78, 140, 20, "Loop (latch)");
+        ttns_cart_setup_loop->type(FL_RADIO_BUTTON);
         ttns_cart_setup_loop->labelsize(11);
         ttns_cart_setup_loop->color(ttns_col_bg());
         ttns_cart_setup_loop->labelcolor(ttns_col_fg());
         ttns_cart_setup_loop->selection_color(ttns_col_fg());
-        ttns_cart_setup_loop->tooltip("Press again while playing to stop with fade-out");
+        ttns_cart_setup_loop->tooltip("Press again while playing to stop with ~0.3s fade-out");
 
         ttns_lbl(12, 108, 48, "Level");
         ttns_cart_setup_gain = new Fl_Ttns_Fader(60, 106, 280, 22, 0, 0);
@@ -848,11 +1168,17 @@ static void ttns_cart_setup_show(int slot)
         ttns_cart_setup_path->value("");
 
     if (cfg.ttns.cart_mode[slot] == TTNS_CART_LOOP)
+    {
+        ttns_cart_setup_oneshot->value(0);
         ttns_cart_setup_loop->value(1);
+    }
     else
+    {
+        ttns_cart_setup_loop->value(0);
         ttns_cart_setup_oneshot->value(1);
+    }
     if (ttns_cart_setup_gain)
-        ttns_cart_setup_gain->value(util_factor_to_db(cfg.ttns.cart_slot_gain[slot]));
+        ttns_cart_setup_gain->value(ttns_gain_to_slider_db(cfg.ttns.cart_slot_gain[slot]));
 
     ttns_cart_setup_win->position(
         fl_g->window_main->x() + 40,
@@ -1051,6 +1377,7 @@ void ttns_ui_timer_tick(void)
         {
             ttns_remote_status[i]->copy_label(lbl);
             ttns_remote_status[i]->redraw();
+            ttns_remote_style_test_button(i);
         }
     }
 }
@@ -1060,9 +1387,9 @@ void ttns_ui_sync_from_cfg(void)
     if (!ttns_slider_mic || !ttns_slider_line || !ttns_slider_cart)
         return;
 
-    ttns_slider_mic->value(util_factor_to_db(cfg.ttns.mic_gain));
-    ttns_slider_line->value(util_factor_to_db(cfg.ttns.line_gain));
-    ttns_slider_cart->value(util_factor_to_db(cfg.ttns.cart_gain));
+    ttns_slider_mic->value(ttns_gain_to_slider_db(cfg.ttns.mic_gain));
+    ttns_slider_line->value(ttns_gain_to_slider_db(cfg.ttns.line_gain));
+    ttns_slider_cart->value(ttns_gain_to_slider_db(cfg.ttns.cart_gain));
 
     if (ttns_slider_duck_gate)
         ttns_slider_duck_gate->value(ttns_thr_lin_to_db(cfg.ttns.duck_threshold));
@@ -1071,10 +1398,13 @@ void ttns_ui_sync_from_cfg(void)
 
     if (ttns_choice_mount)
         ttns_zones_fill_mount_choice(ttns_choice_mount);
+    ttns_ui_clear_mount_confirm();
 
     ttns_fill_cfg_audio_devices();
     if (ttns_chk_monitor_mute)
         ttns_chk_monitor_mute->value(cfg.ttns.mic_monitor_mute ? 0 : 1);
+    if (ttns_chk_monitor_master)
+        ttns_chk_monitor_master->value(cfg.ttns.monitor_mute ? 1 : 0);
     if (ttns_btn_mic)
         ttns_btn_mic->value(cfg.ttns.mic_mute ? 1 : 0);
     ttns_reload_carts_from_cfg();
@@ -1093,7 +1423,7 @@ void ttns_ui_sync_from_cfg(void)
         for (r = 0; r < TTNS_REMOTE_SLOTS; r++)
         {
             if (ttns_slider_remote[r])
-                ttns_slider_remote[r]->value(util_factor_to_db(cfg.ttns.remote_gain[r]));
+                ttns_slider_remote[r]->value(ttns_gain_to_slider_db(cfg.ttns.remote_gain[r]));
             if (ttns_chk_remote_mute[r])
                 ttns_chk_remote_mute[r]->value(cfg.ttns.remote_mute[r] ? 1 : 0);
         }
@@ -1108,17 +1438,17 @@ void ttns_cfg_sync_from_ui(void)
     if (ttns_slider_line)
     {
         db = (float)ttns_slider_line->value();
-        cfg.ttns.line_gain = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+        cfg.ttns.line_gain = ttns_slider_db_to_gain(db);
     }
     if (ttns_slider_cart)
     {
         db = (float)ttns_slider_cart->value();
-        cfg.ttns.cart_gain = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+        cfg.ttns.cart_gain = ttns_slider_db_to_gain(db);
     }
     if (ttns_slider_mic)
     {
         db = (float)ttns_slider_mic->value();
-        cfg.ttns.mic_gain = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+        cfg.ttns.mic_gain = ttns_slider_db_to_gain(db);
     }
     if (ttns_slider_duck_gate)
         cfg.ttns.duck_threshold = ttns_thr_db_to_lin((float)ttns_slider_duck_gate->value());
@@ -1134,6 +1464,8 @@ void ttns_cfg_sync_from_ui(void)
         cfg.ttns.monitor_out_dev_num = fl_g->choice_cfg_ttns_monitor_out->value();
     if (ttns_chk_monitor_mute)
         cfg.ttns.mic_monitor_mute = ttns_chk_monitor_mute->value() ? 0 : 1;
+    if (ttns_chk_monitor_master)
+        cfg.ttns.monitor_mute = ttns_chk_monitor_master->value() ? 1 : 0;
     if (ttns_btn_mic)
         cfg.ttns.mic_mute = ttns_btn_mic->value() ? 1 : 0;
 
@@ -1149,7 +1481,7 @@ void ttns_cfg_sync_from_ui(void)
         if (ttns_slider_remote[i])
         {
             db = (float)ttns_slider_remote[i]->value();
-            cfg.ttns.remote_gain[i] = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+            cfg.ttns.remote_gain[i] = ttns_slider_db_to_gain(db);
         }
         if (ttns_chk_remote_mute[i])
             cfg.ttns.remote_mute[i] = ttns_chk_remote_mute[i]->value() ? 1 : 0;
@@ -1201,7 +1533,8 @@ void ttns_ui_init(flgui *g)
 
     g->window_main->size(TTNS_WIN_W, g->window_main->h());
     g->window_main->size(TTNS_WIN_W, g->window_main->h() + TTNS_EXTRA_H);
-    g->window_main->size_range(TTNS_WIN_W, g->window_main->h(), TTNS_WIN_W);
+    /* Keep min height loose so Remotes collapse can shrink the window later. */
+    g->window_main->size_range(TTNS_WIN_W, 100, TTNS_WIN_W);
 
     win_w = g->window_main->w();
     val_w = win_w - TTNS_VAL_X - 12;
@@ -1241,11 +1574,22 @@ void ttns_ui_init(flgui *g)
     ttns_btn_mic->shortcut(0);
 
     ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 2,
-                                                     TTNS_MIC_BTN_W, 20, "Monitor");
+                                                     TTNS_MIC_BTN_W + 4, 16, "Mic mon");
     ttns_chk_monitor_mute->labelsize(9);
     ttns_style_check(ttns_chk_monitor_mute);
-    ttns_chk_monitor_mute->tooltip("Add mic to headphones — line/deck is always monitored");
+    ttns_chk_monitor_mute->indicator(TTNS_CHECK_AFFIRM);
+    ttns_chk_monitor_mute->tooltip("When checked: hear the local Mic in headphones.\n"
+                                    "Does not mute the mic on the stream — use LIVE/MUTED for that.");
     ttns_chk_monitor_mute->callback(ttns_monitor_cb);
+
+    ttns_chk_monitor_master = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 18,
+                                                       TTNS_MIC_BTN_W + 4, 16, "Mon mute");
+    ttns_chk_monitor_master->labelsize(9);
+    ttns_style_check(ttns_chk_monitor_master);
+    ttns_chk_monitor_master->indicator(TTNS_CHECK_NEGATE);
+    ttns_chk_monitor_master->tooltip("Mute all local monitor/headphones (line, carts, mic, remotes).\n"
+                                      "Icecast/stream output is unaffected — useful with an external mixer.");
+    ttns_chk_monitor_master->callback(ttns_monitor_master_cb);
 
     ttns_duck_led = new Fl_Box(win_w - 24, 10, 18, 18);
     ttns_duck_led->box(FL_ROUND_UP_BOX);
@@ -1258,6 +1602,23 @@ void ttns_ui_init(flgui *g)
     ttns_lbl(TTNS_LBL_X, 10, 48, "Mount");
     ttns_choice_mount = new Fl_Choice(TTNS_VAL_X, 8, TTNS_ZONE_LIST_W, 24);
     ttns_style_choice(ttns_choice_mount);
+
+    /* Failsafe immediately after Mount — compact so the tick sits with the mount, not Duck. */
+    {
+        const int conf_gap = 6;
+        const int conf_w = 78;
+        int conf_x = TTNS_VAL_X + TTNS_ZONE_LIST_W + conf_gap;
+        ttns_chk_mount_confirm = new Fl_Ttns_Check_Button(conf_x, 8, conf_w, 24, "Confirm");
+        ttns_style_check(ttns_chk_mount_confirm);
+        ttns_chk_mount_confirm->indicator(TTNS_CHECK_AFFIRM);
+        ttns_chk_mount_confirm->value(0);
+        ttns_chk_mount_confirm->callback(ttns_mount_confirm_cb);
+        ttns_chk_mount_confirm->tooltip(
+            "Tick to confirm this Mount before going live.\n"
+            "Failsafe: stops accidental connect to zone 1-1 (or any zone)\n"
+            "from cutting over another DJ. Clears when you change Mount.\n"
+            "Play stays disabled until Confirm is ticked.");
+    }
 
     ttns_lbl(TTNS_LBL_X, 42, 38, "Line");
     ttns_slider_line = new Fl_Ttns_Fader(TTNS_VAL_X, 40, val_w, TTNS_FADER_H);
@@ -1304,64 +1665,76 @@ void ttns_ui_init(flgui *g)
     }
 
     {
-        int ry = TTNS_REMOTE_Y;
-        int mute_w = 36;
-        int test_w = 36;
+        int mute_w = 48;
+        int test_w = 28;
         int status_w = 36;
-        int fad_x = TTNS_VAL_X;
-        int fad_w;
+        int fad_x = 8 + mute_w + 4;
+        int fad_w = win_w - fad_x - status_w - test_w - 14;
 
-        ttns_lbl(TTNS_LBL_X, ry, 56, "Remote");
-        ttns_chk_remote_accept = new Fl_Ttns_Check_Button(TTNS_VAL_X, ry, 70, 22, "Accept");
+        /*
+         * Create off to the side; ttns_remote_relayout() parks them under the
+         * LCD after the deck geometry is known (More-panel style).
+         */
+        ttns_btn_remote_toggle = new Fl_Button(8, 0, 88, 22, "Remotes@>");
+        ttns_btn_remote_toggle->labelsize(12);
+        ttns_btn_remote_toggle->labelfont(FL_BOLD);
+        ttns_btn_remote_toggle->box(FL_NO_BOX);
+        ttns_theme_style_butt_button(ttns_btn_remote_toggle, 0);
+        ttns_btn_remote_toggle->tooltip("Show or hide remote co-host channels");
+        ttns_btn_remote_toggle->callback(ttns_remote_toggle_cb);
+
+        ttns_chk_remote_accept = new Fl_Ttns_Check_Button(100, 0, 72, 22, "Accept");
         ttns_style_check(ttns_chk_remote_accept);
+        ttns_chk_remote_accept->indicator(TTNS_CHECK_AFFIRM);
         ttns_chk_remote_accept->tooltip("Allow up to 4 remote co-hosts to join with the room code");
         ttns_chk_remote_accept->callback(ttns_remote_accept_cb);
 
-        ttns_remote_room_lbl = new Fl_Box(TTNS_VAL_X + 74, ry, 120, 22, "Code ------");
+        ttns_remote_room_lbl = new Fl_Box(178, 0, 140, 22, "Code ------");
         ttns_remote_room_lbl->labelsize(11);
         ttns_remote_room_lbl->labelfont(FL_BOLD);
         ttns_remote_room_lbl->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
         ttns_remote_room_lbl->box(FL_NO_BOX);
         ttns_theme_style_label_box(ttns_remote_room_lbl);
 
-        ttns_btn_remote_newcode = new Fl_Button(win_w - 78, ry, 70, 22, "New code");
+        ttns_btn_remote_newcode = new Fl_Button(win_w - 78, 0, 70, 22, "New code");
         ttns_btn_remote_newcode->labelsize(10);
         ttns_theme_style_butt_button(ttns_btn_remote_newcode, 0);
         ttns_btn_remote_newcode->callback(ttns_remote_newcode_cb);
         ttns_btn_remote_newcode->tooltip("Generate a new room code (invalidates the previous one)");
 
-        ry += TTNS_REMOTE_HDR_H;
-        fad_w = win_w - fad_x - status_w - test_w - 16;
-
         for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
         {
             char lblbuf[8];
-            int row_y = ry + i * TTNS_REMOTE_ROW_H;
 
             snprintf(lblbuf, sizeof(lblbuf), "R%d", i + 1);
-            ttns_lbl(8, row_y + 2, 28, lblbuf);
-
-            ttns_chk_remote_mute[i] = new Fl_Ttns_Check_Button(36, row_y, mute_w, 22, "M");
+            ttns_chk_remote_mute[i] = new Fl_Ttns_Check_Button(8, 0, mute_w, 22, NULL);
+            ttns_chk_remote_mute[i]->copy_label(lblbuf);
             ttns_style_check(ttns_chk_remote_mute[i]);
-            ttns_chk_remote_mute[i]->tooltip("Mute this remote in the program mix");
+            ttns_chk_remote_mute[i]->indicator(TTNS_CHECK_NEGATE);
+            ttns_chk_remote_mute[i]->tooltip("Mute this remote in the program mix (checked = muted)");
             ttns_chk_remote_mute[i]->callback(ttns_remote_mute_cb, (void*)(intptr_t)i);
+            ttns_chk_remote_mute[i]->hide();
 
-            ttns_slider_remote[i] = new Fl_Ttns_Fader(fad_x, row_y, fad_w, TTNS_FADER_H);
+            ttns_slider_remote[i] = new Fl_Ttns_Fader(fad_x, 0, fad_w, TTNS_FADER_H);
             ttns_style_slider(ttns_slider_remote[i]);
             ttns_slider_remote[i]->callback(ttns_remote_gain_cb, (void*)(intptr_t)i);
             ttns_slider_remote[i]->tooltip("Remote co-host level in the program mix");
+            ttns_slider_remote[i]->hide();
 
-            ttns_btn_remote_test[i] = new Fl_Button(fad_x + fad_w + 2, row_y, test_w, 22, "T");
+            ttns_btn_remote_test[i] = new Fl_Button(fad_x + fad_w + 2, 0, test_w, 22, "T");
             ttns_btn_remote_test[i]->labelsize(10);
             ttns_theme_style_butt_button(ttns_btn_remote_test[i], 0);
-            ttns_btn_remote_test[i]->tooltip("Inject a local test tone into this remote slot (no network)");
+            ttns_btn_remote_test[i]->tooltip("Inject a local test tone into this slot (no network)");
             ttns_btn_remote_test[i]->callback(ttns_remote_test_cb, (void*)(intptr_t)i);
+            ttns_btn_remote_test[i]->hide();
 
-            ttns_remote_status[i] = new Fl_Box(fad_x + fad_w + test_w + 4, row_y, status_w, 22, "—");
+            ttns_remote_status[i] = new Fl_Box(fad_x + fad_w + test_w + 4, 0, status_w, 22, NULL);
+            ttns_remote_status[i]->copy_label("-");
             ttns_remote_status[i]->labelsize(10);
             ttns_remote_status[i]->align(FL_ALIGN_CENTER | FL_ALIGN_INSIDE);
             ttns_remote_status[i]->box(FL_NO_BOX);
             ttns_theme_style_label_box(ttns_remote_status[i]);
+            ttns_remote_status[i]->hide();
         }
     }
 
@@ -1391,9 +1764,12 @@ void ttns_ui_init(flgui *g)
     ttns_theme_apply(g);
     ttns_layout_feedback_panel();
     ttns_raise_duck_led(g);
-    ttns_ui_timer_tick();
+    /* Park Remotes under the LCD, then clip like More. */
+    ttns_remote_relayout();
     info_panel_collapse();
-    g->window_main->size_range(TTNS_WIN_W, g->window_main->h(), TTNS_WIN_W);
+    ttns_remote_sync_expand();
+    ttns_ui_timer_tick();
+    ttns_ui_update_connect_armed();
 
     g->window_main->redraw();
 }

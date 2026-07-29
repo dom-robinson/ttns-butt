@@ -37,9 +37,13 @@ int ttns_remote_duck_peak(void);
 
 float ttns_remote_effective_gain(int slot);
 
-/* Mix-minus return path (encoder/session thread reads). */
+/* Mix-minus return path (encoder/session thread reads). Host writes at mix SR;
+ * ring stores Opus-rate (48 kHz) stereo after optional SRC. */
 void ttns_remote_write_mix_minus(int slot, const short *stereo, int frames);
-int ttns_remote_read_mix_minus(int slot, short *stereo, int max_frames);
+/* Frames currently available at Opus rate (stereo). */
+int ttns_remote_mix_minus_avail(int slot);
+/* Read exactly `frames` Opus-rate stereo frames, or 0 without consuming. */
+int ttns_remote_read_mix_minus(int slot, short *stereo, int frames);
 
 void ttns_remote_set_state(int slot, int state);
 int ttns_remote_state(int slot);
@@ -59,5 +63,6 @@ int ttns_remote_test_tone(int slot);
 void ttns_remote_generate_room_code(char *out, size_t out_len);
 const char *ttns_remote_room_code(void);
 void ttns_remote_set_room_code(const char *code);
+void ttns_remote_normalize_room(char *dst, size_t dst_len, const char *src);
 
 #endif

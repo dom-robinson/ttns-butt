@@ -13,6 +13,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
+/* Define to 1 if you have the 'curl' library (-lcurl). */
+#define HAVE_LIBCURL 1
+
 /* Define to 1 if you have the 'fdk-aac' library (-lfdk-aac). */
 #define HAVE_LIBFDK_AAC 1
 

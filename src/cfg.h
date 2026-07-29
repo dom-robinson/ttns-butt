@@ -152,8 +152,10 @@ typedef struct
         float cart_gain;
         float cart_slot_gain[TTNS_CART_SLOTS];
         int mic_monitor;
-        int mic_monitor_mute;
+        int mic_monitor_mute;   /* 1 = exclude mic from local monitor mix */
+        int monitor_mute;       /* 1 = silence entire local monitor (stream unaffected) */
         int monitor_out_dev_num;
+        char *monitor_out_name; /* stable across device-list reshuffles */
         int mic_mute;
         int zone;
         int slot;

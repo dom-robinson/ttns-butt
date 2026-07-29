@@ -48,6 +48,7 @@
 #include "util.h"
 #include "flgui.h"
 #include "ttns_ui.h"
+#include "ttns_remote.h"
 #include "ttns_remote_session.h"
 #include "cart_player.h"
 #include "ttns_paths.h"
@@ -210,16 +211,33 @@ int main(int argc, char *argv[])
     init_main_gui_and_audio();
     ttns_ui_sync_from_cfg();
 
-    /* Never play monitor audio on cold start — prevents speaker feedback before
-     * the DJ picks headphones. Monitor turns on when a real output is selected. */
-    cfg.ttns.mic_monitor = 0;
-
+    /* Open with the saved Monitor Output (resolved by device name). Previously
+     * we forced monitor off every launch while leaving Speakers selected in the
+     * UI — so the first select did nothing and audio only appeared after
+     * switching away and back. */
     if (snd_open_stream() != 0)
         print_info("WARNING: Audio input failed to open — check Settings → Audio devices", 1);
     else
     {
         ttns_audio_mark_applied();
-        print_info("Audio inputs open (monitor off until you pick Monitor Output)", 0);
+        if (cfg.ttns.mic_monitor)
+            print_info("Audio devices open", 0);
+        else
+            print_info("Audio inputs open (monitor off until you pick Monitor Output)", 0);
+    }
+
+    /* Checkbox restore does not fire its callback — start listening if Accept was saved. */
+    if (cfg.ttns.remote_accept)
+    {
+        if (ttns_remote_session_host_start() == 0)
+        {
+            char msg[96];
+            snprintf(msg, sizeof(msg), "Remote Accept on — code %s",
+                     ttns_remote_room_code());
+            print_info(msg, 0);
+        }
+        else
+            print_info("Remote Accept failed to start (port busy?)", 1);
     }
 
     vu_init();

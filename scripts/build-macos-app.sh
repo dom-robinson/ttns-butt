@@ -20,6 +20,12 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/data" "$APP/Contents/Res
 "$ROOT/scripts/copy-distribution-licenses.sh" "$APP/Contents/Resources/legal"
 
 cp "$ROOT/src/butt" "$APP/Contents/MacOS/ttns-deck-bin"
+if [ -x "$ROOT/src/ttns_remote" ]; then
+    cp "$ROOT/src/ttns_remote" "$APP/Contents/MacOS/ttns-remote"
+    cp "$ROOT/src/ttns_remote" "$ROOT/dist/macos/ttns-remote"
+    mkdir -p "$ROOT/dist/macos/assets"
+    cp "$ROOT/assets/ttns-logo.png" "$ROOT/dist/macos/assets/"
+fi
 cp "$ROOT/data/ttns-zones.json" "$APP/Contents/Resources/data/"
 cp "$ROOT/assets/ttns-logo.png" "$APP/Contents/Resources/assets/"
 [ -f "$ROOT/assets/ttns-deck.icns" ] && cp "$ROOT/assets/ttns-deck.icns" "$APP/Contents/Resources/"
@@ -71,6 +77,13 @@ ditto -c -k --keepParent "$APP" "$OUT"
 echo "Built: $APP"
 echo "Zip:   $OUT"
 echo "Run:   open \"$APP\""
+if [ -x "$ROOT/dist/macos/ttns-remote" ]; then
+    REMOTE_ZIP="$ROOT/dist/macos/ttns-remote-${ARCH}-macos.zip"
+    rm -f "$REMOTE_ZIP"
+    (cd "$ROOT/dist/macos" && zip -q -j "$(basename "$REMOTE_ZIP")" ttns-remote)
+    echo "Remote UI shell: \"$ROOT/dist/macos/ttns-remote\""
+    echo "Remote zip: $REMOTE_ZIP"
+fi
 echo ""
 echo "Code signing (optional, for distribution outside your Mac):"
 echo "  codesign --force --deep --sign \"Developer ID Application: …\" \"$APP\""

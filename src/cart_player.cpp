@@ -185,16 +185,13 @@ void ttns_cart_render(short *out_stereo, int frames)
         if (s->fire)
         {
             s->fire = 0;
-            if (s->playing && s->mode == TTNS_CART_LOOP && s->latched)
+            if (s->playing)
             {
+                /* Press again while playing: fade out (~TTNS_CART_FADE_MS). */
                 s->fading_out = 1;
                 s->latched = 0;
             }
-            else if (!s->playing)
-            {
-                cart_start_slot(s);
-            }
-            else if (s->mode == TTNS_CART_ONESHOT)
+            else
             {
                 cart_start_slot(s);
             }

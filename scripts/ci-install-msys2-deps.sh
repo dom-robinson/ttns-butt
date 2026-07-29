@@ -13,6 +13,7 @@ PACKAGES=(
     mingw-w64-x86_64-opus
     mingw-w64-x86_64-libsamplerate
     mingw-w64-x86_64-fdk-aac
+    mingw-w64-x86_64-curl
     mingw-w64-x86_64-libjpeg-turbo
     mingw-w64-x86_64-libpng
     mingw-w64-x86_64-zlib

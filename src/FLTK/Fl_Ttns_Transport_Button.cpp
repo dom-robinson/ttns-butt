@@ -14,6 +14,10 @@ Fl_Ttns_Transport_Button::Fl_Ttns_Transport_Button(int x, int y, int w, int h, c
 
 void Fl_Ttns_Transport_Button::draw(void)
 {
-    ttns_draw_round_frame(x(), y(), w(), h(), ttns_col_bg(), ttns_col_red());
+    Fl_Color border = active() ? ttns_col_red() : fl_color_average(ttns_col_red(), ttns_col_bg(), 0.35f);
+    Fl_Color lab = active() ? ttns_col_fg() : fl_color_average(ttns_col_fg(), ttns_col_bg(), 0.35f);
+
+    ttns_draw_round_frame(x(), y(), w(), h(), ttns_col_bg(), border);
+    labelcolor(lab);
     draw_label();
 }

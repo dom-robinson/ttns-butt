@@ -29,6 +29,7 @@ void button_info_cb(void);
 void info_panel_collapse(void);
 void ttns_layout_feedback_panel(void);
 int ttns_window_collapsed_height(void);
+void ttns_set_window_collapsed_height(int h);
 void button_record_cb(void);
 void button_connect_cb(void);
 void choice_cfg_dev_cb(void);

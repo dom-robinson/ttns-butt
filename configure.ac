@@ -58,6 +58,20 @@ AC_CHECK_LIB([fdk-aac], [aacEncOpen], [],
 		[AC_MSG_ERROR([**** Could not find libfdk-aac     ****])]
 	    )
 
+# libcurl with WebSocket support (WAN dial-in via WRX)
+if test -d /opt/homebrew/opt/curl; then
+  CPPFLAGS="-I/opt/homebrew/opt/curl/include $CPPFLAGS"
+  LDFLAGS="-L/opt/homebrew/opt/curl/lib $LDFLAGS"
+elif test -d /usr/local/opt/curl; then
+  CPPFLAGS="-I/usr/local/opt/curl/include $CPPFLAGS"
+  LDFLAGS="-L/usr/local/opt/curl/lib $LDFLAGS"
+fi
+AC_CHECK_LIB([curl], [curl_ws_send], [],
+		[AC_CHECK_LIB([curl], [curl_easy_init],
+		  [AC_MSG_WARN([libcurl found but without WebSocket API — WAN dial-in disabled at runtime])],
+		  [AC_MSG_ERROR([**** Could not find libcurl ****])])]
+	    )
+
 AC_CHECK_HEADER([winsock2.h], 
 		[
 		LIBS="$LIBS -lws2_32"

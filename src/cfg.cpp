@@ -171,7 +171,9 @@ int cfg_write_file(char *path)
             "cart_gain = %.4f\n"
             "mic_monitor = %d\n"
             "mic_monitor_mute = %d\n"
+            "monitor_mute = %d\n"
             "monitor_output_device = %d\n"
+            "monitor_output_name = %s\n"
             "mic_mute = %d\n"
             "zone = %d\n"
             "slot = %d\n"
@@ -186,7 +188,10 @@ int cfg_write_file(char *path)
             cfg.ttns.cart_gain,
             cfg.ttns.mic_monitor,
             cfg.ttns.mic_monitor_mute,
+            cfg.ttns.monitor_mute,
             cfg.ttns.monitor_out_dev_num,
+            (cfg.ttns.monitor_out_name && cfg.ttns.monitor_out_name[0])
+                ? cfg.ttns.monitor_out_name : "",
             cfg.ttns.mic_mute,
             cfg.ttns.zone,
             cfg.ttns.slot,
@@ -363,7 +368,7 @@ int cfg_set_values(char *path)
         cfg.audio.codec = (char*)realloc((char*)cfg.audio.codec, 5*sizeof(char));
         
     if(cfg.audio.buffer_ms == -1)
-        cfg.audio.buffer_ms = 50;
+        cfg.audio.buffer_ms = 100;
 
     if(cfg.audio.aac_overwrite_aot == -1)
         cfg.audio.aac_overwrite_aot = 0;
@@ -613,7 +618,13 @@ int cfg_set_values(char *path)
     cfg.ttns.cart_gain = cfg_get_float("ttns", "cart_gain");
     cfg.ttns.mic_monitor = cfg_get_int("ttns", "mic_monitor");
     cfg.ttns.mic_monitor_mute = cfg_get_int("ttns", "mic_monitor_mute");
+    cfg.ttns.monitor_mute = cfg_get_int("ttns", "monitor_mute");
     cfg.ttns.monitor_out_dev_num = cfg_get_int("ttns", "monitor_output_device");
+    {
+        char *mon_name = cfg_get_str("ttns", "monitor_output_name");
+        cfg.ttns.monitor_out_name =
+            (mon_name && mon_name[0]) ? strdup(mon_name) : NULL;
+    }
     cfg.ttns.mic_mute = cfg_get_int("ttns", "mic_mute");
     cfg.ttns.zone = cfg_get_int("ttns", "zone");
     cfg.ttns.slot = cfg_get_int("ttns", "slot");
@@ -632,6 +643,8 @@ int cfg_set_values(char *path)
         cfg.ttns.mic_monitor = 0;
     if (cfg.ttns.mic_monitor_mute == -1)
         cfg.ttns.mic_monitor_mute = 1;
+    if (cfg.ttns.monitor_mute == -1)
+        cfg.ttns.monitor_mute = 0;
     if (cfg.ttns.monitor_out_dev_num == -1)
         cfg.ttns.monitor_out_dev_num = 0;
     if (cfg.ttns.mic_mute == -1)
@@ -647,6 +660,36 @@ int cfg_set_values(char *path)
         cfg.ttns.mic_dev_num = cfg.audio.dev_num;
     if (cfg.ttns.monitor_out_dev_num > cfg.audio.out_dev_count - 1)
         cfg.ttns.monitor_out_dev_num = 0;
+
+    /* Index alone drifts when virtual devices appear/disappear. Prefer name. */
+    if (cfg.ttns.monitor_out_name && cfg.ttns.monitor_out_name[0]
+        && cfg.audio.out_pcm_list != NULL && cfg.audio.out_dev_count > 0)
+    {
+        int mi;
+        int found = -1;
+
+        for (mi = 0; mi < cfg.audio.out_dev_count; mi++)
+        {
+            if (cfg.audio.out_pcm_list[mi]->name
+                && strcmp(cfg.audio.out_pcm_list[mi]->name,
+                          cfg.ttns.monitor_out_name) == 0)
+            {
+                found = mi;
+                break;
+            }
+        }
+        if (found >= 0)
+            cfg.ttns.monitor_out_dev_num = found;
+    }
+    else if (cfg.audio.out_pcm_list != NULL
+             && cfg.ttns.monitor_out_dev_num >= 0
+             && cfg.ttns.monitor_out_dev_num < cfg.audio.out_dev_count
+             && cfg.audio.out_pcm_list[cfg.ttns.monitor_out_dev_num]->name)
+    {
+        free(cfg.ttns.monitor_out_name);
+        cfg.ttns.monitor_out_name =
+            strdup(cfg.audio.out_pcm_list[cfg.ttns.monitor_out_dev_num]->name);
+    }
 
     cfg.ttns.duck_depth_db = cfg_get_float("ttns", "duck_depth_db");
     cfg.ttns.duck_threshold = cfg_get_float("ttns", "duck_threshold");
@@ -779,7 +822,7 @@ int cfg_create_default(void)
             "resample_mode = 0\n" //SRC_SINC_BEST_QUALITY
             "aac_aot = 5\n" // aac+ v1
             "aac_overwrite_aot = 0\n"
-            "buffer_ms = 50\n\n"
+            "buffer_ms = 100\n\n"
            );
 
     fprintf(cfg_fd,
@@ -811,7 +854,9 @@ int cfg_create_default(void)
             "cart_gain = 1.0\n"
             "mic_monitor = 0\n"
             "mic_monitor_mute = 1\n"
+            "monitor_mute = 0\n"
             "monitor_output_device = 0\n"
+            "monitor_output_name = \n"
             "mic_mute = 0\n"
             "zone = 1\n"
             "slot = 1\n"

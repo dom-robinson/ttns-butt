@@ -31,9 +31,19 @@ butt_SOURCES = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp icecast.h lame_encode.c
 			   ttns_theme.cpp ttns_theme.h \
 			   ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h \
 			   ttns_remote.cpp ttns_remote.h \
-			   ttns_remote_session.cpp ttns_remote_session.h
+			   ttns_remote_session.cpp ttns_remote_session.h \
+			   ttns_remote_net.cpp ttns_remote_net.h \
+			   ttns_remote_wan.cpp ttns_remote_wan.h \
+			   ttns_remote_proto.h
 
-ttns_remote_SOURCES = ttns_remote_app.cpp
+ttns_remote_SOURCES = ttns_remote_app.cpp \
+			   ttns_remote_net.cpp ttns_remote_net.h \
+			   ttns_remote_wan.cpp ttns_remote_wan.h \
+			   ttns_remote_proto.h \
+			   ttns_paths.cpp ttns_paths.h \
+			   ringbuffer.cpp ringbuffer.h \
+			   FLTK/FL/Fl_Ttns_Check_Button.H FLTK/Fl_Ttns_Check_Button.cpp
+ttns_remote_LDADD = $(LIBS)
 
 ttnsdeckdir = $(datadir)/ttns-deck
 

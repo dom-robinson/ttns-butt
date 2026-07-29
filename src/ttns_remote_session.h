@@ -14,6 +14,8 @@ void ttns_remote_session_shutdown(void);
 int ttns_remote_session_host_start(void);
 void ttns_remote_session_host_stop(void);
 int ttns_remote_session_host_running(void);
+/* Re-advertise after New code while Accept is already on. */
+void ttns_remote_session_host_refresh_discovery(void);
 
 /* Remote client: join a published room code. */
 int ttns_remote_session_client_join(const char *room_code);

@@ -132,6 +132,13 @@ void button_connect_cb(void)
 
     ttns_ui_apply_zone_selection();
 
+    if (!ttns_ui_mount_is_confirmed())
+    {
+        print_info("Confirm the Mount point before going live.\n"
+                   "Tick Confirm (next to Mount) — failsafe so you don't cut over another DJ.", 1);
+        return;
+    }
+
     if(cfg.main.num_of_srv < 1)
     {
         print_info("Error: No server entry found.\nPlease add a server in the settings-window.", 1);
@@ -190,6 +197,7 @@ void button_connect_cb(void)
         opus_enc_write_header(&opus_stream);
 
     print_info("Connection established", 0);
+    ttns_ui_update_connect_armed();
     snprintf(text_buf, sizeof(text_buf),
             "Settings:\n"
             "Type:\t\t%s\n"
@@ -646,6 +654,8 @@ void button_disconnect_cb(void)
     else
         print_info("Connecting canceled\n", 0);
 
+    /* Require a fresh Confirm before the next go-live. */
+    ttns_ui_clear_mount_confirm();
 }
 
 
@@ -1086,6 +1096,12 @@ int ttns_window_collapsed_height(void)
         return fl_g->info_output->y() - 30;
 
     return fl_g->window_main->h();
+}
+
+void ttns_set_window_collapsed_height(int h)
+{
+    if (h > 0)
+        ttns_collapsed_win_h = h;
 }
 
 void info_panel_collapse(void)
@@ -2327,9 +2343,19 @@ void choice_cfg_ttns_monitor_out_cb(void)
     n = cfg.ttns.monitor_out_dev_num;
     if (n >= 0 && n < cfg.audio.out_dev_count && cfg.audio.out_pcm_list != NULL
         && cfg.audio.out_pcm_list[n]->dev_id != TTNS_MONITOR_OFF)
+    {
         cfg.ttns.mic_monitor = 1;
+        free(cfg.ttns.monitor_out_name);
+        cfg.ttns.monitor_out_name =
+            cfg.audio.out_pcm_list[n]->name
+                ? strdup(cfg.audio.out_pcm_list[n]->name) : NULL;
+    }
     else
+    {
         cfg.ttns.mic_monitor = 0;
+        free(cfg.ttns.monitor_out_name);
+        cfg.ttns.monitor_out_name = NULL;
+    }
     ttns_audio_settings_changed();
 }
 
