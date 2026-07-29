@@ -48,6 +48,7 @@
 #include "util.h"
 #include "flgui.h"
 #include "ttns_ui.h"
+#include "ttns_remote_session.h"
 #include "cart_player.h"
 #include "ttns_paths.h"
 #include "fl_funcs.h"
@@ -188,6 +189,7 @@ int main(int argc, char *argv[])
     }
 
     ttns_ui_init(fl_g);
+    ttns_remote_session_init();
 
     if (cfg.main.log_file && cfg.main.log_file[0])
     {

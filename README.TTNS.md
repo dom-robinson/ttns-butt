@@ -5,18 +5,19 @@ TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and
 | | |
 |---|---|
 | **Product name** | TTNS Deck |
-| **Version** | `0.1.16-ttns-pre.7` (preliminary) |
+| **Version** | `0.1.16-ttns-remote-dev.1` (remote dial-in **dev** on `feature/remote-dial-in`) |
 | **Upstream** | butt 0.1.16 |
 | **Repository** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
 | **DJ guide** | [`docs/TTNS_DJ_GUIDE.md`](docs/TTNS_DJ_GUIDE.md) |
 | **Binary releases** | [`docs/RELEASE.md`](docs/RELEASE.md) |
+| **Remote dial-in** | [`docs/REMOTE_DIALIN.md`](docs/REMOTE_DIALIN.md) |
 | **Distribution** | Compiled binaries — macOS (arm64 + Intel), Linux, Windows |
 
 ---
 
 ## Preliminary release
 
-Tag **`v0.1.16-ttns-pre.7`** — DJ testing build. Download CI artifacts or the GitHub pre-release; see [`docs/RELEASE.md`](docs/RELEASE.md).
+Tag **`v0.1.16-ttns-pre.7`** — current DJ testing build (frozen on `release/v0.1.16-ttns-pre.7`). Remote dial-in work does **not** replace it; see [`docs/REMOTE_DIALIN.md`](docs/REMOTE_DIALIN.md) for how to check out the release vs the feature branch.
 
 ```bash
 git checkout v0.1.16-ttns-pre.7

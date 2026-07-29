@@ -90,7 +90,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = butt$(EXEEXT)
+bin_PROGRAMS = butt$(EXEEXT) ttns_remote$(EXEEXT)
 @DARWIN_TRUE@am__append_1 = FLTK/Fl_My_Native_File_Chooser_MAC.mm cart_loader_mac.mm
 @WINDOWS_TRUE@am__append_2 = resource.rc
 subdir = src
@@ -130,8 +130,9 @@ am__butt_SOURCES_DIST = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp \
 	ttns_zones.cpp ttns_zones.h cart_player.cpp cart_player.h \
 	cart_loader.cpp cart_loader.h ttns_theme.cpp ttns_theme.h \
 	ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h \
-	FLTK/Fl_My_Native_File_Chooser_MAC.mm cart_loader_mac.mm \
-	resource.rc
+	ttns_remote.cpp ttns_remote.h ttns_remote_session.cpp \
+	ttns_remote_session.h FLTK/Fl_My_Native_File_Chooser_MAC.mm \
+	cart_loader_mac.mm resource.rc
 am__dirstamp = $(am__leading_dot)dirstamp
 @DARWIN_TRUE@am__objects_1 =  \
 @DARWIN_TRUE@	FLTK/Fl_My_Native_File_Chooser_MAC.$(OBJEXT) \
@@ -160,11 +161,15 @@ am_butt_OBJECTS = butt-butt.$(OBJEXT) butt-cfg.$(OBJEXT) \
 	butt-ttns_zones.$(OBJEXT) butt-cart_player.$(OBJEXT) \
 	butt-cart_loader.$(OBJEXT) butt-ttns_theme.$(OBJEXT) \
 	butt-ttns_paths.$(OBJEXT) butt-ttns_about.$(OBJEXT) \
+	butt-ttns_remote.$(OBJEXT) butt-ttns_remote_session.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
 butt_OBJECTS = $(am_butt_OBJECTS)
 butt_LDADD = $(LDADD)
 butt_LINK = $(OBJCXXLD) $(AM_OBJCXXFLAGS) $(OBJCXXFLAGS) \
 	$(butt_LDFLAGS) $(LDFLAGS) -o $@
+am_ttns_remote_OBJECTS = ttns_remote_app.$(OBJEXT)
+ttns_remote_OBJECTS = $(am_ttns_remote_OBJECTS)
+ttns_remote_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -191,10 +196,13 @@ am__depfiles_remade = ./$(DEPDIR)/butt-aac_encode.Po \
 	./$(DEPDIR)/butt-sockfuncs.Po ./$(DEPDIR)/butt-strfuncs.Po \
 	./$(DEPDIR)/butt-timer.Po ./$(DEPDIR)/butt-ttns_about.Po \
 	./$(DEPDIR)/butt-ttns_audio.Po ./$(DEPDIR)/butt-ttns_paths.Po \
+	./$(DEPDIR)/butt-ttns_remote.Po \
+	./$(DEPDIR)/butt-ttns_remote_session.Po \
 	./$(DEPDIR)/butt-ttns_theme.Po ./$(DEPDIR)/butt-ttns_ui.Po \
 	./$(DEPDIR)/butt-ttns_zones.Po ./$(DEPDIR)/butt-util.Po \
 	./$(DEPDIR)/butt-vorbis_encode.Po ./$(DEPDIR)/butt-vu_meter.Po \
 	./$(DEPDIR)/butt-wav_header.Po ./$(DEPDIR)/cart_loader_mac.Po \
+	./$(DEPDIR)/ttns_remote_app.Po \
 	FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po \
 	FLTK/$(DEPDIR)/butt-Fl_ILM216.Po \
 	FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po \
@@ -251,8 +259,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(butt_SOURCES)
-DIST_SOURCES = $(am__butt_SOURCES_DIST)
+SOURCES = $(butt_SOURCES) $(ttns_remote_SOURCES)
+DIST_SOURCES = $(am__butt_SOURCES_DIST) $(ttns_remote_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -410,7 +418,9 @@ butt_SOURCES = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp icecast.h \
 	ttns_zones.cpp ttns_zones.h cart_player.cpp cart_player.h \
 	cart_loader.cpp cart_loader.h ttns_theme.cpp ttns_theme.h \
 	ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h \
-	$(am__append_1) $(am__append_2)
+	ttns_remote.cpp ttns_remote.h ttns_remote_session.cpp \
+	ttns_remote_session.h $(am__append_1) $(am__append_2)
+ttns_remote_SOURCES = ttns_remote_app.cpp
 ttnsdeckdir = $(datadir)/ttns-deck
 @DARWIN_TRUE@butt_LDFLAGS = -framework AVFoundation -framework CoreMedia
 all: all-am
@@ -525,6 +535,10 @@ butt$(EXEEXT): $(butt_OBJECTS) $(butt_DEPENDENCIES) $(EXTRA_butt_DEPENDENCIES)
 	@rm -f butt$(EXEEXT)
 	$(AM_V_OBJCXXLD)$(butt_LINK) $(butt_OBJECTS) $(butt_LDADD) $(LIBS)
 
+ttns_remote$(EXEEXT): $(ttns_remote_OBJECTS) $(ttns_remote_DEPENDENCIES) $(EXTRA_ttns_remote_DEPENDENCIES) 
+	@rm -f ttns_remote$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(ttns_remote_OBJECTS) $(ttns_remote_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f FLTK/*.$(OBJEXT)
@@ -551,6 +565,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_about.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_audio.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_paths.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_remote.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_remote_session.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_theme.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_ui.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-ttns_zones.Po@am__quote@ # am--include-marker
@@ -559,6 +575,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-vu_meter.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/butt-wav_header.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cart_loader_mac.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ttns_remote_app.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_ILM216.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po@am__quote@ # am--include-marker
@@ -1127,6 +1144,34 @@ butt-ttns_about.obj: ttns_about.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_about.obj `if test -f 'ttns_about.cpp'; then $(CYGPATH_W) 'ttns_about.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_about.cpp'; fi`
 
+butt-ttns_remote.o: ttns_remote.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_remote.o -MD -MP -MF $(DEPDIR)/butt-ttns_remote.Tpo -c -o butt-ttns_remote.o `test -f 'ttns_remote.cpp' || echo '$(srcdir)/'`ttns_remote.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_remote.Tpo $(DEPDIR)/butt-ttns_remote.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_remote.cpp' object='butt-ttns_remote.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_remote.o `test -f 'ttns_remote.cpp' || echo '$(srcdir)/'`ttns_remote.cpp
+
+butt-ttns_remote.obj: ttns_remote.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_remote.obj -MD -MP -MF $(DEPDIR)/butt-ttns_remote.Tpo -c -o butt-ttns_remote.obj `if test -f 'ttns_remote.cpp'; then $(CYGPATH_W) 'ttns_remote.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_remote.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_remote.Tpo $(DEPDIR)/butt-ttns_remote.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_remote.cpp' object='butt-ttns_remote.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_remote.obj `if test -f 'ttns_remote.cpp'; then $(CYGPATH_W) 'ttns_remote.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_remote.cpp'; fi`
+
+butt-ttns_remote_session.o: ttns_remote_session.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_remote_session.o -MD -MP -MF $(DEPDIR)/butt-ttns_remote_session.Tpo -c -o butt-ttns_remote_session.o `test -f 'ttns_remote_session.cpp' || echo '$(srcdir)/'`ttns_remote_session.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_remote_session.Tpo $(DEPDIR)/butt-ttns_remote_session.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_remote_session.cpp' object='butt-ttns_remote_session.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_remote_session.o `test -f 'ttns_remote_session.cpp' || echo '$(srcdir)/'`ttns_remote_session.cpp
+
+butt-ttns_remote_session.obj: ttns_remote_session.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -MT butt-ttns_remote_session.obj -MD -MP -MF $(DEPDIR)/butt-ttns_remote_session.Tpo -c -o butt-ttns_remote_session.obj `if test -f 'ttns_remote_session.cpp'; then $(CYGPATH_W) 'ttns_remote_session.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_remote_session.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/butt-ttns_remote_session.Tpo $(DEPDIR)/butt-ttns_remote_session.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ttns_remote_session.cpp' object='butt-ttns_remote_session.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(butt_CXXFLAGS) $(CXXFLAGS) -c -o butt-ttns_remote_session.obj `if test -f 'ttns_remote_session.cpp'; then $(CYGPATH_W) 'ttns_remote_session.cpp'; else $(CYGPATH_W) '$(srcdir)/ttns_remote_session.cpp'; fi`
+
 .cxx.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
@@ -1307,6 +1352,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/butt-ttns_about.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_audio.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_paths.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_remote.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_remote_session.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_theme.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_ui.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_zones.Po
@@ -1315,6 +1362,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/butt-vu_meter.Po
 	-rm -f ./$(DEPDIR)/butt-wav_header.Po
 	-rm -f ./$(DEPDIR)/cart_loader_mac.Po
+	-rm -f ./$(DEPDIR)/ttns_remote_app.Po
 	-rm -f FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_ILM216.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po
@@ -1392,6 +1440,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/butt-ttns_about.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_audio.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_paths.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_remote.Po
+	-rm -f ./$(DEPDIR)/butt-ttns_remote_session.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_theme.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_ui.Po
 	-rm -f ./$(DEPDIR)/butt-ttns_zones.Po
@@ -1400,6 +1450,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/butt-vu_meter.Po
 	-rm -f ./$(DEPDIR)/butt-wav_header.Po
 	-rm -f ./$(DEPDIR)/cart_loader_mac.Po
+	-rm -f ./$(DEPDIR)/ttns_remote_app.Po
 	-rm -f FLTK/$(DEPDIR)/Fl_My_Native_File_Chooser_MAC.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_ILM216.Po
 	-rm -f FLTK/$(DEPDIR)/butt-Fl_My_Native_File_Chooser.Po
@@ -1452,6 +1503,7 @@ uninstall-am: uninstall-binPROGRAMS
 install-data-local:
 	$(INSTALL) -d $(DESTDIR)$(bindir)
 	$(INSTALL) -m 755 butt $(DESTDIR)$(bindir)/ttns-deck
+	$(INSTALL) -m 755 ttns_remote $(DESTDIR)$(bindir)/ttns-remote
 	$(INSTALL) -d $(DESTDIR)$(ttnsdeckdir)/data $(DESTDIR)$(ttnsdeckdir)/assets
 	$(INSTALL) -m 644 $(top_srcdir)/data/ttns-zones.json $(DESTDIR)$(ttnsdeckdir)/data/
 	$(INSTALL) -m 644 $(top_srcdir)/assets/ttns-logo.png $(DESTDIR)$(ttnsdeckdir)/assets/

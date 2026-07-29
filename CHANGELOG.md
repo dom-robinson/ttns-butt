@@ -3,6 +3,20 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote-dev.1] — Remote dial-in foundation (dev)
+
+**Branch:** `feature/remote-dial-in` (does not replace `v0.1.16-ttns-pre.7`)
+
+### Added
+
+- 4-slot remote co-host bus in the mix with per-slot mix-minus return paths
+- Operator UI: Accept remotes, room code, R1–R4 faders/mutes, local test-tone inject
+- Stub `ttns_remote_session` (WebRTC/signaling placeholder)
+- Stub **TTNS Remote** binary (`ttns_remote` → `ttns-remote`)
+- Docs: [`docs/REMOTE_DIALIN.md`](docs/REMOTE_DIALIN.md) including how to revert to pre.7
+
+---
+
 ## [0.1.16-ttns-pre.7] — Safe audio device switching (2026-07-03)
 
 **Tag:** `v0.1.16-ttns-pre.7`

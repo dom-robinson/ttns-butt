@@ -20,6 +20,12 @@
 #include "parseconfig.h"
 
 #define TTNS_CART_SLOTS 8
+#ifndef TTNS_REMOTE_SLOTS
+#define TTNS_REMOTE_SLOTS 4
+#endif
+#ifndef TTNS_REMOTE_ROOM_LEN
+#define TTNS_REMOTE_ROOM_LEN 12
+#endif
 
 enum {
 
@@ -158,6 +164,10 @@ typedef struct
         char *cart_path[TTNS_CART_SLOTS];
         char *cart_label[TTNS_CART_SLOTS];
         int cart_mode[TTNS_CART_SLOTS];
+        float remote_gain[TTNS_REMOTE_SLOTS];
+        int remote_mute[TTNS_REMOTE_SLOTS];
+        int remote_accept;
+        char remote_room[TTNS_REMOTE_ROOM_LEN];
     } ttns;
 
     server_t **srv;

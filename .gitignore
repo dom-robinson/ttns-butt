@@ -25,5 +25,6 @@ xcode/build/
 # Built binary
 butt
 src/butt
+src/ttns_remote
 dist/
 build/

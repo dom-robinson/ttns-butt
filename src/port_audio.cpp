@@ -45,6 +45,7 @@
 #include "fl_funcs.h"
 #include "util.h"
 #include "ttns_audio.h"
+#include "ttns_remote.h"
 #include "cart_player.h"
 
 
@@ -89,6 +90,7 @@ static short *ttns_cart_buf = NULL;
 static short *ttns_line_buf = NULL;
 static short *ttns_mic_work_buf = NULL;
 static short *monitor_mix_buf = NULL;
+static short *ttns_mix_minus_buf = NULL;
 static short *snd_conv_work_buf = NULL;
 static int line_input_channels = 2;
 static int mic_input_channels = 1;
@@ -208,10 +210,24 @@ static int monitor_out_cb(const void *inputBuffer, void *outputBuffer,
     return paContinue;
 }
 
+static void ttns_gather_remote_voices(const short *remote_stereo[TTNS_REMOTE_SLOTS],
+                                      float remote_gain[TTNS_REMOTE_SLOTS])
+{
+    int r;
+
+    for (r = 0; r < TTNS_REMOTE_SLOTS; r++)
+    {
+        remote_stereo[r] = ttns_remote_uplink_stereo(r);
+        remote_gain[r] = ttns_remote_effective_gain(r);
+    }
+}
+
 static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
                                   const short *mic_in, int mic_channels,
                                   float line_gain, float cart_gain,
-                                  float duck_gain, float mic_g)
+                                  float duck_gain, float mic_g,
+                                  const short *remote_stereo[TTNS_REMOTE_SLOTS],
+                                  const float remote_gain[TTNS_REMOTE_SLOTS])
 {
     size_t mon_bytes;
     float mon_mic_g;
@@ -229,8 +245,9 @@ static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
         mon_mic_g = 0.0f;
     }
 
-    ttns_process_mix(monitor_mix_buf, mic_src, mic_ch, line_stereo, ttns_cart_buf,
-                     frameCount, mon_mic_g, line_gain, cart_gain, duck_gain);
+    ttns_process_mix_ex(monitor_mix_buf, mic_src, mic_ch, line_stereo, ttns_cart_buf,
+                        frameCount, mon_mic_g, line_gain, cart_gain, duck_gain,
+                        remote_stereo, remote_gain, -1);
 
     mon_bytes = (size_t)frameCount * 2 * sizeof(short);
     rb_write_drop(&monitor_rb, (char*)monitor_mix_buf, (unsigned int)mon_bytes);
@@ -238,16 +255,19 @@ static void ttns_push_monitor_mix(int frameCount, const short *line_stereo,
 
 static void ttns_free_mix_buffers(void)
 {
+    ttns_remote_shutdown();
     free(ttns_mix_buf);
     free(ttns_cart_buf);
     free(ttns_line_buf);
     free(ttns_mic_work_buf);
     free(monitor_mix_buf);
+    free(ttns_mix_minus_buf);
     ttns_mix_buf = NULL;
     ttns_cart_buf = NULL;
     ttns_line_buf = NULL;
     ttns_mic_work_buf = NULL;
     monitor_mix_buf = NULL;
+    ttns_mix_minus_buf = NULL;
 }
 
 static int ttns_alloc_mix_buffers(void)
@@ -257,7 +277,7 @@ static int ttns_alloc_mix_buffers(void)
 
     /* snd_stop_streams() should have cleared these; guard stale pointers if not. */
     if (ttns_mix_buf || ttns_cart_buf || ttns_line_buf
-        || ttns_mic_work_buf || monitor_mix_buf)
+        || ttns_mic_work_buf || monitor_mix_buf || ttns_mix_minus_buf)
         ttns_free_mix_buffers();
 
     ttns_cart_buf = (short*)malloc(line_samples * sizeof(short));
@@ -265,9 +285,16 @@ static int ttns_alloc_mix_buffers(void)
     ttns_mix_buf = (short*)malloc(line_samples * sizeof(short));
     ttns_mic_work_buf = (short*)malloc(mic_samples * sizeof(short));
     monitor_mix_buf = (short*)malloc(line_samples * sizeof(short));
+    ttns_mix_minus_buf = (short*)malloc(line_samples * sizeof(short));
 
     if (!ttns_cart_buf || !ttns_line_buf || !ttns_mix_buf || !ttns_mic_work_buf
-        || !monitor_mix_buf)
+        || !monitor_mix_buf || !ttns_mix_minus_buf)
+    {
+        ttns_free_mix_buffers();
+        return 1;
+    }
+
+    if (ttns_remote_init(cfg.audio.samplerate, pa_frames) != 0)
     {
         ttns_free_mix_buffers();
         return 1;
@@ -398,14 +425,27 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
                                   const short *mic_in, int mic_channels)
 {
     int mic_pk_raw;
+    int duck_pk;
+    int r;
     float duck_depth;
     float duck_gain;
     float mic_g;
+    const short *remote_stereo[TTNS_REMOTE_SLOTS];
+    float remote_gain[TTNS_REMOTE_SLOTS];
+
+    ttns_remote_prepare_block(frameCount);
+    ttns_gather_remote_voices(remote_stereo, remote_gain);
 
     mic_pk_raw = ttns_mic_peak(mic_in, mic_channels, frameCount);
+    duck_pk = ttns_mic_effective_mute() ? 0 : mic_pk_raw;
+    {
+        int rem_pk = ttns_remote_duck_peak();
+        if (rem_pk > duck_pk)
+            duck_pk = rem_pk;
+    }
 
     duck_depth = util_db_to_factor(cfg.ttns.duck_depth_db);
-    duck_gain = ttns_duck_gain_update(ttns_mic_effective_mute() ? 0 : mic_pk_raw,
+    duck_gain = ttns_duck_gain_update(duck_pk,
                                       cfg.audio.samplerate, frameCount,
                                       cfg.ttns.duck_threshold, duck_depth,
                                       cfg.ttns.duck_attack_ms, cfg.ttns.duck_release_ms);
@@ -414,11 +454,28 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
     if (ttns_mic_effective_mute())
         mic_g = 0.0f;
 
-    ttns_process_mix(ttns_mix_buf, mic_in, mic_channels, line_stereo, ttns_cart_buf,
-                     frameCount, mic_g, cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain);
+    ttns_process_mix_ex(ttns_mix_buf, mic_in, mic_channels, line_stereo, ttns_cart_buf,
+                        frameCount, mic_g, cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain,
+                        remote_stereo, remote_gain, -1);
     memcpy(pa_pcm_buf, ttns_mix_buf, (size_t)frameCount * 2 * sizeof(short));
+
+    if (ttns_mix_minus_buf)
+    {
+        for (r = 0; r < TTNS_REMOTE_SLOTS; r++)
+        {
+            if (!ttns_remote_is_live(r))
+                continue;
+            ttns_process_mix_ex(ttns_mix_minus_buf, mic_in, mic_channels, line_stereo,
+                                ttns_cart_buf, frameCount, mic_g, cfg.ttns.line_gain,
+                                cfg.ttns.cart_gain, duck_gain,
+                                remote_stereo, remote_gain, r);
+            ttns_remote_write_mix_minus(r, ttns_mix_minus_buf, frameCount);
+        }
+    }
+
     ttns_push_monitor_mix(frameCount, line_stereo, mic_in, mic_channels,
-                          cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain, mic_g);
+                          cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain, mic_g,
+                          remote_stereo, remote_gain);
 
     ttns_push_fader_meters(ttns_peak_stereo(line_stereo, frameCount), mic_pk_raw,
                            ttns_peak_stereo(ttns_cart_buf, frameCount));
@@ -1447,11 +1504,17 @@ int snd_callback(const void *input,
     else
     {
         const short *line_in = (const short*)input;
+        static short silent_mic[8192];
 
         ttns_cart_render(ttns_cart_buf, (int)frameCount);
         ttns_copy_line_to_stereo(ttns_line_buf, line_in, (int)frameCount, line_input_channels);
 
-        if (!ttns_mix_buf)
+        if (ttns_mix_buf && frameCount <= 8192)
+        {
+            memset(silent_mic, 0, (size_t)frameCount * sizeof(short));
+            ttns_finish_mix_block((int)frameCount, ttns_line_buf, silent_mic, 1);
+        }
+        else if (!ttns_mix_buf)
         {
             for (i = 0; i < (int)frameCount; i++)
             {
@@ -1468,25 +1531,17 @@ int snd_callback(const void *input,
         }
         else
         {
-            for (i = 0; i < (int)frameCount; i++)
-            {
-                int l = ttns_line_buf[i * 2];
-                int r = ttns_line_buf[i * 2 + 1];
-                int cl = ttns_cart_buf[i * 2];
-                int cr = ttns_cart_buf[i * 2 + 1];
-                float lg = cfg.ttns.line_gain;
-                float cg = cfg.ttns.cart_gain;
+            const short *remote_stereo[TTNS_REMOTE_SLOTS];
+            float remote_gain[TTNS_REMOTE_SLOTS];
 
-                ttns_mix_buf[i * 2] = ttns_clamp16((int)(l * lg + cl * cg));
-                ttns_mix_buf[i * 2 + 1] = ttns_clamp16((int)(r * lg + cr * cg));
-            }
-            memcpy(pa_pcm_buf, ttns_mix_buf, frameCount * cfg.audio.channel * sizeof(short));
+            ttns_remote_prepare_block((int)frameCount);
+            ttns_gather_remote_voices(remote_stereo, remote_gain);
+            ttns_push_monitor_mix((int)frameCount, ttns_line_buf, NULL, 1,
+                                  cfg.ttns.line_gain, cfg.ttns.cart_gain, 1.0f, 0.0f,
+                                  remote_stereo, remote_gain);
+            ttns_push_fader_meters(ttns_peak_stereo(ttns_line_buf, (int)frameCount), 0,
+                                   ttns_peak_stereo(ttns_cart_buf, (int)frameCount));
         }
-
-        ttns_push_monitor_mix((int)frameCount, ttns_line_buf, NULL, 1,
-                              cfg.ttns.line_gain, cfg.ttns.cart_gain, 1.0f, 0.0f);
-        ttns_push_fader_meters(ttns_peak_stereo(ttns_line_buf, (int)frameCount), 0,
-                               ttns_peak_stereo(ttns_cart_buf, (int)frameCount));
     }
     samplerate_out = cfg.audio.samplerate;
 	

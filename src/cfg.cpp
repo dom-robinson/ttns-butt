@@ -205,6 +205,13 @@ int cfg_write_file(char *path)
         fprintf(cfg_fd, "cart%d_mode = %d\n", i + 1, cfg.ttns.cart_mode[i]);
         fprintf(cfg_fd, "cart%d_gain = %.4f\n", i + 1, cfg.ttns.cart_slot_gain[i]);
     }
+    fprintf(cfg_fd, "remote_accept = %d\n", cfg.ttns.remote_accept);
+    fprintf(cfg_fd, "remote_room = %s\n", cfg.ttns.remote_room);
+    for(i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        fprintf(cfg_fd, "remote%d_gain = %.4f\n", i + 1, cfg.ttns.remote_gain[i]);
+        fprintf(cfg_fd, "remote%d_mute = %d\n", i + 1, cfg.ttns.remote_mute[i]);
+    }
     fprintf(cfg_fd, "\n");
 
     for(i = 0; i < cfg.main.num_of_srv; i++)
@@ -672,6 +679,29 @@ int cfg_set_values(char *path)
             cfg.ttns.cart_slot_gain[i] = 1.0f;
     }
 
+    cfg.ttns.remote_accept = cfg_get_int("ttns", "remote_accept");
+    if (cfg.ttns.remote_accept == -1)
+        cfg.ttns.remote_accept = 0;
+    {
+        char *room = cfg_get_str("ttns", "remote_room");
+        if (room && room[0])
+            snprintf(cfg.ttns.remote_room, sizeof(cfg.ttns.remote_room), "%s", room);
+        else
+            cfg.ttns.remote_room[0] = '\0';
+    }
+    for(i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        char key[32];
+        snprintf(key, sizeof(key), "remote%d_gain", i + 1);
+        cfg.ttns.remote_gain[i] = cfg_get_float("ttns", key);
+        if ((int)cfg.ttns.remote_gain[i] == -1)
+            cfg.ttns.remote_gain[i] = 1.0f;
+        snprintf(key, sizeof(key), "remote%d_mute", i + 1);
+        cfg.ttns.remote_mute[i] = cfg_get_int("ttns", key);
+        if (cfg.ttns.remote_mute[i] == -1)
+            cfg.ttns.remote_mute[i] = 0;
+    }
+
     //read FLTK related stuff
     cfg.main.bg_color = cfg_get_int("main", "bg_color");
     if(cfg.main.bg_color == -1)
@@ -795,6 +825,13 @@ int cfg_create_default(void)
         fprintf(cfg_fd, "cart%d_label = \n", i + 1);
         fprintf(cfg_fd, "cart%d_mode = 0\n", i + 1);
         fprintf(cfg_fd, "cart%d_gain = 1.0\n", i + 1);
+    }
+    fprintf(cfg_fd, "remote_accept = 0\n");
+    fprintf(cfg_fd, "remote_room = \n");
+    for(i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        fprintf(cfg_fd, "remote%d_gain = 1.0\n", i + 1);
+        fprintf(cfg_fd, "remote%d_mute = 0\n", i + 1);
     }
     fprintf(cfg_fd, "\n");
 

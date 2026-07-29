@@ -5,9 +5,9 @@ AM_CPPFLAGS = -IFLTK
 #
 # # this lists the binaries to produce, the (non-PHONY, binary) targets in
 # # the previous manual Makefile
-bin_PROGRAMS = butt 
+bin_PROGRAMS = butt ttns_remote
 if DARWIN
-butt_CXXFLAGS = -x objective-c++
+    butt_CXXFLAGS = -x objective-c++
 endif
 butt_SOURCES = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp icecast.h lame_encode.cpp \
 			   lame_encode.h parseconfig.cpp parseconfig.h port_audio.cpp \
@@ -29,13 +29,18 @@ butt_SOURCES = butt.cpp butt.h cfg.cpp cfg.h icecast.cpp icecast.h lame_encode.c
 			   ttns_audio.cpp ttns_audio.h ttns_ui.cpp ttns_ui.h ttns_zones.cpp ttns_zones.h \
 			   cart_player.cpp cart_player.h cart_loader.cpp cart_loader.h \
 			   ttns_theme.cpp ttns_theme.h \
-			   ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h
+			   ttns_paths.cpp ttns_paths.h ttns_about.cpp ttns_about.h \
+			   ttns_remote.cpp ttns_remote.h \
+			   ttns_remote_session.cpp ttns_remote_session.h
+
+ttns_remote_SOURCES = ttns_remote_app.cpp
 
 ttnsdeckdir = $(datadir)/ttns-deck
 
 install-data-local:
 	$(INSTALL) -d $(DESTDIR)$(bindir)
 	$(INSTALL) -m 755 butt $(DESTDIR)$(bindir)/ttns-deck
+	$(INSTALL) -m 755 ttns_remote $(DESTDIR)$(bindir)/ttns-remote
 	$(INSTALL) -d $(DESTDIR)$(ttnsdeckdir)/data $(DESTDIR)$(ttnsdeckdir)/assets
 	$(INSTALL) -m 644 $(top_srcdir)/data/ttns-zones.json $(DESTDIR)$(ttnsdeckdir)/data/
 	$(INSTALL) -m 644 $(top_srcdir)/assets/ttns-logo.png $(DESTDIR)$(ttnsdeckdir)/assets/

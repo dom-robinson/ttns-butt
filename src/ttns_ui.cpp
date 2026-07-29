@@ -35,6 +35,8 @@
 #include "flgui.h"
 #include "port_audio.h"
 #include "ttns_audio.h"
+#include "ttns_remote.h"
+#include "ttns_remote_session.h"
 #include "ttns_zones.h"
 #include "util.h"
 #include "ttns_about.h"
@@ -50,7 +52,12 @@ static const int TTNS_ZONE_LIST_W = 220;
 static const int TTNS_FADER_H = 22;
 static const int TTNS_CART_Y = 168;
 static const int TTNS_CART_H = 38;
-static const int TTNS_EXTRA_H = TTNS_CART_Y + TTNS_CART_H;
+static const int TTNS_REMOTE_Y = TTNS_CART_Y + TTNS_CART_H + 8;
+static const int TTNS_REMOTE_HDR_H = 26;
+static const int TTNS_REMOTE_ROW_H = 24;
+static const int TTNS_REMOTE_SECTION_H =
+    TTNS_REMOTE_HDR_H + TTNS_REMOTE_SLOTS * TTNS_REMOTE_ROW_H + 4;
+static const int TTNS_EXTRA_H = TTNS_REMOTE_Y + TTNS_REMOTE_SECTION_H;
 
 static const int TTNS_MIC_BTN_X = 6;
 static const int TTNS_MIC_BTN_Y = 84;
@@ -68,6 +75,13 @@ static Fl_Box *ttns_duck_led = NULL;
 static Fl_Ttns_Check_Button *ttns_chk_monitor_mute = NULL;
 static Fl_Ttns_Mic_Button *ttns_btn_mic = NULL;
 static Fl_Ttns_Cart_Button *ttns_cart_btn[TTNS_CART_SLOTS];
+static Fl_Ttns_Fader *ttns_slider_remote[TTNS_REMOTE_SLOTS];
+static Fl_Ttns_Check_Button *ttns_chk_remote_mute[TTNS_REMOTE_SLOTS];
+static Fl_Box *ttns_remote_status[TTNS_REMOTE_SLOTS];
+static Fl_Ttns_Check_Button *ttns_chk_remote_accept = NULL;
+static Fl_Box *ttns_remote_room_lbl = NULL;
+static Fl_Button *ttns_btn_remote_newcode = NULL;
+static Fl_Button *ttns_btn_remote_test[TTNS_REMOTE_SLOTS];
 
 static Fl_My_Double_Window *ttns_cart_setup_win = NULL;
 static Fl_Input *ttns_cart_setup_path = NULL;
@@ -524,6 +538,86 @@ static void ttns_duck_depth_cb(Fl_Widget *w, void *)
     unsaved_changes = 1;
 }
 
+static void ttns_remote_gain_cb(Fl_Widget *w, void *which)
+{
+    float db = (float)((Fl_My_Value_Slider*)w)->value();
+    float factor = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+    int slot = (int)(intptr_t)which;
+
+    if (slot < 0 || slot >= TTNS_REMOTE_SLOTS)
+        return;
+    cfg.ttns.remote_gain[slot] = factor;
+    unsaved_changes = 1;
+}
+
+static void ttns_remote_mute_cb(Fl_Widget *w, void *which)
+{
+    int slot = (int)(intptr_t)which;
+    Fl_Ttns_Check_Button *b = (Fl_Ttns_Check_Button *)w;
+
+    if (slot < 0 || slot >= TTNS_REMOTE_SLOTS)
+        return;
+    cfg.ttns.remote_mute[slot] = b->value() ? 1 : 0;
+    unsaved_changes = 1;
+}
+
+static void ttns_remote_accept_cb(Fl_Widget *w, void *)
+{
+    Fl_Ttns_Check_Button *b = (Fl_Ttns_Check_Button *)w;
+    cfg.ttns.remote_accept = b->value() ? 1 : 0;
+    if (cfg.ttns.remote_accept && cfg.ttns.remote_room[0] == '\0')
+    {
+        char code[TTNS_REMOTE_ROOM_LEN];
+        ttns_remote_generate_room_code(code, sizeof(code));
+        ttns_remote_set_room_code(code);
+        if (ttns_remote_room_lbl)
+        {
+            char buf[64];
+            snprintf(buf, sizeof(buf), "Code %s", ttns_remote_room_code());
+            ttns_remote_room_lbl->copy_label(buf);
+        }
+    }
+    if (cfg.ttns.remote_accept)
+        ttns_remote_session_host_start();
+    else
+        ttns_remote_session_host_stop();
+    unsaved_changes = 1;
+}
+
+static void ttns_remote_newcode_cb(Fl_Widget *, void *)
+{
+    char code[TTNS_REMOTE_ROOM_LEN];
+    ttns_remote_generate_room_code(code, sizeof(code));
+    ttns_remote_set_room_code(code);
+    if (ttns_remote_room_lbl)
+    {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Code %s", ttns_remote_room_code());
+        ttns_remote_room_lbl->copy_label(buf);
+        ttns_remote_room_lbl->redraw();
+    }
+    unsaved_changes = 1;
+}
+
+static void ttns_remote_test_cb(Fl_Widget *, void *which)
+{
+    int slot = (int)(intptr_t)which;
+
+    if (slot < 0 || slot >= TTNS_REMOTE_SLOTS)
+        return;
+
+    if (ttns_remote_test_tone(slot))
+    {
+        ttns_remote_set_test_tone(slot, 0);
+        ttns_remote_clear_slot(slot);
+    }
+    else
+    {
+        ttns_remote_set_name(slot, "Test tone");
+        ttns_remote_set_test_tone(slot, 1);
+    }
+}
+
 static void ttns_mic_apply_mute(int muted)
 {
     cfg.ttns.mic_mute = muted ? 1 : 0;
@@ -924,6 +1018,41 @@ void ttns_ui_timer_tick(void)
             ttns_cart_btn[i]->set_text(fg);
         }
     }
+
+    for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        int st;
+        const char *lbl;
+        int pk;
+
+        if (ttns_slider_remote[i])
+        {
+            pk = ttns_remote_uplink_peak(i);
+            if (cfg.ttns.remote_mute[i] || cfg.ttns.remote_gain[i] <= 0.0f)
+                pk = 0;
+            else
+                pk = (int)((float)pk * cfg.ttns.remote_gain[i]);
+            ttns_slider_remote[i]->set_peak_sample(pk);
+        }
+
+        if (!ttns_remote_status[i])
+            continue;
+
+        st = ttns_remote_state(i);
+        if (st == TTNS_REMOTE_CONNECTED)
+            lbl = ttns_remote_test_tone(i) ? "test" : "live";
+        else if (st == TTNS_REMOTE_WAITING)
+            lbl = "wait";
+        else if (st == TTNS_REMOTE_ERROR)
+            lbl = "err";
+        else
+            lbl = "—";
+        if (!ttns_remote_status[i]->label() || strcmp(ttns_remote_status[i]->label(), lbl) != 0)
+        {
+            ttns_remote_status[i]->copy_label(lbl);
+            ttns_remote_status[i]->redraw();
+        }
+    }
 }
 
 void ttns_ui_sync_from_cfg(void)
@@ -949,6 +1078,26 @@ void ttns_ui_sync_from_cfg(void)
     if (ttns_btn_mic)
         ttns_btn_mic->value(cfg.ttns.mic_mute ? 1 : 0);
     ttns_reload_carts_from_cfg();
+
+    if (ttns_chk_remote_accept)
+        ttns_chk_remote_accept->value(cfg.ttns.remote_accept ? 1 : 0);
+    if (ttns_remote_room_lbl)
+    {
+        char buf[64];
+        const char *code = cfg.ttns.remote_room[0] ? cfg.ttns.remote_room : "------";
+        snprintf(buf, sizeof(buf), "Code %s", code);
+        ttns_remote_room_lbl->copy_label(buf);
+    }
+    {
+        int r;
+        for (r = 0; r < TTNS_REMOTE_SLOTS; r++)
+        {
+            if (ttns_slider_remote[r])
+                ttns_slider_remote[r]->value(util_factor_to_db(cfg.ttns.remote_gain[r]));
+            if (ttns_chk_remote_mute[r])
+                ttns_chk_remote_mute[r]->value(cfg.ttns.remote_mute[r] ? 1 : 0);
+        }
+    }
 }
 
 void ttns_cfg_sync_from_ui(void)
@@ -992,6 +1141,18 @@ void ttns_cfg_sync_from_ui(void)
     {
         cfg.ttns.cart_mode[i] = ttns_cart_get_mode(i);
         cfg.ttns.cart_slot_gain[i] = ttns_cart_get_gain(i);
+    }
+    if (ttns_chk_remote_accept)
+        cfg.ttns.remote_accept = ttns_chk_remote_accept->value() ? 1 : 0;
+    for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        if (ttns_slider_remote[i])
+        {
+            db = (float)ttns_slider_remote[i]->value();
+            cfg.ttns.remote_gain[i] = ((int)db == 0) ? 1.0f : util_db_to_factor(db);
+        }
+        if (ttns_chk_remote_mute[i])
+            cfg.ttns.remote_mute[i] = ttns_chk_remote_mute[i]->value() ? 1 : 0;
     }
 }
 
@@ -1140,6 +1301,68 @@ void ttns_ui_init(flgui *g)
         ttns_cart_btn[i]->shortcut((char)('1' + i));
         ttns_cart_btn[i]->tooltip("Play (keys 1-8, right-click or Ctrl+click to setup)");
         ttns_cart_btn[i]->callback(ttns_cart_cb, (void*)(intptr_t)i);
+    }
+
+    {
+        int ry = TTNS_REMOTE_Y;
+        int mute_w = 36;
+        int test_w = 36;
+        int status_w = 36;
+        int fad_x = TTNS_VAL_X;
+        int fad_w;
+
+        ttns_lbl(TTNS_LBL_X, ry, 56, "Remote");
+        ttns_chk_remote_accept = new Fl_Ttns_Check_Button(TTNS_VAL_X, ry, 70, 22, "Accept");
+        ttns_style_check(ttns_chk_remote_accept);
+        ttns_chk_remote_accept->tooltip("Allow up to 4 remote co-hosts to join with the room code");
+        ttns_chk_remote_accept->callback(ttns_remote_accept_cb);
+
+        ttns_remote_room_lbl = new Fl_Box(TTNS_VAL_X + 74, ry, 120, 22, "Code ------");
+        ttns_remote_room_lbl->labelsize(11);
+        ttns_remote_room_lbl->labelfont(FL_BOLD);
+        ttns_remote_room_lbl->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+        ttns_remote_room_lbl->box(FL_NO_BOX);
+        ttns_theme_style_label_box(ttns_remote_room_lbl);
+
+        ttns_btn_remote_newcode = new Fl_Button(win_w - 78, ry, 70, 22, "New code");
+        ttns_btn_remote_newcode->labelsize(10);
+        ttns_theme_style_butt_button(ttns_btn_remote_newcode, 0);
+        ttns_btn_remote_newcode->callback(ttns_remote_newcode_cb);
+        ttns_btn_remote_newcode->tooltip("Generate a new room code (invalidates the previous one)");
+
+        ry += TTNS_REMOTE_HDR_H;
+        fad_w = win_w - fad_x - status_w - test_w - 16;
+
+        for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
+        {
+            char lblbuf[8];
+            int row_y = ry + i * TTNS_REMOTE_ROW_H;
+
+            snprintf(lblbuf, sizeof(lblbuf), "R%d", i + 1);
+            ttns_lbl(8, row_y + 2, 28, lblbuf);
+
+            ttns_chk_remote_mute[i] = new Fl_Ttns_Check_Button(36, row_y, mute_w, 22, "M");
+            ttns_style_check(ttns_chk_remote_mute[i]);
+            ttns_chk_remote_mute[i]->tooltip("Mute this remote in the program mix");
+            ttns_chk_remote_mute[i]->callback(ttns_remote_mute_cb, (void*)(intptr_t)i);
+
+            ttns_slider_remote[i] = new Fl_Ttns_Fader(fad_x, row_y, fad_w, TTNS_FADER_H);
+            ttns_style_slider(ttns_slider_remote[i]);
+            ttns_slider_remote[i]->callback(ttns_remote_gain_cb, (void*)(intptr_t)i);
+            ttns_slider_remote[i]->tooltip("Remote co-host level in the program mix");
+
+            ttns_btn_remote_test[i] = new Fl_Button(fad_x + fad_w + 2, row_y, test_w, 22, "T");
+            ttns_btn_remote_test[i]->labelsize(10);
+            ttns_theme_style_butt_button(ttns_btn_remote_test[i], 0);
+            ttns_btn_remote_test[i]->tooltip("Inject a local test tone into this remote slot (no network)");
+            ttns_btn_remote_test[i]->callback(ttns_remote_test_cb, (void*)(intptr_t)i);
+
+            ttns_remote_status[i] = new Fl_Box(fad_x + fad_w + test_w + 4, row_y, status_w, 22, "—");
+            ttns_remote_status[i]->labelsize(10);
+            ttns_remote_status[i]->align(FL_ALIGN_CENTER | FL_ALIGN_INSIDE);
+            ttns_remote_status[i]->box(FL_NO_BOX);
+            ttns_theme_style_label_box(ttns_remote_status[i]);
+        }
     }
 
     ttns_choice_mount->callback(ttns_zone_cb);

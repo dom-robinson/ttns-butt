@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "ttns_remote.h"
+
 #define TTNS_CART_SLOTS 8
 
 int ttns_clamp16(int sample);
@@ -28,5 +30,18 @@ void ttns_process_mix(short *out, const short *mic, int mic_channels,
                       const short *line, const short *cart, int frames,
                       float mic_gain, float line_gain, float cart_gain,
                       float duck_gain);
+
+/*
+ * Full program mix with up to TTNS_REMOTE_SLOTS remotes.
+ * remote_stereo[i] may be NULL; remote_gain[i] applied when non-NULL.
+ * exclude_remote: -1 = include all; 0..N-1 = omit that slot (mix-minus).
+ */
+void ttns_process_mix_ex(short *out, const short *mic, int mic_channels,
+                         const short *line, const short *cart, int frames,
+                         float mic_gain, float line_gain, float cart_gain,
+                         float duck_gain,
+                         const short *remote_stereo[TTNS_REMOTE_SLOTS],
+                         const float remote_gain[TTNS_REMOTE_SLOTS],
+                         int exclude_remote);
 
 #endif

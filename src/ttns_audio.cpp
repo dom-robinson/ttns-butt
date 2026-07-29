@@ -132,7 +132,21 @@ void ttns_process_mix(short *out, const short *mic, int mic_channels,
                       float mic_gain, float line_gain, float cart_gain,
                       float duck_gain)
 {
+    ttns_process_mix_ex(out, mic, mic_channels, line, cart, frames,
+                        mic_gain, line_gain, cart_gain, duck_gain,
+                        NULL, NULL, -1);
+}
+
+void ttns_process_mix_ex(short *out, const short *mic, int mic_channels,
+                         const short *line, const short *cart, int frames,
+                         float mic_gain, float line_gain, float cart_gain,
+                         float duck_gain,
+                         const short *remote_stereo[TTNS_REMOTE_SLOTS],
+                         const float remote_gain[TTNS_REMOTE_SLOTS],
+                         int exclude_remote)
+{
     int i;
+    int r;
 
     for (i = 0; i < frames; i++)
     {
@@ -142,6 +156,8 @@ void ttns_process_mix(short *out, const short *mic, int mic_channels,
         int cart_l = 0;
         int cart_r = 0;
         float bus_l, bus_r;
+        float voice_l = 0.0f;
+        float voice_r = 0.0f;
 
         if (cart)
         {
@@ -149,20 +165,43 @@ void ttns_process_mix(short *out, const short *mic, int mic_channels,
             cart_r = cart[i * 2 + 1];
         }
 
-        if (mic_channels >= 2)
+        if (mic && mic_gain != 0.0f)
         {
-            mic_l = mic[i * 2];
-            mic_r = mic[i * 2 + 1];
+            if (mic_channels >= 2)
+            {
+                mic_l = mic[i * 2];
+                mic_r = mic[i * 2 + 1];
+            }
+            else
+            {
+                mic_l = mic_r = mic[i];
+            }
+            voice_l += mic_l * mic_gain;
+            voice_r += mic_r * mic_gain;
         }
-        else
+
+        if (remote_stereo && remote_gain)
         {
-            mic_l = mic_r = mic[i];
+            for (r = 0; r < TTNS_REMOTE_SLOTS; r++)
+            {
+                const short *rs;
+                float g;
+
+                if (r == exclude_remote)
+                    continue;
+                rs = remote_stereo[r];
+                g = remote_gain[r];
+                if (!rs || g == 0.0f)
+                    continue;
+                voice_l += rs[i * 2] * g;
+                voice_r += rs[i * 2 + 1] * g;
+            }
         }
 
         bus_l = line_l * line_gain * duck_gain + cart_l * cart_gain * duck_gain;
         bus_r = line_r * line_gain * duck_gain + cart_r * cart_gain * duck_gain;
 
-        out[i * 2] = ttns_clamp16((int)(bus_l + mic_l * mic_gain));
-        out[i * 2 + 1] = ttns_clamp16((int)(bus_r + mic_r * mic_gain));
+        out[i * 2] = ttns_clamp16((int)(bus_l + voice_l));
+        out[i * 2 + 1] = ttns_clamp16((int)(bus_r + voice_r));
     }
 }
