@@ -77,7 +77,7 @@ codesign --force --deep --sign - "$APP" 2>/dev/null || true
 ARCH="$(uname -m)"
 OUT="$ROOT/dist/macos/ttns-deck-${ARCH}-macos.zip"
 rm -f "$OUT"
-ditto -c -k --keepParent "$APP" "$OUT"
+COPYFILE_DISABLE=1 ditto -c -k --keepParent "$APP" "$OUT"
 
 echo "Built: $APP"
 echo "Zip:   $OUT"
@@ -140,7 +140,7 @@ RLAUNCHER
 
     REMOTE_ZIP="$ROOT/dist/macos/ttns-remote-${ARCH}-macos.zip"
     rm -f "$REMOTE_ZIP"
-    ditto -c -k --keepParent "$REMOTE_APP" "$REMOTE_ZIP"
+    COPYFILE_DISABLE=1 ditto -c -k --keepParent "$REMOTE_APP" "$REMOTE_ZIP"
     echo "Remote app: \"$REMOTE_APP\""
     echo "Remote zip: $REMOTE_ZIP"
 fi
