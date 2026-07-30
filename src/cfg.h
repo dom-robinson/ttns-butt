@@ -141,6 +141,7 @@ typedef struct
         int attach;
         int ontop;
 	int lcd_auto;
+        int ui_scale; /* 100, 110, or 125 — FLTK screen zoom percent */
     }gui;
 
     struct

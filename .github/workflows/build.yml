@@ -2,7 +2,7 @@ name: Build TTNS Deck
 
 on:
   push:
-    branches: [master, ttns-mixer]
+    branches: [master, ttns-mixer, feature/remote-dial-in]
     tags: ['v*']
   pull_request:
     branches: [master]

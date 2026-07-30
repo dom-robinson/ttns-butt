@@ -585,3 +585,76 @@ int ttns_wan_client_recv(void *buf, size_t buflen, int timeout_ms)
         return -1;
     return wan_q_pop(&g_client.rx_q, buf, buflen, timeout_ms);
 }
+
+/* ---- core.liveencode.com reachability (telephone LED) ---- */
+
+#ifndef TTNS_CORE_REACH_URL
+#define TTNS_CORE_REACH_URL "https://core.liveencode.com/"
+#endif
+
+static volatile int g_core_reach = 0;
+static pthread_t g_core_reach_thr;
+static int g_core_reach_started = 0;
+
+static int core_reach_probe_once(void)
+{
+    CURL *c;
+    CURLcode rc;
+    long code = 0;
+
+    wan_ensure_curl();
+    c = curl_easy_init();
+    if (!c)
+        return 0;
+
+    curl_easy_setopt(c, CURLOPT_URL, TTNS_CORE_REACH_URL);
+    curl_easy_setopt(c, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(c, CURLOPT_TIMEOUT, 3L);
+    curl_easy_setopt(c, CURLOPT_CONNECTTIMEOUT, 2L);
+    curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(c, CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(c, CURLOPT_SSL_VERIFYHOST, 2L);
+    curl_easy_setopt(c, CURLOPT_NOSIGNAL, 1L);
+
+    rc = curl_easy_perform(c);
+    if (rc == CURLE_OK)
+        curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &code);
+    curl_easy_cleanup(c);
+
+    /* Any completed TLS/HTTP exchange counts as reachable (even 404/401). */
+    (void)code;
+    return (rc == CURLE_OK) ? 1 : 0;
+}
+
+static void *core_reach_thread(void *arg)
+{
+    (void)arg;
+    for (;;)
+    {
+        g_core_reach = core_reach_probe_once();
+#ifdef _WIN32
+        Sleep(10000);
+#else
+        sleep(10);
+#endif
+    }
+    return NULL;
+}
+
+int ttns_core_reach_get(void)
+{
+    return g_core_reach ? 1 : 0;
+}
+
+void ttns_core_reach_start(void)
+{
+    if (g_core_reach_started)
+        return;
+    g_core_reach_started = 1;
+    if (pthread_create(&g_core_reach_thr, NULL, core_reach_thread, NULL) != 0)
+    {
+        g_core_reach_started = 0;
+        return;
+    }
+    pthread_detach(g_core_reach_thr);
+}

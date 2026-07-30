@@ -95,6 +95,8 @@ void button_cfg_log_browse_cb(void);
 void check_gui_attach_cb(void);
 void check_gui_ontop_cb(void);
 void check_gui_lcd_auto_cb(void);
+void choice_gui_ui_scale_cb(void);
+void ttns_apply_ui_scale(void);
 void slider_gain_cb(void);
 
 void check_cfg_rec_cb(void);

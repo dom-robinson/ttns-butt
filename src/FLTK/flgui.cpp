@@ -51,7 +51,15 @@ void flgui::cb_button_info_i(Fl_Button*, void*) {
   button_info_cb();
 }
 void flgui::cb_button_info(Fl_Button* o, void* v) {
-  ((flgui*)(o->parent()->parent()->user_data()))->cb_button_info_i(o,v);
+  /* Parent may be window_main (after TTNS layout) or the LCD deck group. */
+  Fl_Widget *p = o->parent();
+  flgui *ui = NULL;
+  if (p && p->user_data())
+    ui = (flgui*)p->user_data();
+  else if (p && p->parent() && p->parent()->user_data())
+    ui = (flgui*)p->parent()->user_data();
+  if (ui)
+    ui->cb_button_info_i(o,v);
 }
 
 #include <FL/Fl_Image.H>
@@ -885,6 +893,12 @@ void flgui::cb_check_gui_lcd_auto_i(Fl_Check_Button*, void*) {
 void flgui::cb_check_gui_lcd_auto(Fl_Check_Button* o, void* v) {
   ((flgui*)(o->parent()->parent()->parent()->user_data()))->cb_check_gui_lcd_auto_i(o,v);
 }
+void flgui::cb_choice_gui_ui_scale_i(Fl_Choice*, void*) {
+  choice_gui_ui_scale_cb();
+}
+void flgui::cb_choice_gui_ui_scale(Fl_Choice* o, void* v) {
+  ((flgui*)(o->parent()->parent()->parent()->user_data()))->cb_choice_gui_ui_scale_i(o,v);
+}
 
 void flgui::cb_radio_add_srv_shoutcast_i(Fl_Round_Button*, void*) {
   radio_add_srv_shoutcast_cb();
@@ -1495,6 +1509,20 @@ flgui::flgui() {
           check_gui_lcd_auto->down_box(FL_DOWN_BOX);
           check_gui_lcd_auto->callback((Fl_Callback*)cb_check_gui_lcd_auto);
         } // Fl_Check_Button* check_gui_lcd_auto
+        { Fl_Box *scale_lbl = new Fl_Box(15, 155, 100, 22, "UI size");
+          scale_lbl->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+          scale_lbl->labelsize(12);
+        }
+        { choice_gui_ui_scale = new Fl_Choice(120, 155, 160, 22);
+          choice_gui_ui_scale->tooltip(
+              "Zoom the whole Deck UI (same look, just bigger).\n"
+              "Uses FLTK screen scaling — also Cmd +/- / 0.");
+          choice_gui_ui_scale->add("Normal (100%)");
+          choice_gui_ui_scale->add("Large (+10%)");
+          choice_gui_ui_scale->add("Larger (+25%)");
+          choice_gui_ui_scale->value(0);
+          choice_gui_ui_scale->callback((Fl_Callback*)cb_choice_gui_ui_scale);
+        } // Fl_Choice* choice_gui_ui_scale
         o->end();
       } // Fl_Group* o
       Settings->end();

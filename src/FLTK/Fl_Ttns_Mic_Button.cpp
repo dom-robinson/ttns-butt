@@ -5,6 +5,7 @@
 
 #include "ttns_theme.h"
 
+/* Compact upright mic: filled capsule + yoke + stand + base. */
 static void ttns_draw_mic_glyph(int cx, int cy, int size, int muted)
 {
     int cap_w = size * 2 / 5;
@@ -13,6 +14,11 @@ static void ttns_draw_mic_glyph(int cx, int cy, int size, int muted)
     int cap_y = cy - size / 2 + 2;
     int base_y = cy + size / 2 - 5;
     Fl_Color col = muted ? ttns_col_red() : ttns_col_green();
+
+    if (cap_w < 5)
+        cap_w = 5;
+    if (cap_h < 8)
+        cap_h = 8;
 
     fl_color(col);
 #if FL_MINOR_VERSION >= 4
@@ -32,7 +38,10 @@ static void ttns_draw_mic_glyph(int cx, int cy, int size, int muted)
     {
         fl_color(ttns_col_red());
         fl_line_style(FL_SOLID, 3);
-        fl_line(cx - cap_w - 2, cap_y - 2, cx + cap_w + 2, base_y + 2);
+        fl_line(cx - size / 2 + 2, cy - size / 2 + 2,
+                cx + size / 2 - 2, cy + size / 2 - 2);
+        fl_line(cx + size / 2 - 2, cy - size / 2 + 2,
+                cx - size / 2 + 2, cy + size / 2 - 2);
     }
 
     fl_line_style(0);
@@ -46,22 +55,21 @@ Fl_Ttns_Mic_Button::Fl_Ttns_Mic_Button(int x, int y, int w, int h, const char *l
     color(ttns_col_bg());
     labelcolor(ttns_col_fg());
     selection_color(ttns_col_bg());
+    copy_label("");
 }
 
 void Fl_Ttns_Mic_Button::draw(void)
 {
-    int pad = 3;
-    int icon_h = h() - pad * 2 - 12;
-    Fl_Color border = value() ? ttns_col_red() : ttns_col_green();
+    int pad = 5;
+    int icon_h = h() - pad * 2;
+    Fl_Color border = ttns_col_red();
 
     if (!active())
         border = fl_color_average(border, ttns_col_bg(), 0.45f);
 
-    ttns_draw_round_frame(x(), y(), w(), h(), ttns_col_bg(), border);
-    ttns_draw_mic_glyph(x() + w() / 2, y() + pad + icon_h / 2 + 2, icon_h, value());
+    if (icon_h > w() - pad * 2)
+        icon_h = w() - pad * 2;
 
-    fl_font(labelfont(), labelsize());
-    fl_color(labelcolor());
-    fl_draw(value() ? "MUTED" : "LIVE", x(), y() + h() - 14, w(), 12,
-            FL_ALIGN_CENTER);
+    ttns_draw_round_frame(x(), y(), w(), h(), ttns_col_bg(), border);
+    ttns_draw_mic_glyph(x() + w() / 2, y() + h() / 2, icon_h, value());
 }

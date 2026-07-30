@@ -3,11 +3,13 @@
 
 #include <FL/Fl_Check_Button.H>
 
-/* Affirm: green check when on (Confirm, Mic mon, Accept, …).
- * Negate: red X when on (mute / deactivate). */
+/* Affirm: green check when on; empty when off (Confirm, Accept, …).
+ * Negate: red X when on (mute / deactivate).
+ * Onoff:  green check when on, red X when off (Mic mon). */
 enum {
     TTNS_CHECK_AFFIRM = 0,
-    TTNS_CHECK_NEGATE = 1
+    TTNS_CHECK_NEGATE = 1,
+    TTNS_CHECK_ONOFF = 2
 };
 
 class Fl_Ttns_Check_Button : public Fl_Check_Button {

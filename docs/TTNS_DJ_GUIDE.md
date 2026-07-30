@@ -4,7 +4,7 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Preliminary build:** `v0.1.16-ttns-pre.7` — see [`RELEASE.md`](RELEASE.md) for downloads.
+**Crew remote build:** `0.1.16-ttns-remote-dev.2` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Stable tag remains `v0.1.16-ttns-pre.7` — see [`RELEASE.md`](RELEASE.md).
 
 ---
 
@@ -58,12 +58,12 @@ Choose your **Mount** (e.g. `ttnszone 1-1`). Ops will tell you which slot to use
 
 ### 4. Mic on air
 
-Large button below **About**:
+Large mic button:
 
-| State | Meaning |
-|-------|---------|
-| **LIVE** (green) | Mic on air |
-| **MUTED** (red) | Mic off air |
+| Look | Meaning |
+|------|---------|
+| Mic glyph | Mic on air |
+| Mic with red **X** | Mic muted |
 
 Click or press **Space** to toggle.
 
@@ -96,6 +96,12 @@ Pick **Monitor Output** in Settings → Audio (AirPods vs built-in, etc.).
 ## Settings
 
 **Settings** (above **More**) — codec, bitrate, buffer, recording. TTNS DJs rarely change server fields; **Mount** handles that.
+
+---
+
+## Remotes (co-hosts)
+
+Expand **Remotes** → tick **Accept** → share the room **Code**. Co-hosts run **TTNS Remote** (`run-ttns-remote.sh` / `ttns-remote.exe`). Same LAN preferred; internet uses WRX automatically. Details: [`USER_GUIDE.md`](USER_GUIDE.md), [`REMOTE_DIALIN.md`](REMOTE_DIALIN.md).
 
 ---
 

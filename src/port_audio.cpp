@@ -114,7 +114,8 @@ static float *monitor_f_out = NULL;
 static int monitor_f_cap = 0;
 
 #define TTNS_MON_FRAME_BYTES ((unsigned int)(2 * sizeof(short)))
-#define TTNS_MON_TARGET_MS   250
+/* Keep a small underrun cushion only — was 250ms for SplitCam warble experiments. */
+#define TTNS_MON_TARGET_MS   50
 #define TTNS_MON_DIAG_SEC    12
 
 typedef struct {
@@ -437,13 +438,16 @@ static int ttns_monitor_rb_start(int out_rate)
     monitor_rate = out_rate;
     monitor_pll = 1.0;
 
-    /* Always SRC (even 1:1) so a PLL can absorb SplitCam↔speakers clock drift
-     * without hard drops that click/warble. */
-    monitor_write_src = src_new(SRC_SINC_FASTEST, 2, &err);
-    if (!monitor_write_src)
+    /* Create SRC only when monitor rate differs from mix rate. Same-rate
+     * paths copy directly (no PLL) — SplitCam drift at matched 48k is rare. */
+    if (out_rate != cfg.audio.samplerate)
     {
-        ttns_monitor_rb_shutdown();
-        return 1;
+        monitor_write_src = src_new(SRC_SINC_FASTEST, 2, &err);
+        if (!monitor_write_src)
+        {
+            ttns_monitor_rb_shutdown();
+            return 1;
+        }
     }
     return 0;
 }
@@ -1127,7 +1131,9 @@ static int snd_open_mic_capture(int samplerate)
         mic_params.device = mic_pa_dev_id;
         mic_params.channelCount = mic_input_channels;
         mic_params.sampleFormat = paInt16;
-        mic_params.suggestedLatency = mic_dev_info->defaultHighInputLatency;
+        mic_params.suggestedLatency = mic_dev_info->defaultLowInputLatency;
+        if (mic_params.suggestedLatency < 0.02)
+            mic_params.suggestedLatency = 0.02;
         mic_params.hostApiSpecificStreamInfo = NULL;
 
         pa_err = Pa_IsFormatSupported(&mic_params, NULL, samplerate);
@@ -1300,7 +1306,10 @@ static int snd_fill_monitor_out_params(PaStreamParameters *out_params,
     out_params->device = out_dev;
     out_params->channelCount = 2;
     out_params->sampleFormat = paInt16;
-    out_params->suggestedLatency = out_info->defaultHighOutputLatency;
+    /* Prefer low latency for local monitor; stream encode path is separate. */
+    out_params->suggestedLatency = out_info->defaultLowOutputLatency;
+    if (out_params->suggestedLatency < 0.02)
+        out_params->suggestedLatency = 0.02;
     out_params->hostApiSpecificStreamInfo = NULL;
     return 0;
 }
@@ -1371,8 +1380,10 @@ static int snd_open_monitor(int samplerate)
         return 1;
     }
 
-    out_params.suggestedLatency = out_info->defaultHighOutputLatency;
-    if (out_params.suggestedLatency < 0.08)
+    out_params.suggestedLatency = out_info->defaultLowOutputLatency;
+    if (out_params.suggestedLatency < 0.02)
+        out_params.suggestedLatency = 0.02;
+    if (out_params.suggestedLatency > 0.08)
         out_params.suggestedLatency = 0.08;
 
     if (ttns_monitor_rb_start(chosen) != 0)
@@ -1461,10 +1472,9 @@ int snd_open_stream(void)
 
 
     pa_frames = (cfg.audio.buffer_ms/1000.0)*cfg.audio.samplerate;
-    /* Keep a stable floor for dual-input + monitor. When Remote Accept is live,
-     * allow a slightly lower floor for mix-minus latency. */
+    /* Stable floor for dual-input + monitor; keep remotes a touch lower. */
     {
-        int min_ms = ttns_remote_session_host_running() ? 80 : 100;
+        int min_ms = ttns_remote_session_host_running() ? 40 : 50;
         int min_frames = (int)((min_ms / 1000.0) * cfg.audio.samplerate);
         if (pa_frames < min_frames)
             pa_frames = min_frames;
@@ -1542,7 +1552,9 @@ int snd_open_stream(void)
         cfg.audio.channel);
     pa_params.channelCount = line_input_channels;
     pa_params.sampleFormat = paInt16;
-    pa_params.suggestedLatency = pa_dev_info->defaultHighInputLatency;
+    pa_params.suggestedLatency = pa_dev_info->defaultLowInputLatency;
+    if (pa_params.suggestedLatency < 0.02)
+        pa_params.suggestedLatency = 0.02;
     pa_params.hostApiSpecificStreamInfo = NULL;
 
     pa_err = Pa_IsFormatSupported(&pa_params, NULL, samplerate);

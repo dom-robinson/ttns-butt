@@ -190,6 +190,7 @@ int main(int argc, char *argv[])
     }
 
     ttns_ui_init(fl_g);
+    ttns_apply_ui_scale();
     ttns_remote_session_init();
 
     if (cfg.main.log_file && cfg.main.log_file[0])

@@ -3,6 +3,20 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote-dev.2] — Crew test UI + packaging (dev)
+
+**Branch:** `feature/remote-dial-in` (does not replace `v0.1.16-ttns-pre.7`)
+
+### Changed
+
+- Transport / VU / Settings / More layout polish; shorter LCD; More no longer covers Remotes
+- Mic mute glyph (no LIVE/MUTED text); phone reach LED for `core.liveencode.com`
+- Remotes header: code flush left of New code; Accept + reach indicator
+- Docs: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) (Deck + Remote, screenshot placeholders)
+- Packager version strings aligned to this build; CI also builds `feature/remote-dial-in`
+
+---
+
 ## [0.1.16-ttns-remote-dev.1] — Remote dial-in foundation (dev)
 
 **Branch:** `feature/remote-dial-in` (does not replace `v0.1.16-ttns-pre.7`)
@@ -11,9 +25,9 @@ Upstream BUTT release notes remain in `NEWS`.
 
 - 4-slot remote co-host bus in the mix with per-slot mix-minus return paths
 - Operator UI: Accept remotes, room code, R1–R4 faders/mutes, local test-tone inject
-- Stub `ttns_remote_session` (WebRTC/signaling placeholder)
-- Stub **TTNS Remote** binary (`ttns_remote` → `ttns-remote`)
-- Docs: [`docs/REMOTE_DIALIN.md`](docs/REMOTE_DIALIN.md) including how to revert to pre.7
+- LAN Opus/TCP + UDP discovery; WAN WebSocket relay via WRX
+- **TTNS Remote** binary (`ttns_remote` → `ttns-remote`)
+- Docs: [`docs/REMOTE_DIALIN.md`](docs/REMOTE_DIALIN.md), [`docs/REMOTE_WAN.md`](docs/REMOTE_WAN.md)
 
 ---
 

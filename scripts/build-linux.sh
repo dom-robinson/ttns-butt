@@ -33,6 +33,7 @@ mkdir -p "$STAGE/share/icons/hicolor/256x256/apps"
 cp "$ROOT/assets/ttns-logo.png" "$STAGE/share/icons/hicolor/256x256/apps/ttns-deck.png"
 cp "$ROOT/assets/ttns-deck.desktop" "$STAGE/share/ttns-deck/" 2>/dev/null || true
 cp "$ROOT/docs/TTNS_DJ_GUIDE.md" "$STAGE/README.txt"
+[ -f "$ROOT/docs/USER_GUIDE.md" ] && cp "$ROOT/docs/USER_GUIDE.md" "$STAGE/share/ttns-deck/" || true
 [ -f "$ROOT/docs/REMOTE_DIALIN.md" ] && cp "$ROOT/docs/REMOTE_DIALIN.md" "$STAGE/share/ttns-deck/" || true
 [ -f "$ROOT/docs/REMOTE_WAN.md" ] && cp "$ROOT/docs/REMOTE_WAN.md" "$STAGE/share/ttns-deck/" || true
 

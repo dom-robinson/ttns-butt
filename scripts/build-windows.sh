@@ -43,6 +43,7 @@ fi
 cp "$ROOT/data/ttns-zones.json" "$STAGE/data/"
 cp "$ROOT/assets/ttns-logo.png" "$STAGE/assets/"
 cp "$ROOT/docs/TTNS_DJ_GUIDE.md" "$STAGE/README.txt"
+[ -f "$ROOT/docs/USER_GUIDE.md" ] && cp "$ROOT/docs/USER_GUIDE.md" "$STAGE/" || true
 [ -f "$ROOT/docs/REMOTE_DIALIN.md" ] && cp "$ROOT/docs/REMOTE_DIALIN.md" "$STAGE/" || true
 [ -f "$ROOT/docs/REMOTE_WAN.md" ] && cp "$ROOT/docs/REMOTE_WAN.md" "$STAGE/" || true
 

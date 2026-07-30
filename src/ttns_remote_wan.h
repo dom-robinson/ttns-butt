@@ -39,6 +39,10 @@ int ttns_wan_client_recv(void *buf, size_t buflen, int timeout_ms);
 
 const char *ttns_wan_last_error(void);
 
+/* Probe https://core.liveencode.com — 1 reachable, 0 unreachable. */
+int ttns_core_reach_get(void);
+void ttns_core_reach_start(void);
+
 #ifdef __cplusplus
 }
 #endif

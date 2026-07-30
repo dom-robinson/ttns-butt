@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
@@ -889,46 +890,80 @@ void button_record_cb(void)
 
 static int ttns_collapsed_win_h = 0;
 
-/* Fl_ILM216 status panel: original BUTT height was 95px; +50% for TTNS layout. */
-static const int TTNS_LCD_H = 147;
+/* Fl_ILM216 status panel: originally 95px, briefly 147 (+50%); ~1/3 shorter than that. */
+static const int TTNS_LCD_H = 98;
 
 static const int ttns_vu_xs[9] = {2, 18, 34, 50, 66, 82, 104, 120, 139};
 
-static const int TTNS_TRANSPORT_W = 24;
-static const int TTNS_TRANSPORT_H = 24;
+static const int TTNS_TRANSPORT_W = 32;
+/* Match VU strip height so Record/Stop/Play span the meter. */
+static const int TTNS_TRANSPORT_H = 36;
 static const int TTNS_TRANSPORT_GAP = 4;
 static const int TTNS_TRANSPORT_X0 = 8;
+static const int TTNS_VU_H = 36;
+static const int TTNS_VU_GAP = 16; /* clear space between Play and VU */
+static const int TTNS_VU_W = 150;
 
 static int ttns_transport_right_edge(void)
 {
     return TTNS_TRANSPORT_X0 + 3 * TTNS_TRANSPORT_W + 2 * TTNS_TRANSPORT_GAP;
 }
 
-static void ttns_layout_deck_buttons(flgui *g, int win_w, int deck_y, int vu_l_y)
+static int ttns_vu_x(void)
+{
+    return ttns_transport_right_edge() + TTNS_VU_GAP;
+}
+
+/* Resize group bounds without Fl_Group child reflow (keeps manual pins). */
+static void ttns_widget_resize(Fl_Widget *w, int x, int y, int W, int H)
+{
+    if (!w)
+        return;
+    w->Fl_Widget::resize(x, y, W, H);
+}
+
+static void ttns_layout_deck_buttons(flgui *g, int win_w, int row_top, int row_h)
 {
     const int btn_w = 76;
     const int btn_x = win_w - 84;
-    const int more_h = 18;
-    const int settings_h = 22;
-    const int gap = 4;
+    const int gap = 2;
+    int btn_h;
+    int settings_y;
     int more_y;
 
-    if (!g)
+    if (!g || !g->window_main)
         return;
 
-    more_y = deck_y + vu_l_y - 1;
+    if (row_h < 16)
+        row_h = TTNS_TRANSPORT_H;
 
-    if (g->button_info)
-        g->button_info->resize(btn_x, more_y, btn_w, more_h);
+    btn_h = (row_h - gap) / 2;
+    if (btn_h < 10)
+        btn_h = 10;
+    settings_y = row_top;
+    more_y = row_top + row_h - btn_h;
 
     if (g->button_cfg)
     {
-        g->button_cfg->resize(btn_x, more_y - gap - settings_h, btn_w, settings_h);
+        if (g->button_cfg->parent() != g->window_main)
+            g->window_main->add(g->button_cfg);
+        g->button_cfg->labelsize(9);
+        g->button_cfg->labelfont(FL_BOLD);
+        g->button_cfg->resize(btn_x, settings_y, btn_w, btn_h);
         g->button_cfg->show();
+    }
+
+    if (g->button_info)
+    {
+        if (g->button_info->parent() != g->window_main)
+            g->window_main->add(g->button_info);
+        g->button_info->labelsize(9);
+        g->button_info->resize(btn_x, more_y, btn_w, btn_h);
+        g->button_info->show();
     }
 }
 
-static void ttns_resize_led_row(Fl_Box *leds[], int count, int y)
+static void ttns_place_led_row(Fl_Box *leds[], int count, int vu_gx, int y)
 {
     int i;
 
@@ -936,53 +971,62 @@ static void ttns_resize_led_row(Fl_Box *leds[], int count, int y)
     {
         if (!leds[i])
             continue;
-        leds[i]->resize(ttns_vu_xs[i], y, 11, 11);
+        leds[i]->resize(vu_gx + ttns_vu_xs[i], y, 11, 11);
     }
 }
 
-static void ttns_style_transport_buttons(Fl_Group *deck)
+static void ttns_layout_transport(flgui *g, Fl_Group *deck, int y)
 {
-    (void)deck;
-}
-
-static void ttns_layout_transport(Fl_Group *deck, int y)
-{
-    int i;
     int bx;
 
-    if (!deck)
+    if (!g || !deck)
         return;
 
     bx = TTNS_TRANSPORT_X0;
 
-    for (i = 0; i < deck->children(); i++)
+    /* Keep transport in the deck (fluid callbacks use parent()->parent()). */
+    if (g->button_record)
     {
-        Fl_Widget *c = deck->child(i);
-        Fl_Button *b = dynamic_cast<Fl_Button*>(c);
-        const char *tip;
-
-        if (!b)
-            continue;
-
-        tip = b->tooltip();
-        if (!tip)
-            continue;
-
-        if (!strcmp(tip, "start/stop recording"))
-            b->resize(bx, y, TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
-        else if (!strcmp(tip, "disconnect from server"))
-            b->resize(bx + TTNS_TRANSPORT_W + TTNS_TRANSPORT_GAP, y,
-                      TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
-        else if (!strcmp(tip, "connect to server"))
-            b->resize(bx + 2 * (TTNS_TRANSPORT_W + TTNS_TRANSPORT_GAP), y,
-                      TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
+        if (g->button_record->parent() != deck)
+            deck->add(g->button_record);
+        g->button_record->color(ttns_col_bg());
+        g->button_record->labelsize(16);
+        g->button_record->resize(bx, y, TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
     }
+    if (g->button_disconnect)
+    {
+        if (g->button_disconnect->parent() != deck)
+            deck->add(g->button_disconnect);
+        g->button_disconnect->color(ttns_col_bg());
+        g->button_disconnect->labelsize(16);
+        g->button_disconnect->resize(bx + TTNS_TRANSPORT_W + TTNS_TRANSPORT_GAP, y,
+                                     TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
+    }
+    if (g->button_connect)
+    {
+        if (g->button_connect->parent() != deck)
+            deck->add(g->button_connect);
+        g->button_connect->color(ttns_col_bg());
+        g->button_connect->labelsize(16);
+        g->button_connect->copy_label("@>");
+        g->button_connect->resize(bx + 2 * (TTNS_TRANSPORT_W + TTNS_TRANSPORT_GAP), y,
+                                  TTNS_TRANSPORT_W, TTNS_TRANSPORT_H);
+    }
+
+    /* Draw above the VU strip. */
+    if (g->button_record)
+        deck->add(g->button_record);
+    if (g->button_disconnect)
+        deck->add(g->button_disconnect);
+    if (g->button_connect)
+        deck->add(g->button_connect);
 }
 
 void ttns_layout_feedback_panel(void)
 {
     flgui *g = fl_g;
-    Fl_Widget *deck;
+    Fl_Widget *deck_w;
+    Fl_Group *deck;
     int win_w;
     int deck_y;
     const int lcd_x = 8;
@@ -990,9 +1034,8 @@ void ttns_layout_feedback_panel(void)
     const int lcd_h = TTNS_LCD_H;
     int lcd_w;
     int transport_y;
+    int row_top;
     int vu_gx;
-    int vu_r_y;
-    int vu_l_y;
     int deck_h;
     Fl_Box *right_leds[9];
     Fl_Box *left_leds[9];
@@ -1004,17 +1047,24 @@ void ttns_layout_feedback_panel(void)
 
     win_w = g->window_main->w();
     lcd_w = win_w - 16;
-    deck = g->lcd->parent();
-    deck_y = deck->y();
+    deck_w = g->lcd->parent();
+    deck = (Fl_Group *)deck_w;
+    deck_y = deck_w->y();
 
-    g->lcd->resize(lcd_x, lcd_y, lcd_w, lcd_h);
-
+    /* Local Y of the transport/VU row under the LCD. */
     transport_y = lcd_y + lcd_h + 6;
-    vu_gx = ttns_transport_right_edge() + 12;
-    vu_r_y = transport_y + 2;
-    vu_l_y = vu_r_y + 16;
+    /* VU strip stays 28px; transport + Settings/More share that exact band. */
+    vu_gx = ttns_vu_x();
+    deck_h = transport_y + TTNS_VU_H + 6;
+    row_top = deck_y + transport_y;
 
-    ttns_layout_transport((Fl_Group*)deck, transport_y);
+    /*
+     * Size the deck without Fl_Group child reflow, then pin children in
+     * window-absolute coords.
+     */
+    ttns_widget_resize(deck_w, 0, deck_y, win_w, deck_h);
+
+    g->lcd->resize(lcd_x, deck_y + lcd_y, lcd_w, lcd_h);
 
     right_leds[0] = g->right_1_light;
     right_leds[1] = g->right_2_light;
@@ -1056,18 +1106,19 @@ void ttns_layout_feedback_panel(void)
     left_dark[7] = g->left_8_dark;
     left_dark[8] = g->left_9_dark;
 
+    /* Avoid Fl_Group::resize reflow of LED children. */
+    ttns_widget_resize(g->LEDs_dark, vu_gx, row_top, TTNS_VU_W, TTNS_VU_H);
+    ttns_widget_resize(g->LEDs_light, vu_gx, row_top, TTNS_VU_W, TTNS_VU_H);
+
+    ttns_place_led_row(right_leds, 9, vu_gx, row_top + 4);
+    ttns_place_led_row(left_leds, 9, vu_gx, row_top + 20);
+    ttns_place_led_row(right_dark, 9, vu_gx, row_top + 4);
+    ttns_place_led_row(left_dark, 9, vu_gx, row_top + 20);
+
     if (g->LEDs_dark)
-        g->LEDs_dark->resize(vu_gx, vu_r_y - 2, 150, 28);
+        g->LEDs_dark->init_sizes();
     if (g->LEDs_light)
-        g->LEDs_light->resize(vu_gx, vu_r_y - 2, 150, 28);
-
-    ttns_resize_led_row(right_leds, 9, 2);
-    ttns_resize_led_row(left_leds, 9, 16);
-    ttns_resize_led_row(right_dark, 9, 2);
-    ttns_resize_led_row(left_dark, 9, 16);
-
-    deck_h = vu_l_y + 14;
-    deck->resize(0, deck_y, win_w, deck_h);
+        g->LEDs_light->init_sizes();
 
     if (g->R_VU)
         g->R_VU->hide();
@@ -1076,11 +1127,16 @@ void ttns_layout_feedback_panel(void)
     if (g->VU_Text)
         g->VU_Text->hide();
 
-    ttns_layout_deck_buttons(g, win_w, deck_y, vu_l_y);
+    /* Transport last so VU group ops cannot cover/move Play. */
+    ttns_layout_transport(g, deck, row_top);
+    deck->init_sizes();
 
-    if (g->info_output)
-        g->info_output->resize(0, deck_y + deck_h + 4, win_w, g->info_output->h());
+    ttns_layout_deck_buttons(g, win_w, row_top, TTNS_TRANSPORT_H);
 
+    /*
+     * Do not park info_output here — Remotes owns the stack under the deck.
+     * Placing info at deck_h overlapped R1–R4 until Remotes was toggled.
+     */
     ttns_collapsed_win_h = deck_y + deck_h + 8;
 }
 
@@ -1106,36 +1162,25 @@ void ttns_set_window_collapsed_height(int h)
 
 void info_panel_collapse(void)
 {
-    int collapsed_h;
-
     if (!fl_g || !fl_g->info_output)
         return;
 
-    collapsed_h = ttns_window_collapsed_height();
-    if (collapsed_h < 200)
-        collapsed_h = fl_g->info_output->y() - 30;
-
-    fl_g->window_main->resize(fl_g->window_main->x(),
-                              fl_g->window_main->y(),
-                              fl_g->window_main->w(),
-                              collapsed_h);
     fl_g->info_output->hide();
     fl_g->button_info->label("More @2>");
     fl_g->info_visible = 0;
+    /* Stack Remotes → (no info) and re-pin transport after window resize. */
+    ttns_ui_relayout_shell();
 }
 
 void button_info_cb() //changed "Info" text to "More"
 {
     if (!fl_g->info_visible)
     {
-        // Show info output...
-        fl_g->window_main->resize(fl_g->window_main->x(),
-                                  fl_g->window_main->y(),
-                                  fl_g->window_main->w(),
-                                  fl_g->info_output->y() + 205);
         fl_g->info_output->show();
         fl_g->button_info->label("Less @2<");
         fl_g->info_visible = 1;
+        /* Place info under Remotes (not under the deck) and grow the window. */
+        ttns_ui_relayout_shell();
     }
     else
     {
@@ -2884,6 +2929,54 @@ void check_gui_lcd_auto_cb(void)
     {
         cfg.gui.lcd_auto = 0;
     }
+
+    unsaved_changes = 1;
+}
+
+static float ttns_ui_scale_base = 0.0f;
+
+void ttns_apply_ui_scale(void)
+{
+    int i;
+    int n;
+    float mult;
+
+    if (!Fl::screen_scaling_supported())
+        return;
+
+    if (ttns_ui_scale_base <= 0.01f)
+        ttns_ui_scale_base = Fl::screen_scale(0);
+    if (ttns_ui_scale_base <= 0.01f)
+        ttns_ui_scale_base = 1.0f;
+
+    if (cfg.gui.ui_scale == 110)
+        mult = 1.10f;
+    else if (cfg.gui.ui_scale == 125)
+        mult = 1.25f;
+    else
+        mult = 1.0f;
+
+    n = Fl::screen_count();
+    for (i = 0; i < n; i++)
+        Fl::screen_scale(i, ttns_ui_scale_base * mult);
+}
+
+void choice_gui_ui_scale_cb(void)
+{
+    int v;
+
+    if (!fl_g || !fl_g->choice_gui_ui_scale)
+        return;
+
+    v = fl_g->choice_gui_ui_scale->value();
+    if (v == 1)
+        cfg.gui.ui_scale = 110;
+    else if (v == 2)
+        cfg.gui.ui_scale = 125;
+    else
+        cfg.gui.ui_scale = 100;
+
+    ttns_apply_ui_scale();
     unsaved_changes = 1;
 }
 

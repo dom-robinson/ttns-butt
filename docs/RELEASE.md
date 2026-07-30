@@ -1,6 +1,8 @@
 # TTNS Deck — binary releases
 
-**Preliminary release:** `v0.1.16-ttns-pre.7` (tag on `ttns-mixer`)
+**Stable DJ tag:** `v0.1.16-ttns-pre.7` (on `ttns-mixer`)
+
+**Crew remote test build:** `0.1.16-ttns-remote-dev.2` (branch `feature/remote-dial-in`) — Deck + TTNS Remote.
 
 Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned separately.
 
@@ -10,18 +12,18 @@ Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned sep
 
 | Platform | CI artifact | Package contents |
 |----------|-------------|------------------|
-| **macOS Apple Silicon** | `ttns-deck-macos-arm64` | `TTNS Deck.app`, `ttns-deck-arm64-macos.zip` |
-| **macOS Intel** | `ttns-deck-macos-x64` | `TTNS Deck.app`, `ttns-deck-x86_64-macos.zip` |
-| **Linux x86_64** | `ttns-deck-linux-x64` | `ttns-deck-linux-x86_64.tar.gz` |
-| **Windows x64** | `ttns-deck-windows-x64` | `ttns-deck-win64.zip` |
+| **macOS Apple Silicon** | `ttns-deck-macos-arm64` | `TTNS Deck.app`, `ttns-deck-arm64-macos.zip`, `ttns-remote` |
+| **macOS Intel** | `ttns-deck-macos-x64` | same for Intel |
+| **Linux x86_64** | `ttns-deck-linux-x64` | `ttns-deck-linux-x86_64.tar.gz` (Deck + Remote launchers) |
+| **Windows x64** | `ttns-deck-windows-x64` | `ttns-deck-win64.zip` (`ttns-deck.exe` + `ttns-remote.exe`) |
 
 Each package includes `legal/` (or `Resources/legal/` on macOS) with `COPYING`,
 `DISTRIBUTION_LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, and the Fraunhofer
 FDK-AAC license text.
 
-1. Open [Actions](https://github.com/dom-robinson/ttns-butt/actions) → latest workflow run on `ttns-mixer` or the release tag.
+1. Open [Actions](https://github.com/dom-robinson/ttns-butt/actions) → latest workflow run on `feature/remote-dial-in`, `ttns-mixer`, or a release tag.
 2. Download the artifact for your OS, **or** use the [GitHub Release](https://github.com/dom-robinson/ttns-butt/releases) (four platform archives only).
-3. See [`TTNS_DJ_GUIDE.md`](TTNS_DJ_GUIDE.md) for install and first-run steps.
+3. See [`USER_GUIDE.md`](USER_GUIDE.md) (full) or [`TTNS_DJ_GUIDE.md`](TTNS_DJ_GUIDE.md) (short).
 
 Tagged releases attach **only** the four platform zip/tar.gz files (not loose DLLs or
 app bundle internals). For Dropbox handoff to DJs, run
@@ -77,7 +79,7 @@ Workflow: [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 | `build-linux` | `ubuntu-latest` | apt dev packages; `build-linux.sh` |
 | `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs; pacman install retries on mirror failures |
 
-Pushes to `master` / `ttns-mixer` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.7` create a **pre-release** on GitHub with the four platform archives attached.
+Pushes to `master` / `ttns-mixer` / `feature/remote-dial-in` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.7` create a **pre-release** on GitHub with the four platform archives attached. Use **workflow_dispatch** for an on-demand rebuild.
 
 ---
 

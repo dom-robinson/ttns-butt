@@ -1,8 +1,10 @@
 # TTNS Deck — tester feedback guide
 
-**Build:** `v0.1.16-ttns-pre.7` (preliminary)
+**Build:** `0.1.16-ttns-remote-dev.2` (crew test — Deck + Remote)
 
 Thank you for testing. Please report issues with the **session log file** attached (see below).
+
+Full walkthrough (for screenshots later): [`USER_GUIDE.md`](USER_GUIDE.md).
 
 ---
 
@@ -14,6 +16,14 @@ Thank you for testing. Please report issues with the **session log file** attach
 | **macOS Intel** | `*-macos-x64.zip` | Same |
 | **Linux** | `*-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
 | **Windows** | `*-windows-x64.zip` | Unzip → **Run TTNS Deck.bat** |
+
+**TTNS Remote** (co-host app):
+
+| Platform | Run |
+|----------|-----|
+| macOS | `ttns-remote` from the handoff folder / inside the app bundle |
+| Linux | `./ttns-deck-linux-*/run-ttns-remote.sh` |
+| Windows | `bin\ttns-remote.exe` |
 
 First launch creates `~/.buttrc` (or `%USERPROFILE%\.buttrc` on Windows).
 
@@ -46,7 +56,9 @@ Optional: set a custom log path in **Settings → Main → Log file**.
 1. Pick **Line** and **Mic** devices (Settings → Audio) — must be different for ducking.
 2. Set levels (Line, Cart, Mic), try a cart (right-click to assign MP3/WAV).
 3. Choose **Mount**, press **Connect**, brief stream test if scheduled.
-4. Note anything odd: crackling, crash, wrong levels, cart load failure.
+4. **Remotes:** expand Remotes → **Accept** → note room code → join from TTNS Remote on another machine (or same LAN).
+5. Check the phone reach LED (grey / yellow / green) for `core.liveencode.com`.
+6. Note anything odd: crackling, crash, wrong levels, remote dropouts, layout glitches.
 
 ---
 

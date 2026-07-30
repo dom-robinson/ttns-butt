@@ -46,13 +46,13 @@ private:
   static void cb_lcd(Fl_ILM216*, void*);
 public:
   Fl_Button *button_connect;
+  Fl_Button *button_disconnect;
+  Fl_Button *button_record;
 private:
   inline void cb_button_connect_i(Fl_Button*, void*);
   static void cb_button_connect(Fl_Button*, void*);
-  Fl_Button *button_disconnect;
   inline void cb_button_disconnect_i(Fl_Button*, void*);
   static void cb_button_disconnect(Fl_Button*, void*);
-  Fl_Button *button_record;
   inline void cb_button_record_i(Fl_Button*, void*);
   static void cb_button_record(Fl_Button*, void*);
 public:
@@ -319,6 +319,11 @@ public:
 private:
   inline void cb_check_gui_lcd_auto_i(Fl_Check_Button*, void*);
   static void cb_check_gui_lcd_auto(Fl_Check_Button*, void*);
+public:
+  Fl_Choice *choice_gui_ui_scale;
+private:
+  inline void cb_choice_gui_ui_scale_i(Fl_Choice*, void*);
+  static void cb_choice_gui_ui_scale(Fl_Choice*, void*);
 public:
   Fl_Double_Window *window_add_srv;
   Fl_Input *input_add_srv_name;

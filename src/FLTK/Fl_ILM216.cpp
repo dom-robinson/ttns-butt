@@ -398,12 +398,19 @@ void Fl_ILM216::draw(void)
     if (has_row2)
         text_h = row_h * 2;
 
+    /* Center glyphs in a shorter panel and clip so nothing spills out. */
     Y = y() + (h() - text_h) / 2;
+    if (Y < y() + 4)
+        Y = y() + 4;
+    if (Y + text_h > y() + h() - 4)
+        Y = y() + h() - 4 - text_h;
     if (Y < y())
         Y = y();
 
     ttns_draw_round_frame(x(), y(), w(), h(),
                           (Fl_Color)cfg.main.bg_color, ttns_col_red());
+
+    fl_push_clip(x() + 2, y() + 2, w() - 4, h() - 4);
 
     oc = fl_color_average((Fl_Color)cfg.main.txt_color,
                           (Fl_Color)cfg.main.bg_color, 0.5f);
@@ -435,7 +442,6 @@ void Fl_ILM216::draw(void)
     else
         rec_dark_->draw(X + 15*25 -7, rec_y);
 
-  // Draw the LCD contents...
     for (i = 0; i < 16; i ++)
     {
         fl_color((Fl_Color)cfg.main.txt_color);
@@ -451,7 +457,9 @@ void Fl_ILM216::draw(void)
             outline_[chars_[i + 0]]->draw(X + i * 24, Y);
         if (outline_[chars_[i + 16]] && has_row2)
             outline_[chars_[i + 16]]->draw(X + i * 24, Y + 40);
-  }
+    }
+
+    fl_pop_clip();
 }
 
 

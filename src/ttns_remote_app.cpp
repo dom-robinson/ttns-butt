@@ -115,6 +115,7 @@ public:
 static Fl_Input *room_input = NULL;
 static Fl_Box *status_box = NULL;
 static Fl_Box *conn_banner = NULL;
+static Fl_Box *core_phone = NULL;
 static Fl_Button *link_btn = NULL;
 static Fl_Ttns_Check_Button *mic_mute = NULL;
 static Fl_Ttns_Check_Button *ptt_mode = NULL;
@@ -481,6 +482,22 @@ static void update_connection_ui(void)
         slot_box->redraw();
     }
 
+    if (core_phone)
+    {
+        Fl_Color phone_col;
+        if (on)
+            phone_col = col_green();
+        else if (ttns_core_reach_get())
+            phone_col = fl_rgb_color(255, 200, 40);
+        else
+            phone_col = fl_color_average(col_green(), col_bg(), 0.35f);
+        if (core_phone->labelcolor() != phone_col)
+        {
+            core_phone->labelcolor(phone_col);
+            core_phone->redraw();
+        }
+    }
+
     if (conn_banner)
     {
         if (on)
@@ -558,6 +575,22 @@ static void meter_tick(void *)
         snprintf(buf, sizeof(buf), "CONNECTED as R%d — hold Ctrl to talk (PTT)", my_slot + 1);
         if (strcmp(status_text, buf) != 0)
             set_status(buf);
+    }
+    /* Refresh telephone LED when core reachability flips (background probe). */
+    if (core_phone)
+    {
+        Fl_Color phone_col;
+        if (connected)
+            phone_col = col_green();
+        else if (ttns_core_reach_get())
+            phone_col = fl_rgb_color(255, 200, 40);
+        else
+            phone_col = fl_color_average(col_green(), col_bg(), 0.35f);
+        if (core_phone->labelcolor() != phone_col)
+        {
+            core_phone->labelcolor(phone_col);
+            core_phone->redraw();
+        }
     }
     Fl::repeat_timeout(0.05, meter_tick);
 }
@@ -1548,6 +1581,13 @@ int main(int argc, char **argv)
     slot_box->labelfont(FL_BOLD);
     slot_box->labelsize(16);
 
+    core_phone = new Fl_Box(392, 10, 24, 28, "\xE2\x98\x8E"); /* ☎ */
+    core_phone->box(FL_NO_BOX);
+    core_phone->labelsize(18);
+    core_phone->labelcolor(fl_color_average(col_green(), col_bg(), 0.35f));
+    core_phone->align(FL_ALIGN_CENTER | FL_ALIGN_INSIDE);
+    core_phone->tooltip("core.liveencode.com — grey offline, yellow reachable, green connected");
+
     conn_banner = new Fl_Box(12, 66, 496, 32, "");
     conn_banner->box(FL_BORDER_BOX);
     conn_banner->align(FL_ALIGN_CENTER | FL_ALIGN_INSIDE);
@@ -1635,6 +1675,8 @@ int main(int argc, char **argv)
     ptt_mode->callback(mute_opts_cb);
     Fl::add_timeout(0.05, ptt_tick);
     Fl::add_timeout(0.05, meter_tick);
+    ttns_core_reach_start();
+    update_connection_ui();
 
     status_box = new Fl_Box(12, 360, 496, 84, "");
     status_box->box(FL_BORDER_BOX);

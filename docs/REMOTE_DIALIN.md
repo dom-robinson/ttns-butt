@@ -1,6 +1,8 @@
 # Remote dial-in co-host (TTNS Deck + TTNS Remote)
 
-Work lives on branch **`feature/remote-dial-in`**. The current DJ release is preserved.
+Work lives on branch **`feature/remote-dial-in`**. Current crew test version: **`0.1.16-ttns-remote-dev.2`**.
+
+End-user walkthrough: [`USER_GUIDE.md`](./USER_GUIDE.md).
 
 ## How to get back to the current release
 
@@ -78,3 +80,4 @@ Press **T** on a Deck remote row for a local 440 Hz test tone (no network).
 | Protocol / discovery | `ttns_remote_proto.h`, `ttns_remote_net.cpp` |
 | Deck host session | `ttns_remote_session.cpp` |
 | Remote app | `ttns_remote_app.cpp` |
+| WAN relay | `ttns_remote_wan.cpp` |

@@ -30,6 +30,11 @@ cp "$ROOT/data/ttns-zones.json" "$APP/Contents/Resources/data/"
 cp "$ROOT/assets/ttns-logo.png" "$APP/Contents/Resources/assets/"
 [ -f "$ROOT/assets/ttns-deck.icns" ] && cp "$ROOT/assets/ttns-deck.icns" "$APP/Contents/Resources/"
 
+cp "$ROOT/docs/TTNS_DJ_GUIDE.md" "$APP/Contents/Resources/README.txt" 2>/dev/null || true
+[ -f "$ROOT/docs/USER_GUIDE.md" ] && cp "$ROOT/docs/USER_GUIDE.md" "$APP/Contents/Resources/" || true
+[ -f "$ROOT/docs/REMOTE_DIALIN.md" ] && cp "$ROOT/docs/REMOTE_DIALIN.md" "$APP/Contents/Resources/" || true
+[ -f "$ROOT/docs/REMOTE_WAN.md" ] && cp "$ROOT/docs/REMOTE_WAN.md" "$APP/Contents/Resources/" || true
+
 cat > "$APP/Contents/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -48,7 +53,7 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.16-ttns-pre.7</string>
+    <string>0.1.16-ttns-remote-dev.2</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>

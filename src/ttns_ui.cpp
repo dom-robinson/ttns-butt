@@ -20,12 +20,14 @@
 #include <FL/Fl_Value_Input.H>
 #include <FL/Fl_Window.H>
 #include <FL/fl_ask.H>
+#include <FL/fl_draw.H>
 
 #include "FL/Fl_My_Double_Window.H"
 #include "FL/Fl_My_Native_File_Chooser.H"
 #include "FL/Fl_My_Value_Slider.H"
 #include "FL/Fl_Ttns_Mic_Button.H"
 #include "FL/Fl_Ttns_Check_Button.H"
+#include "FL/Fl_Ttns_Border_Button.H"
 #include "FL/Fl_Ttns_Cart_Button.H"
 #include "FL/Fl_Ttns_Fader.H"
 #include "cart_player.h"
@@ -38,6 +40,7 @@
 #include "ttns_audio.h"
 #include "ttns_remote.h"
 #include "ttns_remote_session.h"
+#include "ttns_remote_wan.h"
 #include "ttns_zones.h"
 #include "util.h"
 #include "ttns_about.h"
@@ -83,9 +86,9 @@ static Fl_Ttns_Check_Button *ttns_chk_remote_mute[TTNS_REMOTE_SLOTS];
 static Fl_Box *ttns_remote_status[TTNS_REMOTE_SLOTS];
 static Fl_Ttns_Check_Button *ttns_chk_remote_accept = NULL;
 static Fl_Box *ttns_remote_room_lbl = NULL;
-static Fl_Button *ttns_btn_remote_newcode = NULL;
+static Fl_Ttns_Border_Button *ttns_btn_remote_newcode = NULL;
 static Fl_Button *ttns_btn_remote_test[TTNS_REMOTE_SLOTS];
-static Fl_Button *ttns_btn_remote_toggle = NULL;
+static Fl_Ttns_Border_Button *ttns_btn_remote_toggle = NULL;
 static int ttns_remote_expanded = 0;
 
 static Fl_My_Double_Window *ttns_cart_setup_win = NULL;
@@ -620,6 +623,45 @@ static int ttns_remote_any_live(void)
  * hide/show the channel rows, move info_output, resize the window.
  * Never move the deck/LCD group (that caused the mixer overlap).
  */
+static const int TTNS_INFO_PANEL_H = 184;
+
+static Fl_Box *ttns_core_phone = NULL;
+
+static void ttns_remote_place_header(int y, int win_w)
+{
+    const int newcode_w = 78;
+    const int newcode_x = win_w - 8 - newcode_w;
+    const int code_gap = 2;
+    const int phone_w = 22;
+    int code_w = 96;
+    int code_x;
+    const char *code_txt;
+    int accept_x = 100;
+
+    if (ttns_btn_remote_toggle)
+        ttns_btn_remote_toggle->resize(8, y, 88, 24);
+    if (ttns_chk_remote_accept)
+        ttns_chk_remote_accept->resize(accept_x, y, 72, 24);
+    if (ttns_core_phone)
+        ttns_core_phone->resize(accept_x + 74, y + 2, phone_w, 20);
+    if (ttns_btn_remote_newcode)
+        ttns_btn_remote_newcode->resize(newcode_x, y, newcode_w, 24);
+    if (ttns_remote_room_lbl)
+    {
+        code_txt = ttns_remote_room_lbl->label();
+        if (code_txt && *code_txt)
+        {
+            fl_font(ttns_remote_room_lbl->labelfont(), ttns_remote_room_lbl->labelsize());
+            code_w = (int)fl_width(code_txt) + 4;
+            if (code_w < 72)
+                code_w = 72;
+        }
+        code_x = newcode_x - code_gap - code_w;
+        ttns_remote_room_lbl->resize(code_x, y, code_w, 24);
+        ttns_remote_room_lbl->align(FL_ALIGN_RIGHT | FL_ALIGN_INSIDE);
+    }
+}
+
 static void ttns_remote_relayout(void)
 {
     Fl_Widget *deck;
@@ -636,6 +678,7 @@ static void ttns_remote_relayout(void)
     int fad_x;
     int fad_w;
     int row_y;
+    int info_h;
 
     if (!fl_g || !fl_g->window_main || !fl_g->lcd || !ttns_btn_remote_toggle)
         return;
@@ -646,19 +689,24 @@ static void ttns_remote_relayout(void)
         return;
 
     win_w = win->w();
+    info_h = TTNS_INFO_PANEL_H;
+    if (fl_g->info_output && fl_g->info_output->h() > 40)
+        info_h = fl_g->info_output->h();
+
+    /*
+     * Pin deck geometry first (window resize reflows children and would
+     * shove Play under the VU). Then park Remotes under the stable deck.
+     */
+    win->resizable(NULL);
+    win->size_range(TTNS_WIN_W, 50, TTNS_WIN_W);
+    ttns_layout_feedback_panel();
+
     y = deck->y() + deck->h() + 6;
-
-    ttns_btn_remote_toggle->resize(8, y, 88, 22);
-    if (ttns_chk_remote_accept)
-        ttns_chk_remote_accept->resize(100, y, 72, 22);
-    if (ttns_remote_room_lbl)
-        ttns_remote_room_lbl->resize(178, y, 140, 22);
-    if (ttns_btn_remote_newcode)
-        ttns_btn_remote_newcode->resize(win_w - 78, y, 70, 22);
-
     body_h = TTNS_REMOTE_HDR_H;
     if (ttns_remote_expanded)
         body_h += TTNS_REMOTE_ROWS_H;
+
+    ttns_remote_place_header(y, win_w);
 
     fad_x = 8 + mute_w + 4;
     fad_w = win_w - fad_x - status_w - test_w - 14;
@@ -695,24 +743,54 @@ static void ttns_remote_relayout(void)
     remotes_bottom = y + body_h;
 
     if (fl_g->info_output)
-        fl_g->info_output->resize(0, remotes_bottom + 4, win_w, fl_g->info_output->h());
-
-    /* Same rule as More: collapsed height ends just under remotes. */
-    ttns_set_window_collapsed_height(remotes_bottom + 8);
+        fl_g->info_output->resize(0, remotes_bottom + 4, win_w, info_h);
 
     if (fl_g->info_visible && fl_g->info_output && fl_g->info_output->visible())
-        h = fl_g->info_output->y() + fl_g->info_output->h();
+        h = remotes_bottom + 4 + info_h;
     else
         h = remotes_bottom + 8;
 
-    win->resizable(NULL);
-    win->size_range(TTNS_WIN_W, 50, TTNS_WIN_W);
+    ttns_set_window_collapsed_height(remotes_bottom + 8);
+
     win->resize(win->x(), win->y(), TTNS_WIN_W, h);
+    /* Re-pin deck once more — the resize above can nudge children. */
+    ttns_layout_feedback_panel();
+    y = deck->y() + deck->h() + 6;
+    ttns_remote_place_header(y, win_w);
+    for (i = 0; i < TTNS_REMOTE_SLOTS; i++)
+    {
+        row_y = y + TTNS_REMOTE_HDR_H + i * TTNS_REMOTE_ROW_H;
+        if (ttns_chk_remote_mute[i])
+            ttns_chk_remote_mute[i]->resize(8, row_y, mute_w, 22);
+        if (ttns_slider_remote[i])
+            ttns_slider_remote[i]->resize(fad_x, row_y, fad_w, TTNS_FADER_H);
+        if (ttns_btn_remote_test[i])
+            ttns_btn_remote_test[i]->resize(fad_x + fad_w + 2, row_y, test_w, 22);
+        if (ttns_remote_status[i])
+            ttns_remote_status[i]->resize(fad_x + fad_w + test_w + 4, row_y, status_w, 22);
+    }
+    remotes_bottom = y + body_h;
+    if (fl_g->info_output)
+        fl_g->info_output->resize(0, remotes_bottom + 4, win_w, info_h);
+    ttns_set_window_collapsed_height(remotes_bottom + 8);
+
+    if (fl_g->info_visible && fl_g->info_output && fl_g->info_output->visible())
+        h = remotes_bottom + 4 + info_h;
+    else
+        h = remotes_bottom + 8;
+    if (win->h() != h)
+        win->resize(win->x(), win->y(), TTNS_WIN_W, h);
+
     win->init_sizes();
     if (fl_g->info_output)
         win->resizable(fl_g->info_output);
     win->size_range(TTNS_WIN_W, 50, TTNS_WIN_W);
     win->redraw();
+}
+
+void ttns_ui_relayout_shell(void)
+{
+    ttns_remote_relayout();
 }
 
 static void ttns_remote_set_expanded(int want)
@@ -1313,6 +1391,23 @@ void ttns_ui_timer_tick(void)
         ttns_duck_led->redraw();
     }
 
+    if (ttns_core_phone)
+    {
+        Fl_Color phone_col;
+
+        if (ttns_remote_any_live())
+            phone_col = ttns_col_green();
+        else if (ttns_core_reach_get())
+            phone_col = ttns_col_yellow();
+        else
+            phone_col = fl_color_average(ttns_col_fg(), ttns_col_bg(), 0.35f);
+        if (ttns_core_phone->labelcolor() != phone_col)
+        {
+            ttns_core_phone->labelcolor(phone_col);
+            ttns_core_phone->redraw();
+        }
+    }
+
     for (i = 0; i < TTNS_CART_SLOTS; i++)
     {
         Fl_Color bg;
@@ -1569,21 +1664,22 @@ void ttns_ui_init(flgui *g)
     ttns_btn_mic = new Fl_Ttns_Mic_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y,
                                           TTNS_MIC_BTN_W, TTNS_MIC_BTN_H);
     ttns_btn_mic->labelsize(9);
-    ttns_btn_mic->tooltip("Mic on/off air — when off, mic is muted from stream and monitor (Space)");
+    ttns_btn_mic->tooltip("Mic on/off air — muted when pressed (red X). Space toggles.");
     ttns_btn_mic->callback(ttns_mic_mute_cb);
     ttns_btn_mic->shortcut(0);
 
-    ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 2,
-                                                     TTNS_MIC_BTN_W + 4, 16, "Mic mon");
+    /* Space under mic button; keep both above the cart row, with a clear gap between. */
+    ttns_chk_monitor_mute = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 4,
+                                                     TTNS_MIC_BTN_W + 4, 14, "Mic mon");
     ttns_chk_monitor_mute->labelsize(9);
     ttns_style_check(ttns_chk_monitor_mute);
-    ttns_chk_monitor_mute->indicator(TTNS_CHECK_AFFIRM);
+    ttns_chk_monitor_mute->indicator(TTNS_CHECK_ONOFF);
     ttns_chk_monitor_mute->tooltip("When checked: hear the local Mic in headphones.\n"
-                                    "Does not mute the mic on the stream — use LIVE/MUTED for that.");
+                                    "Does not mute the mic on the stream — use the mic button for that.");
     ttns_chk_monitor_mute->callback(ttns_monitor_cb);
 
-    ttns_chk_monitor_master = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 18,
-                                                       TTNS_MIC_BTN_W + 4, 16, "Mon mute");
+    ttns_chk_monitor_master = new Fl_Ttns_Check_Button(TTNS_MIC_BTN_X, TTNS_MIC_BTN_Y + TTNS_MIC_BTN_H + 22,
+                                                       TTNS_MIC_BTN_W + 4, 14, "Mon mute");
     ttns_chk_monitor_master->labelsize(9);
     ttns_style_check(ttns_chk_monitor_master);
     ttns_chk_monitor_master->indicator(TTNS_CHECK_NEGATE);
@@ -1675,30 +1771,36 @@ void ttns_ui_init(flgui *g)
          * Create off to the side; ttns_remote_relayout() parks them under the
          * LCD after the deck geometry is known (More-panel style).
          */
-        ttns_btn_remote_toggle = new Fl_Button(8, 0, 88, 22, "Remotes@>");
-        ttns_btn_remote_toggle->labelsize(12);
+        ttns_btn_remote_toggle = new Fl_Ttns_Border_Button(8, 0, 88, 24, "Remotes@>");
+        ttns_btn_remote_toggle->labelsize(11);
         ttns_btn_remote_toggle->labelfont(FL_BOLD);
-        ttns_btn_remote_toggle->box(FL_NO_BOX);
-        ttns_theme_style_butt_button(ttns_btn_remote_toggle, 0);
         ttns_btn_remote_toggle->tooltip("Show or hide remote co-host channels");
         ttns_btn_remote_toggle->callback(ttns_remote_toggle_cb);
 
-        ttns_chk_remote_accept = new Fl_Ttns_Check_Button(100, 0, 72, 22, "Accept");
+        ttns_chk_remote_accept = new Fl_Ttns_Check_Button(100, 0, 72, 24, "Accept");
         ttns_style_check(ttns_chk_remote_accept);
         ttns_chk_remote_accept->indicator(TTNS_CHECK_AFFIRM);
         ttns_chk_remote_accept->tooltip("Allow up to 4 remote co-hosts to join with the room code");
         ttns_chk_remote_accept->callback(ttns_remote_accept_cb);
 
-        ttns_remote_room_lbl = new Fl_Box(178, 0, 140, 22, "Code ------");
+        /* Telephone LED: grey=core unreachable, yellow=reachable, green=remote live. */
+        ttns_core_phone = new Fl_Box(174, 2, 22, 20, "\xE2\x98\x8E"); /* ☎ */
+        ttns_core_phone->box(FL_NO_BOX);
+        ttns_core_phone->labelsize(16);
+        ttns_core_phone->labelfont(FL_HELVETICA);
+        ttns_core_phone->labelcolor(ttns_col_dark());
+        ttns_core_phone->tooltip("core.liveencode.com — grey offline, yellow reachable, green remotes active");
+        ttns_core_phone->align(FL_ALIGN_CENTER | FL_ALIGN_INSIDE);
+
+        ttns_remote_room_lbl = new Fl_Box(178, 0, 140, 24, "Code ------");
         ttns_remote_room_lbl->labelsize(11);
         ttns_remote_room_lbl->labelfont(FL_BOLD);
         ttns_remote_room_lbl->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
         ttns_remote_room_lbl->box(FL_NO_BOX);
         ttns_theme_style_label_box(ttns_remote_room_lbl);
 
-        ttns_btn_remote_newcode = new Fl_Button(win_w - 78, 0, 70, 22, "New code");
+        ttns_btn_remote_newcode = new Fl_Ttns_Border_Button(win_w - 86, 0, 78, 24, "New code");
         ttns_btn_remote_newcode->labelsize(10);
-        ttns_theme_style_butt_button(ttns_btn_remote_newcode, 0);
         ttns_btn_remote_newcode->callback(ttns_remote_newcode_cb);
         ttns_btn_remote_newcode->tooltip("Generate a new room code (invalidates the previous one)");
 
@@ -1765,6 +1867,7 @@ void ttns_ui_init(flgui *g)
     ttns_layout_feedback_panel();
     ttns_raise_duck_led(g);
     /* Park Remotes under the LCD, then clip like More. */
+    ttns_core_reach_start();
     ttns_remote_relayout();
     info_panel_collapse();
     ttns_remote_sync_expand();

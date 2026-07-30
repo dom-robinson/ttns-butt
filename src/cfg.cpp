@@ -156,10 +156,12 @@ int cfg_write_file(char *path)
             "[gui]\n"
             "attach = %d\n"
             "ontop = %d\n"
-            "lcd_auto = %d\n\n",
+            "lcd_auto = %d\n"
+            "ui_scale = %d\n\n",
             cfg.gui.attach,
             cfg.gui.ontop,
-            cfg.gui.lcd_auto
+            cfg.gui.lcd_auto,
+            cfg.gui.ui_scale
            );
 
     fprintf(cfg_fd,
@@ -368,7 +370,7 @@ int cfg_set_values(char *path)
         cfg.audio.codec = (char*)realloc((char*)cfg.audio.codec, 5*sizeof(char));
         
     if(cfg.audio.buffer_ms == -1)
-        cfg.audio.buffer_ms = 100;
+        cfg.audio.buffer_ms = 50;
 
     if(cfg.audio.aac_overwrite_aot == -1)
         cfg.audio.aac_overwrite_aot = 0;
@@ -611,6 +613,10 @@ int cfg_set_values(char *path)
     if(cfg.gui.lcd_auto == -1)
         cfg.gui.lcd_auto = 0;
 
+    cfg.gui.ui_scale = cfg_get_int("gui", "ui_scale");
+    if (cfg.gui.ui_scale != 110 && cfg.gui.ui_scale != 125)
+        cfg.gui.ui_scale = 100;
+
     cfg.ttns.line_dev_num = cfg_get_int("ttns", "line_device");
     cfg.ttns.mic_dev_num = cfg_get_int("ttns", "mic_device");
     cfg.ttns.mic_gain = cfg_get_float("ttns", "mic_gain");
@@ -822,7 +828,7 @@ int cfg_create_default(void)
             "resample_mode = 0\n" //SRC_SINC_BEST_QUALITY
             "aac_aot = 5\n" // aac+ v1
             "aac_overwrite_aot = 0\n"
-            "buffer_ms = 100\n\n"
+            "buffer_ms = 50\n\n"
            );
 
     fprintf(cfg_fd,
@@ -842,7 +848,8 @@ int cfg_create_default(void)
             "[gui]\n"
             "attach = 0\n"
             "ontop = 0\n"
-            "lcd_auto = 0\n\n"
+            "lcd_auto = 0\n"
+            "ui_scale = 100\n\n"
             );
 
     fprintf(cfg_fd,

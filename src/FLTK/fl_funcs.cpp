@@ -202,6 +202,15 @@ void fill_cfg_widgets(void)
         fl_g->window_cfg->stay_on_top(1);
     }
     fl_g->check_gui_lcd_auto->value(cfg.gui.lcd_auto);
+    if (fl_g->choice_gui_ui_scale)
+    {
+        if (cfg.gui.ui_scale == 110)
+            fl_g->choice_gui_ui_scale->value(1);
+        else if (cfg.gui.ui_scale == 125)
+            fl_g->choice_gui_ui_scale->value(2);
+        else
+            fl_g->choice_gui_ui_scale->value(0);
+    }
 }
 
 //Updates the samplerate drop down menu for the audio
