@@ -1,6 +1,6 @@
 # TTNS Deck — tester feedback guide
 
-**Build:** `0.1.16-ttns-remote-dev.3` (crew test — Deck + Remote)
+**Build:** `0.1.16-ttns-remote-dev.4` (crew test — Deck + Remote)
 
 Thank you for testing. Please report issues with the **session log file** attached (see below).
 

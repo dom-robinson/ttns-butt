@@ -4,7 +4,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VER="0.1.16-ttns-remote-dev.3"
+VER="0.1.16-ttns-remote-dev.4"
 OUT="$ROOT/dist/dj-testers"
 PREFIX="TTNS-Deck-${VER}"
 REMOTE_PREFIX="TTNS-Remote-${VER}"

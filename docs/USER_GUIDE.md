@@ -1,6 +1,6 @@
 # TTNS Deck & TTNS Remote — User Guide
 
-**Build:** `0.1.16-ttns-remote-dev.3` (crew test build on branch `feature/remote-dial-in`)
+**Build:** `0.1.16-ttns-remote-dev.4` (crew test build on branch `feature/remote-dial-in`)
 
 This guide covers day-to-day use of **TTNS Deck** (the mixer / streamer) and **TTNS Remote** (the co-host dial-in app). Drop screenshots into `docs/images/user-guide/` using the filenames noted under each section.
 
@@ -305,6 +305,7 @@ Do **not** post logs or zips publicly (mount names / credentials).
 | Problem | What to try |
 |---------|-------------|
 | macOS “could not verify” / Move to Bin | **Done**, then Privacy & Security → **Open Anyway**, or `xattr -cr` the `.app` — see [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md) |
+| macOS “cannot be opened because of a problem” | Use **dev.4+** packages (dylibs bundled). Confirm arm64 vs Intel zip matches the Mac. |
 | Windows missing DLL | Unzip the **full** zip; run the `.bat` — do not copy only the `.exe` |
 | No ducking | Line and Mic must be different devices |
 | Remotes can’t find Deck on LAN | Same Wi‑Fi? Accept ticked? Try WAN (internet) path; check phone LED |

@@ -3,6 +3,17 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote-dev.4] — Bundle Homebrew dylibs into macOS apps (dev)
+
+**Branch:** `feature/remote-dial-in`
+
+### Fixed
+
+- macOS Deck/Remote now **embed Frameworks** (portaudio, fltk, curl, …) so they launch on machines without Homebrew
+- Ad-hoc codesign in a clean temp tree (Desktop `com.apple.provenance` was breaking signing)
+
+---
+
 ## [0.1.16-ttns-remote-dev.3] — macOS Remote.app + Gatekeeper notes (dev)
 
 **Branch:** `feature/remote-dial-in`

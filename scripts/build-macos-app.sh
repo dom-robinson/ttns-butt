@@ -5,7 +5,7 @@ set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/dist/macos/TTNS Deck.app"
 REMOTE_APP="$ROOT/dist/macos/TTNS Remote.app"
-VER="0.1.16-ttns-remote-dev.3"
+VER="0.1.16-ttns-remote-dev.4"
 
 cd "$ROOT"
 "$ROOT/scripts/generate-icons.sh" 2>/dev/null || true
@@ -38,7 +38,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>ttns-deck</string>
+    <string>ttns-deck-bin</string>
     <key>CFBundleIconFile</key>
     <string>ttns-deck</string>
     <key>CFBundleIdentifier</key>
@@ -63,16 +63,12 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-cat > "$APP/Contents/MacOS/ttns-deck" <<'LAUNCHER'
-#!/bin/sh
-DIR="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$DIR/Resources" || exit 1
-exec "$DIR/MacOS/ttns-deck-bin" "$@"
-LAUNCHER
-chmod +x "$APP/Contents/MacOS/ttns-deck" "$APP/Contents/MacOS/ttns-deck-bin"
+chmod +x "$APP/Contents/MacOS/ttns-deck-bin"
 
-# Ad-hoc sign helps some Gatekeeper paths; downloaded zips still need quarantine clear.
-codesign --force --deep --sign - "$APP" 2>/dev/null || true
+# Bundle Homebrew dylibs so the app runs on machines without brew.
+python3 "$ROOT/scripts/macos-bundle-dylibs.py" "$APP" "Contents/MacOS/ttns-deck-bin"
+chmod +x "$ROOT/scripts/macos-codesign-app.sh"
+"$ROOT/scripts/macos-codesign-app.sh" "$APP"
 
 ARCH="$(uname -m)"
 OUT="$ROOT/dist/macos/ttns-deck-${ARCH}-macos.zip"
@@ -98,7 +94,7 @@ if [ -x "$ROOT/src/ttns_remote" ]; then
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>ttns-remote</string>
+    <string>ttns-remote-bin</string>
     <key>CFBundleIconFile</key>
     <string>ttns-deck</string>
     <key>CFBundleIdentifier</key>
@@ -123,20 +119,15 @@ if [ -x "$ROOT/src/ttns_remote" ]; then
 </plist>
 EOF
 
-    cat > "$REMOTE_APP/Contents/MacOS/ttns-remote" <<'RLAUNCHER'
-#!/bin/sh
-DIR="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$DIR/Resources" || exit 1
-exec "$DIR/MacOS/ttns-remote-bin" "$@"
-RLAUNCHER
-    chmod +x "$REMOTE_APP/Contents/MacOS/ttns-remote" "$REMOTE_APP/Contents/MacOS/ttns-remote-bin"
+    chmod +x "$REMOTE_APP/Contents/MacOS/ttns-remote-bin"
 
     # Keep a CLI copy for developers; crew should use the .app
     cp "$ROOT/src/ttns_remote" "$ROOT/dist/macos/ttns-remote"
     mkdir -p "$ROOT/dist/macos/assets"
     cp "$ROOT/assets/ttns-logo.png" "$ROOT/dist/macos/assets/"
 
-    codesign --force --deep --sign - "$REMOTE_APP" 2>/dev/null || true
+    python3 "$ROOT/scripts/macos-bundle-dylibs.py" "$REMOTE_APP" "Contents/MacOS/ttns-remote-bin"
+    "$ROOT/scripts/macos-codesign-app.sh" "$REMOTE_APP"
 
     REMOTE_ZIP="$ROOT/dist/macos/ttns-remote-${ARCH}-macos.zip"
     rm -f "$REMOTE_ZIP"
