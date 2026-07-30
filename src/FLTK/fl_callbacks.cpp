@@ -2937,10 +2937,12 @@ static float ttns_ui_scale_base = 0.0f;
 
 void ttns_apply_ui_scale(void)
 {
+#if (FL_MAJOR_VERSION > 1) || (FL_MAJOR_VERSION == 1 && FL_MINOR_VERSION >= 4)
     int i;
     int n;
     float mult;
 
+    /* FLTK 1.4+ only — Linux CI still uses FLTK 1.3 */
     if (!Fl::screen_scaling_supported())
         return;
 
@@ -2959,6 +2961,9 @@ void ttns_apply_ui_scale(void)
     n = Fl::screen_count();
     for (i = 0; i < n; i++)
         Fl::screen_scale(i, ttns_ui_scale_base * mult);
+#else
+    (void)ttns_ui_scale_base;
+#endif
 }
 
 void choice_gui_ui_scale_cb(void)
