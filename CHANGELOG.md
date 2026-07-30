@@ -3,6 +3,18 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote-dev.3] — macOS Remote.app + Gatekeeper notes (dev)
+
+**Branch:** `feature/remote-dial-in`
+
+### Changed
+
+- **TTNS Remote** ships as **TTNS Remote.app** (not a bare Terminal binary)
+- Docs: [`docs/MACOS_GATEKEEPER.md`](docs/MACOS_GATEKEEPER.md) for Sequoia “could not verify” / Open Anyway
+- Helper: `scripts/macos-clear-quarantine.sh`
+
+---
+
 ## [0.1.16-ttns-remote-dev.2] — Crew test UI + packaging (dev)
 
 **Branch:** `feature/remote-dial-in` (does not replace `v0.1.16-ttns-pre.7`)

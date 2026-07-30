@@ -1,6 +1,6 @@
 # TTNS Deck & TTNS Remote — User Guide
 
-**Build:** `0.1.16-ttns-remote-dev.2` (crew test build on branch `feature/remote-dial-in`)
+**Build:** `0.1.16-ttns-remote-dev.3` (crew test build on branch `feature/remote-dial-in`)
 
 This guide covers day-to-day use of **TTNS Deck** (the mixer / streamer) and **TTNS Remote** (the co-host dial-in app). Drop screenshots into `docs/images/user-guide/` using the filenames noted under each section.
 
@@ -40,18 +40,29 @@ Same Wi‑Fi/LAN is ideal for remotes. Over the internet, Deck and Remote use th
 
 | Platform | Package | How to run |
 |----------|---------|------------|
-| **macOS Apple Silicon** | `TTNS-Deck-…-macos-arm64.zip` | Unzip → open **TTNS Deck.app** (right-click → **Open** if Gatekeeper blocks) |
+| **macOS Apple Silicon** | `TTNS-Deck-…-macos-arm64.zip` | Unzip → open **TTNS Deck.app** |
 | **macOS Intel** | `TTNS-Deck-…-macos-x64.zip` | Same |
 | **Linux x86_64** | `TTNS-Deck-…-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
 | **Windows 10+** | `TTNS-Deck-…-windows-x64.zip` | Unzip fully → **Run TTNS Deck.bat** |
 
-**TTNS Remote** is included in the same packages:
+**TTNS Remote** (co-hosts):
 
-| Platform | Remote binary |
-|----------|---------------|
-| macOS | Inside the app bundle, and/or `ttns-remote` / `TTNS-Remote-…-macos-*.zip` in the handoff folder |
+| Platform | How to run |
+|----------|------------|
+| macOS | Unzip `TTNS-Remote-…-macos-*.zip` → open **TTNS Remote.app** |
 | Linux | `./ttns-deck-linux-*/run-ttns-remote.sh` |
 | Windows | `bin\ttns-remote.exe` (same unzip folder as Deck) |
+
+### macOS: “Apple could not verify…” / Move to Bin
+
+Builds are unsigned. Click **Done** (do not Move to Bin), then **System Settings → Privacy & Security → Open Anyway**, or run:
+
+```bash
+xattr -cr /path/to/TTNS\ Deck.app
+xattr -cr /path/to/TTNS\ Remote.app
+```
+
+Full steps: [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
 
 <!-- Screenshot: Finder/Explorer showing unzipped package -->
 ![Install package contents](images/user-guide/01-install-package.png)
@@ -201,11 +212,13 @@ Co-hosts run **TTNS Remote**, not the full Deck.
 
 ### Launch
 
-| Platform | Command / app |
+| Platform | App / command |
 |----------|----------------|
-| macOS | Run `ttns-remote` from the handoff zip, or the copy inside `TTNS Deck.app/Contents/MacOS/` |
+| macOS | **TTNS Remote.app** (from the Remote zip — double-click like any Mac app) |
 | Linux | `./run-ttns-remote.sh` from the unpacked linux folder |
 | Windows | `bin\ttns-remote.exe` |
+
+On macOS, do **not** look for a Terminal-only `ttns-remote` binary for crew testing — use the `.app`. If Gatekeeper blocks it, see [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
 
 ### Connect flow
 
@@ -291,7 +304,7 @@ Do **not** post logs or zips publicly (mount names / credentials).
 
 | Problem | What to try |
 |---------|-------------|
-| macOS “unidentified developer” | Right-click app → **Open** |
+| macOS “could not verify” / Move to Bin | **Done**, then Privacy & Security → **Open Anyway**, or `xattr -cr` the `.app` — see [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md) |
 | Windows missing DLL | Unzip the **full** zip; run the `.bat` — do not copy only the `.exe` |
 | No ducking | Line and Mic must be different devices |
 | Remotes can’t find Deck on LAN | Same Wi‑Fi? Accept ticked? Try WAN (internet) path; check phone LED |

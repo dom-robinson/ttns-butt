@@ -4,7 +4,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VER="0.1.16-ttns-remote-dev.2"
+VER="0.1.16-ttns-remote-dev.3"
 OUT="$ROOT/dist/dj-testers"
 PREFIX="TTNS-Deck-${VER}"
 REMOTE_PREFIX="TTNS-Remote-${VER}"
@@ -48,25 +48,32 @@ done
 
 cp "$ROOT/docs/TESTER_FEEDBACK.md" "$OUT/README-TESTERS.txt"
 [ -f "$ROOT/docs/USER_GUIDE.md" ] && cp "$ROOT/docs/USER_GUIDE.md" "$OUT/USER_GUIDE.md"
+[ -f "$ROOT/docs/MACOS_GATEKEEPER.md" ] && cp "$ROOT/docs/MACOS_GATEKEEPER.md" "$OUT/MACOS_GATEKEEPER.md"
+cp "$ROOT/scripts/macos-clear-quarantine.sh" "$OUT/macos-clear-quarantine.sh"
+chmod +x "$OUT/macos-clear-quarantine.sh"
 
 cat > "$OUT/WHATS-IN-HERE.txt" <<EOF
 TTNS Deck + Remote crew test build: ${VER}
 
 Send each person the zip/tar.gz for their platform:
 
-  ${PREFIX}-macos-arm64.zip     Apple Silicon Mac (Deck.app; includes ttns-remote in bundle)
-  ${PREFIX}-macos-x64.zip       Intel Mac
+  ${PREFIX}-macos-arm64.zip     Apple Silicon — TTNS Deck.app
+  ${PREFIX}-macos-x64.zip       Intel Mac — TTNS Deck.app
   ${PREFIX}-linux-x64.tar.gz    Linux x86_64 (run-ttns-deck.sh / run-ttns-remote.sh)
   ${PREFIX}-windows-x64.zip     Windows 10+ (Run TTNS Deck.bat; bin/ttns-remote.exe)
 
-Optional standalone Remote (macOS), if present:
+macOS co-hosts (standalone Remote.app):
 
-  ${REMOTE_PREFIX}-macos-arm64.zip
-  ${REMOTE_PREFIX}-macos-x64.zip
+  ${REMOTE_PREFIX}-macos-arm64.zip   → TTNS Remote.app
+  ${REMOTE_PREFIX}-macos-x64.zip     → TTNS Remote.app
+
+macOS Gatekeeper: if “Apple could not verify…” / Move to Bin, see MACOS_GATEKEEPER.md
+  (Done → Privacy & Security → Open Anyway, or run macos-clear-quarantine.sh on the .app)
 
 Docs in this folder:
-  README-TESTERS.txt   short tester notes + log paths
-  USER_GUIDE.md        full Deck + Remote guide (add screenshots later)
+  README-TESTERS.txt
+  USER_GUIDE.md
+  MACOS_GATEKEEPER.md
 
 Each package includes legal/ (GPL + third-party license texts).
 

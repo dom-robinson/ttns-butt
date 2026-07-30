@@ -5,7 +5,7 @@ TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and
 | | |
 |---|---|
 | **Product name** | TTNS Deck |
-| **Version** | `0.1.16-ttns-remote-dev.2` (remote dial-in **dev** on `feature/remote-dial-in`) |
+| **Version** | `0.1.16-ttns-remote-dev.3` (remote dial-in **dev** on `feature/remote-dial-in`) |
 | **Upstream** | butt 0.1.16 |
 | **Repository** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
 | **User guide** | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) (Deck + Remote) |
