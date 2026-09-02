@@ -3,7 +3,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+VER="$(tr -d '[:space:]' < "$ROOT/packaging/VERSION")"
 ISS="$ROOT/packaging/windows/ttns-deck.iss"
 STAGE="$ROOT/dist/windows/ttns-deck-win64"
 

@@ -8,7 +8,7 @@ MIN="${MACOSX_DEPLOYMENT_TARGET:-12.0}"
 ARCH="$(uname -m)"
 PREFIX="${TTNS_DEP_PREFIX:-$ROOT/deps/macos${MIN%%.*}-$ARCH}"
 SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
-VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+VER="$(tr -d '[:space:]' < "$ROOT/packaging/VERSION")"
 JOBS="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
 if [ "$ARCH" != "arm64" ]; then

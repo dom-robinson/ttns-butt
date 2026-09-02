@@ -101,7 +101,7 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup -y --no-progress
-          $ver = (Get-Content VERSION -Raw).Trim()
+          $ver = (Get-Content packaging/VERSION -Raw).Trim()
           $pf86 = [Environment]::GetFolderPath('ProgramFilesX86')
           $iscc = Join-Path $pf86 "Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) {

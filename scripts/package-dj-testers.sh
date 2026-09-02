@@ -4,7 +4,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+VER="$(tr -d '[:space:]' < "$ROOT/packaging/VERSION")"
 OUT="$ROOT/dist/dj-testers"
 PREFIX="TTNS-Deck-${VER}"
 REMOTE_PREFIX="TTNS-Remote-${VER}"

@@ -2,6 +2,8 @@
 
 **Current tag:** `v0.1.16-ttns-remote.1` (on `master`) — Deck + Remote, VB-Cable idle fix, one-click Mac/Windows packages.
 
+Packaging version is `packaging/VERSION` (kept out of the source root so it does not collide with C++ `<version>` on macOS). Keep it in sync with `configure.ac` `AC_INIT`.
+
 Older mixer-only freeze: `v0.1.16-ttns-pre.7` on `ttns-mixer`.
 
 Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned separately.

@@ -5,7 +5,7 @@ set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/dist/macos/TTNS Deck.app"
 REMOTE_APP="$ROOT/dist/macos/TTNS Remote.app"
-VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+VER="$(tr -d '[:space:]' < "$ROOT/packaging/VERSION")"
 ARCH="$(uname -m)"
 MIN_OS="${TTNS_MACOS_MIN_OS:-11.0}"
 DECK_ZIP_STEM="${TTNS_DECK_ZIP_STEM:-ttns-deck-${ARCH}-macos}"
