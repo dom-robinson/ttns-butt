@@ -14,6 +14,7 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 
@@ -38,6 +39,98 @@ config_t cfg;
 char *cfg_path;
 bool unsaved_changes;
 
+static void ttns_cfg_set_name(char **slot, const char *name)
+{
+    free(*slot);
+    *slot = (name && name[0]) ? strdup(name) : NULL;
+}
+
+static int ttns_cfg_find_named(snd_dev_t **list, int count, const char *name)
+{
+    int i;
+
+    if (!list || !name || !name[0] || count <= 0)
+        return -1;
+
+    for (i = 0; i < count; i++)
+    {
+        if (list[i] && list[i]->name && strcmp(list[i]->name, name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+void cfg_capture_audio_device_names(void)
+{
+    int n;
+
+    n = cfg.ttns.line_dev_num;
+    if (n >= 0 && n < cfg.audio.dev_count && cfg.audio.pcm_list)
+        ttns_cfg_set_name(&cfg.ttns.line_dev_name, cfg.audio.pcm_list[n]->name);
+
+    n = cfg.ttns.mic_dev_num;
+    if (n >= 0 && n < cfg.audio.dev_count && cfg.audio.pcm_list)
+        ttns_cfg_set_name(&cfg.ttns.mic_dev_name, cfg.audio.pcm_list[n]->name);
+
+    n = cfg.ttns.monitor_out_dev_num;
+    if (n >= 0 && n < cfg.audio.out_dev_count && cfg.audio.out_pcm_list)
+        ttns_cfg_set_name(&cfg.ttns.monitor_out_name, cfg.audio.out_pcm_list[n]->name);
+}
+
+void cfg_match_audio_devices_by_name(void)
+{
+    int found;
+
+    found = ttns_cfg_find_named(cfg.audio.pcm_list, cfg.audio.dev_count,
+                                cfg.ttns.line_dev_name);
+    if (found >= 0)
+        cfg.ttns.line_dev_num = found;
+    else if (cfg.ttns.line_dev_name && cfg.ttns.line_dev_name[0]
+             && cfg.audio.dev_count > 0)
+    {
+        cfg.ttns.line_dev_num = 0;
+        print_info("Line device not found after rescan — using Default", 1);
+    }
+
+    found = ttns_cfg_find_named(cfg.audio.pcm_list, cfg.audio.dev_count,
+                                cfg.ttns.mic_dev_name);
+    if (found >= 0)
+        cfg.ttns.mic_dev_num = found;
+    else if (cfg.ttns.mic_dev_name && cfg.ttns.mic_dev_name[0]
+             && cfg.audio.dev_count > 0)
+    {
+        cfg.ttns.mic_dev_num = 0;
+        print_info("Mic device not found after rescan — using Default", 1);
+    }
+
+    found = ttns_cfg_find_named(cfg.audio.out_pcm_list, cfg.audio.out_dev_count,
+                                cfg.ttns.monitor_out_name);
+    if (found >= 0)
+        cfg.ttns.monitor_out_dev_num = found;
+    else if (cfg.ttns.monitor_out_name && cfg.ttns.monitor_out_name[0]
+             && cfg.audio.out_dev_count > 0)
+    {
+        cfg.ttns.monitor_out_dev_num = 0;
+        print_info("Monitor device not found after rescan — using Off/Default", 1);
+    }
+
+    if (cfg.ttns.line_dev_num < 0 || cfg.ttns.line_dev_num > cfg.audio.dev_count - 1)
+        cfg.ttns.line_dev_num = (cfg.audio.dev_num >= 0) ? cfg.audio.dev_num : 0;
+    if (cfg.ttns.mic_dev_num < 0 || cfg.ttns.mic_dev_num > cfg.audio.dev_count - 1)
+        cfg.ttns.mic_dev_num = cfg.ttns.line_dev_num;
+    if (cfg.ttns.monitor_out_dev_num < 0
+        || cfg.ttns.monitor_out_dev_num > cfg.audio.out_dev_count - 1)
+        cfg.ttns.monitor_out_dev_num = 0;
+
+    cfg.audio.dev_num = cfg.ttns.line_dev_num;
+}
+
+static void ttns_cfg_load_name(char **slot, const char *key)
+{
+    char *s = cfg_get_str("ttns", key);
+    ttns_cfg_set_name(slot, (s && s[0]) ? s : NULL);
+}
+
 int cfg_write_file(char *path)
 {
     int i;
@@ -45,6 +138,7 @@ int cfg_write_file(char *path)
     char info_buf[256];
 
     ttns_cfg_sync_from_ui();
+    cfg_capture_audio_device_names();
 
     if(path == NULL)
         path = cfg_path;
@@ -168,6 +262,8 @@ int cfg_write_file(char *path)
             "[ttns]\n"
             "line_device = %d\n"
             "mic_device = %d\n"
+            "line_device_name = %s\n"
+            "mic_device_name = %s\n"
             "mic_gain = %.4f\n"
             "line_gain = %.4f\n"
             "cart_gain = %.4f\n"
@@ -185,6 +281,10 @@ int cfg_write_file(char *path)
             "duck_release_ms = %d\n",
             cfg.ttns.line_dev_num,
             cfg.ttns.mic_dev_num,
+            (cfg.ttns.line_dev_name && cfg.ttns.line_dev_name[0])
+                ? cfg.ttns.line_dev_name : "",
+            (cfg.ttns.mic_dev_name && cfg.ttns.mic_dev_name[0])
+                ? cfg.ttns.mic_dev_name : "",
             cfg.ttns.mic_gain,
             cfg.ttns.line_gain,
             cfg.ttns.cart_gain,
@@ -343,6 +443,12 @@ int cfg_set_values(char *path)
     cfg.audio.buffer_ms  = cfg_get_int("audio", "buffer_ms");
     cfg.audio.aac_aot    = cfg_get_int("audio", "aac_aot");
     cfg.audio.aac_overwrite_aot = cfg_get_int("audio", "aac_overwrite_aot");
+    if (cfg.audio.pcm_list)
+        snd_free_device_list(cfg.audio.pcm_list);
+    cfg.audio.pcm_list = NULL;
+    if (cfg.audio.out_pcm_list)
+        snd_free_device_list(cfg.audio.out_pcm_list);
+    cfg.audio.out_pcm_list = NULL;
     cfg.audio.pcm_list   = snd_get_devices(&cfg.audio.dev_count);
     cfg.audio.out_pcm_list = snd_get_output_devices(&cfg.audio.out_dev_count);
 
@@ -619,6 +725,8 @@ int cfg_set_values(char *path)
 
     cfg.ttns.line_dev_num = cfg_get_int("ttns", "line_device");
     cfg.ttns.mic_dev_num = cfg_get_int("ttns", "mic_device");
+    ttns_cfg_load_name(&cfg.ttns.line_dev_name, "line_device_name");
+    ttns_cfg_load_name(&cfg.ttns.mic_dev_name, "mic_device_name");
     cfg.ttns.mic_gain = cfg_get_float("ttns", "mic_gain");
     cfg.ttns.line_gain = cfg_get_float("ttns", "line_gain");
     cfg.ttns.cart_gain = cfg_get_float("ttns", "cart_gain");
@@ -667,35 +775,8 @@ int cfg_set_values(char *path)
     if (cfg.ttns.monitor_out_dev_num > cfg.audio.out_dev_count - 1)
         cfg.ttns.monitor_out_dev_num = 0;
 
-    /* Index alone drifts when virtual devices appear/disappear. Prefer name. */
-    if (cfg.ttns.monitor_out_name && cfg.ttns.monitor_out_name[0]
-        && cfg.audio.out_pcm_list != NULL && cfg.audio.out_dev_count > 0)
-    {
-        int mi;
-        int found = -1;
-
-        for (mi = 0; mi < cfg.audio.out_dev_count; mi++)
-        {
-            if (cfg.audio.out_pcm_list[mi]->name
-                && strcmp(cfg.audio.out_pcm_list[mi]->name,
-                          cfg.ttns.monitor_out_name) == 0)
-            {
-                found = mi;
-                break;
-            }
-        }
-        if (found >= 0)
-            cfg.ttns.monitor_out_dev_num = found;
-    }
-    else if (cfg.audio.out_pcm_list != NULL
-             && cfg.ttns.monitor_out_dev_num >= 0
-             && cfg.ttns.monitor_out_dev_num < cfg.audio.out_dev_count
-             && cfg.audio.out_pcm_list[cfg.ttns.monitor_out_dev_num]->name)
-    {
-        free(cfg.ttns.monitor_out_name);
-        cfg.ttns.monitor_out_name =
-            strdup(cfg.audio.out_pcm_list[cfg.ttns.monitor_out_dev_num]->name);
-    }
+    cfg_match_audio_devices_by_name();
+    cfg_capture_audio_device_names();
 
     cfg.ttns.duck_depth_db = cfg_get_float("ttns", "duck_depth_db");
     cfg.ttns.duck_threshold = cfg_get_float("ttns", "duck_threshold");
@@ -856,6 +937,8 @@ int cfg_create_default(void)
             "[ttns]\n"
             "line_device = -1\n"
             "mic_device = -1\n"
+            "line_device_name = \n"
+            "mic_device_name = \n"
             "mic_gain = 1.0\n"
             "line_gain = 1.0\n"
             "cart_gain = 1.0\n"

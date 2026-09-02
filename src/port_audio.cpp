@@ -107,6 +107,7 @@ static volatile int snd_stream_died = 0;
 static volatile int snd_line_null_input = 0;
 static int snd_line_idle_logged = 0;
 static double snd_last_recover_sec = 0;
+static int snd_dev_list_epoch = 0;
 static struct ringbuf ttns_mic_rb;
 static struct ringbuf monitor_rb;
 static int ttns_mic_rb_inited = 0;
@@ -940,11 +941,18 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
     int mic_pk_raw;
     int duck_pk;
     int r;
+    int ptt;
     float duck_depth;
     float duck_gain;
     float mic_g;
+    float air_mic_g;
+    float talk_mic_g;
+    float air_duck;
+    float talk_duck;
     const short *remote_stereo[TTNS_REMOTE_SLOTS];
     float remote_gain[TTNS_REMOTE_SLOTS];
+    float air_remote_gain[TTNS_REMOTE_SLOTS];
+    float talk_remote_gain[TTNS_REMOTE_SLOTS];
 
     ttns_remote_prepare_block(frameCount);
     ttns_gather_remote_voices(remote_stereo, remote_gain);
@@ -957,6 +965,11 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
             duck_pk = rem_pk;
     }
 
+    ptt = ttns_ptt_remotes_active();
+    /* Private talkback must not pump the on-air music bed. */
+    if (ptt)
+        duck_pk = 0;
+
     duck_depth = util_db_to_factor(cfg.ttns.duck_depth_db);
     duck_gain = ttns_duck_gain_update(duck_pk,
                                       cfg.audio.samplerate, frameCount,
@@ -967,9 +980,31 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
     if (ttns_mic_effective_mute())
         mic_g = 0.0f;
 
+    /* PTT remotes: host mic still reaches guests even if the on-air mute is down. */
+    if (ptt)
+    {
+        air_mic_g = 0.0f;
+        talk_mic_g = cfg.ttns.mic_gain;
+        air_duck = 1.0f;
+        talk_duck = 1.0f;
+    }
+    else
+    {
+        air_mic_g = mic_g;
+        talk_mic_g = mic_g;
+        air_duck = duck_gain;
+        talk_duck = duck_gain;
+    }
+
+    for (r = 0; r < TTNS_REMOTE_SLOTS; r++)
+    {
+        talk_remote_gain[r] = remote_gain[r];
+        air_remote_gain[r] = ptt ? 0.0f : remote_gain[r];
+    }
+
     ttns_process_mix_ex(ttns_mix_buf, mic_in, mic_channels, line_stereo, ttns_cart_buf,
-                        frameCount, mic_g, cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain,
-                        remote_stereo, remote_gain, -1);
+                        frameCount, air_mic_g, cfg.ttns.line_gain, cfg.ttns.cart_gain, air_duck,
+                        remote_stereo, air_remote_gain, -1);
     memcpy(pa_pcm_buf, ttns_mix_buf, (size_t)frameCount * 2 * sizeof(short));
 
     if (ttns_mix_minus_buf)
@@ -979,16 +1014,16 @@ static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
             if (!ttns_remote_is_live(r))
                 continue;
             ttns_process_mix_ex(ttns_mix_minus_buf, mic_in, mic_channels, line_stereo,
-                                ttns_cart_buf, frameCount, mic_g, cfg.ttns.line_gain,
-                                cfg.ttns.cart_gain, duck_gain,
-                                remote_stereo, remote_gain, r);
+                                ttns_cart_buf, frameCount, talk_mic_g, cfg.ttns.line_gain,
+                                cfg.ttns.cart_gain, talk_duck,
+                                remote_stereo, talk_remote_gain, r);
             ttns_remote_write_mix_minus(r, ttns_mix_minus_buf, frameCount);
         }
     }
 
     ttns_push_monitor_mix(frameCount, line_stereo, mic_in, mic_channels,
-                          cfg.ttns.line_gain, cfg.ttns.cart_gain, duck_gain, mic_g,
-                          remote_stereo, remote_gain);
+                          cfg.ttns.line_gain, cfg.ttns.cart_gain, talk_duck, talk_mic_g,
+                          remote_stereo, talk_remote_gain);
 
     ttns_push_fader_meters(ttns_peak_stereo(line_stereo, frameCount), mic_pk_raw,
                            ttns_peak_stereo(ttns_cart_buf, frameCount));
@@ -1050,6 +1085,64 @@ static void snd_pause_after_stop(void)
 #endif
 }
 
+int snd_device_list_epoch(void)
+{
+    return snd_dev_list_epoch;
+}
+
+void snd_free_device_list(snd_dev_t **list)
+{
+    int i;
+
+    if (!list)
+        return;
+
+    for (i = 0; i < 100; i++)
+    {
+        if (!list[i])
+            continue;
+        free(list[i]->name);
+        free(list[i]);
+    }
+    free(list);
+}
+
+static void snd_rebuild_device_lists(void)
+{
+    if (cfg.audio.pcm_list)
+        snd_free_device_list(cfg.audio.pcm_list);
+    cfg.audio.pcm_list = NULL;
+    if (cfg.audio.out_pcm_list)
+        snd_free_device_list(cfg.audio.out_pcm_list);
+    cfg.audio.out_pcm_list = NULL;
+    cfg.audio.pcm_list = snd_get_devices(&cfg.audio.dev_count);
+    cfg.audio.out_pcm_list = snd_get_output_devices(&cfg.audio.out_dev_count);
+    snd_dev_list_epoch++;
+}
+
+int snd_refresh_devices(void)
+{
+    PaError err;
+    char info_buf[256];
+
+    snd_stop_streams();
+    snd_pause_after_stop();
+    Pa_Terminate();
+    err = Pa_Initialize();
+    if (err != paNoError)
+    {
+        snprintf(info_buf, sizeof(info_buf),
+                 "PortAudio rescan failed: %s", Pa_GetErrorText(err));
+        print_info(info_buf, 1);
+        return 1;
+    }
+
+    snd_rebuild_device_lists();
+    cfg_match_audio_devices_by_name();
+    cfg_capture_audio_device_names();
+    return snd_open_stream();
+}
+
 void snd_reinit(void)
 {
     snd_stop_streams();
@@ -1084,7 +1177,16 @@ void snd_recover_if_needed(void)
     print_info("Audio device dropped — restarting input (settings kept)", 1);
     snd_reinit();
     if (snd_audio_is_active())
+    {
         print_info("Audio devices ready", 0);
+        return;
+    }
+
+    print_info("Audio device missing — rescanning hardware", 1);
+    if (snd_refresh_devices() == 0)
+        print_info("Audio devices ready", 0);
+    else
+        print_info("Audio reopen failed — Refresh devices in Settings", 1);
 }
 
 static void snd_abort_open(void)
@@ -2312,7 +2414,7 @@ snd_dev_t **snd_get_devices(int *dev_count)
 
 	//100 sound devices should be enough
     for(i = 0; i < 100; i++)
-        dev_list[i] = (snd_dev_t*)malloc(sizeof(snd_dev_t));
+        dev_list[i] = (snd_dev_t*)calloc(1, sizeof(snd_dev_t));
 
     dev_list[dev_num]->name = (char*) malloc(strlen("Default PCM device (default)")+1);
     strcpy(dev_list[dev_num]->name, "Default PCM device (default)");
@@ -2420,7 +2522,7 @@ snd_dev_t **snd_get_output_devices(int *dev_count)
     dev_list = (snd_dev_t**)malloc(100 * sizeof(snd_dev_t*));
 
     for (i = 0; i < 100; i++)
-        dev_list[i] = (snd_dev_t*)malloc(sizeof(snd_dev_t));
+        dev_list[i] = (snd_dev_t*)calloc(1, sizeof(snd_dev_t));
 
     dev_list[dev_num]->name = (char*)malloc(strlen("Off (no monitor playback)") + 1);
     strcpy(dev_list[dev_num]->name, "Off (no monitor playback)");

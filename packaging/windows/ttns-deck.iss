@@ -1,7 +1,7 @@
 ; TTNS Deck + TTNS Remote — Inno Setup installer (double-click .exe).
 ; Built from dist/windows/ttns-deck-win64/ after scripts/build-windows.sh
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.16-ttns-remote.1"
+  #define MyAppVersion "0.1.16-ttns-remote.2"
 #endif
 
 #define MyAppName "TTNS Deck"

@@ -4,7 +4,7 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Build:** `0.1.16-ttns-remote.1` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Older mixer-only tag: `v0.1.16-ttns-pre.7`.
+**Build:** `0.1.16-ttns-remote.2` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Older mixer-only tag: `v0.1.16-ttns-pre.7`.
 
 ---
 
@@ -39,7 +39,7 @@ You need **two inputs**:
 | **Deck** (line) | Music / mixer / app audio | USB interface, BlackHole/loopback for Spotify |
 | **Mic** | Voice | USB mic, built-in, Bluetooth headset |
 
-Open **Settings** (bottom-right) → **Audio** and pick **Line Input (Deck)** and **Mic Input**. They must be **different devices** for ducking and mic monitor to work. Meters update ~½ second after you change a device. Click **Save** to persist settings to `~/.buttrc`.
+Open **Settings** (bottom-right) → **Audio** and pick **Line Input (Deck)** and **Mic Input**. They must be **different devices** for ducking and mic monitor to work. If you plug in an interface after Deck is already open, click **Refresh devices**. Meters update ~½ second after you change a device. Click **Save** to persist settings to `~/.buttrc`.
 
 ### 2. Levels
 
@@ -102,7 +102,11 @@ Pick **Monitor Output** in Settings → Audio (AirPods vs built-in, etc.).
 
 ## Remotes (co-hosts)
 
-Expand **Remotes** → tick **Accept** → share the room **Code**. Co-hosts run **TTNS Remote** (`run-ttns-remote.sh` / `ttns-remote.exe`). Same LAN preferred; internet uses WRX automatically. Details: [`USER_GUIDE.md`](USER_GUIDE.md), [`REMOTE_DIALIN.md`](REMOTE_DIALIN.md).
+Expand **Remotes** → tick **Accept** → share the room **Code**. Co-hosts run **TTNS Remote** (on the same Mac DMG / Windows installer). Same LAN preferred; internet uses WRX automatically.
+
+**PTT** on the Remotes header: host and guests talk privately — they stay off-air and the music bed is not ducked. Click again when you are ready to put voices back on the stream.
+
+Details: [`USER_GUIDE.md`](USER_GUIDE.md), [`REMOTE_DIALIN.md`](REMOTE_DIALIN.md).
 
 ---
 

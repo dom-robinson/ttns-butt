@@ -18,6 +18,8 @@ void ttns_meters_reset(void);
 void ttns_meters_reset_mic(void);
 
 int ttns_mic_effective_mute(void);
+int ttns_ptt_remotes_active(void);
+void ttns_ptt_remotes_set(int on);
 
 void ttns_mixer_reset(void);
 float ttns_duck_gain_update(int mic_peak, int samplerate, int frames,

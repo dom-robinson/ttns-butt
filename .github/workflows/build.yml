@@ -143,6 +143,8 @@ jobs:
 
             Crew / DJ build. **Prefer the .dmg (Mac) or setup.exe (Windows)** — double-click, no unzip gymnastics.
 
+            **This build:** Settings → Audio → **Refresh devices** after plugging in an interface. **PTT** on the Remotes bar talks to guests off-air without ducking the music bed.
+
             | Platform | Download |
             |----------|----------|
             | macOS Apple Silicon | `TTNS-Deck-*-macos-arm64.dmg` — open, drag **TTNS Deck** to Applications |

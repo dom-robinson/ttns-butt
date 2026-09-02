@@ -1,6 +1,6 @@
 # TTNS Deck & TTNS Remote — User Guide
 
-**Build:** `0.1.16-ttns-remote.1`
+**Build:** `0.1.16-ttns-remote.2`
 
 This guide covers day-to-day use of **TTNS Deck** (the mixer / streamer) and **TTNS Remote** (the co-host dial-in app). Drop screenshots into `docs/images/user-guide/` using the filenames noted under each section.
 
@@ -86,7 +86,7 @@ Top to bottom (typical):
 4. **Transport** — Record / Stop / Play, mic mute, Monitor
 5. **VU** — meters
 6. **Mount / Connect** — stream target
-7. **Remotes** (collapsible) — Accept, room code, R1–R4
+7. **Remotes** (collapsible) — Accept, **PTT**, room code, R1–R4
 8. **Settings / More** — preferences and session log
 
 <!-- Screenshot: full Deck window, Remotes collapsed -->
@@ -101,8 +101,9 @@ Open **Settings → Audio**:
 | **Line Input (Deck)** | Music / mixer / app audio | USB interface, BlackHole, loopback |
 | **Mic Input** | Your voice | Must be a **different** device from Line for ducking |
 | **Monitor Output** | Headphones / cue | Pick a real output (not Off) before expecting cue audio |
+| **Refresh devices** | Rescan USB / virtual devices | Use after plugging something in. Causes a short gap if you are on air |
 
-Click **Save**. Meters update about half a second after a device change.
+Line/Mic are remembered **by name**, so unplugging a USB stick and plugging it back in still finds the same box. Click **Save**. Meters update about half a second after a device change.
 
 <!-- Screenshot: Settings → Audio -->
 ![Audio settings](images/user-guide/03-settings-audio.png)
@@ -184,6 +185,11 @@ Expand the **Remotes** section on Deck.
 3. Optional: **New code** to rotate the room code.
 4. When a remote joins, they appear on **R1–R4** with level / mute.
 5. **T** on a row injects a local 440 Hz test tone (no network) to check the fader path.
+6. **PTT** (press to talk to remotes) — latching. While it is on:
+   - Host mic and remotes stay **off-air** (audience hears only line + carts)
+   - Host and guests still hear each other (and the program bed)
+   - Ducking is **off** so the music bed does not pump
+   - Click **PTT** again to put voices back on-air
 
 <!-- Screenshot: Remotes expanded with Accept + code + R1 live -->
 ![Remotes panel](images/user-guide/08-remotes-panel.png)
@@ -212,7 +218,7 @@ Co-hosts run **TTNS Remote**, not the full Deck.
 
 | Platform | App / command |
 |----------|----------------|
-| macOS | **TTNS Remote.app** (from the Remote zip — double-click like any Mac app) |
+| macOS | **TTNS Remote.app** (on the same `.dmg` as Deck — drag to Applications) |
 | Linux | `./run-ttns-remote.sh` from the unpacked linux folder |
 | Windows | `bin\ttns-remote.exe` |
 
@@ -306,7 +312,10 @@ Do **not** post logs or zips publicly (mount names / credentials).
 | macOS “cannot be opened because of a problem” | Wrong chip (Intel vs Apple Silicon) or too-old macOS. Monterey 12 needs the **monterey12** DMG. |
 | Windows missing DLL | Use the **setup.exe**, or unzip the full portable zip — do not copy only the `.exe` |
 | Deck quits when the music player stops (VB-Cable / loopback) | Use **v0.1.16-ttns-remote.1** or later. Idle virtual cables are treated as silence. |
-| No ducking | Line and Mic must be different devices |
+| New USB interface not in the list | Settings → Audio → **Refresh devices**, then pick it |
+| Unplug while on air | Deck rescans and tries to reopen the same device by name. Brief gap; Icecast usually stays up |
+| Audience hears ducking during private talk | Turn **PTT** on — program is not ducked while lining up the next segment |
+| No ducking | Line and Mic must be different devices; **PTT** must be off |
 | Remotes can’t find Deck on LAN | Same Wi‑Fi? Accept ticked? Try WAN (internet) path; check phone LED |
 | Remote connects but no audio | Monitor output on Deck; Remote headphones device; unmute R-slot on Deck |
 | Crackles / dropouts on Bluetooth | Prefer wired headphones on Remote; expect higher latency |

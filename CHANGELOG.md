@@ -3,6 +3,23 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote.2] — Device hotplug + PTT remotes
+
+**Tag:** `v0.1.16-ttns-remote.2` (on `master`)
+
+### Added
+
+- **Refresh devices** in Settings → Audio — rescan USB/virtual devices without restarting Deck
+- **PTT** on the Remotes header — host and guests talk off-air; program (line/carts) is not ducked
+- Line/Mic remembered **by name** (same idea as Monitor) so device-list reshuffles do not silently pick the wrong box
+
+### Fixed
+
+- Unplug/replug: if the stream dies, Deck rescans PortAudio and reopens the named Line/Mic/Monitor
+- Line/Mic/Monitor can be changed while connected (short mix gap; Icecast stays up)
+
+---
+
 ## [0.1.16-ttns-remote.1] — Crew release (VB-Cable + one-click packages)
 
 **Tag:** `v0.1.16-ttns-remote.1` (on `master`)

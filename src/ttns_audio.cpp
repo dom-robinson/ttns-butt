@@ -11,10 +11,21 @@ static int duck_active = 0;
 static volatile int meter_line_peak = 0;
 static volatile int meter_mic_peak = 0;
 static volatile int meter_cart_peak = 0;
+static volatile int ptt_remotes = 0;
 
 int ttns_mic_effective_mute(void)
 {
     return cfg.ttns.mic_mute ? 1 : 0;
+}
+
+int ttns_ptt_remotes_active(void)
+{
+    return ptt_remotes ? 1 : 0;
+}
+
+void ttns_ptt_remotes_set(int on)
+{
+    ptt_remotes = on ? 1 : 0;
 }
 
 void ttns_meters_push(int line_peak, int mic_peak, int cart_peak)

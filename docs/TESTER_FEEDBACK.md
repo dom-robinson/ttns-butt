@@ -1,6 +1,6 @@
 # TTNS Deck — tester feedback guide
 
-**Build:** `0.1.16-ttns-remote.1` (Deck + Remote)
+**Build:** `0.1.16-ttns-remote.2` (Deck + Remote)
 
 Thank you for testing. Please report issues with the **session log file** attached (see below).
 
@@ -60,12 +60,13 @@ Optional: set a custom log path in **Settings → Main → Log file**.
 
 ## What to test
 
-1. Pick **Line** and **Mic** devices (Settings → Audio) — must be different for ducking.
+1. Pick **Line** and **Mic** devices (Settings → Audio) — must be different for ducking. Try **Refresh devices** after plugging in a USB interface.
 2. Set levels (Line, Cart, Mic), try a cart (right-click to assign MP3/WAV).
 3. Choose **Mount**, press **Connect**, brief stream test if scheduled.
-4. **Remotes:** expand Remotes → **Accept** → note room code → join from **TTNS Remote.app** on another machine.
-5. Check the phone reach LED (grey / yellow / green) for `core.liveencode.com`.
-6. Note anything odd: crackling, crash, wrong levels, remote dropouts, layout glitches.
+4. **Remotes:** expand Remotes → **Accept** → note room code → join from **TTNS Remote** on another machine.
+5. **PTT:** with a remote connected, tick **PTT** — audience should keep hearing unducked music; host and guests still hear each other. Untick to put voices back on-air.
+6. Check the phone reach LED (grey / yellow / green) for `core.liveencode.com`.
+7. Note anything odd: crackling, crash, wrong levels, remote dropouts, layout glitches.
 
 ---
 

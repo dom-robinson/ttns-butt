@@ -89,7 +89,10 @@ static Fl_Box *ttns_remote_room_lbl = NULL;
 static Fl_Ttns_Border_Button *ttns_btn_remote_newcode = NULL;
 static Fl_Button *ttns_btn_remote_test[TTNS_REMOTE_SLOTS];
 static Fl_Ttns_Border_Button *ttns_btn_remote_toggle = NULL;
+static Fl_Ttns_Check_Button *ttns_chk_ptt_remotes = NULL;
+static Fl_Button *ttns_btn_refresh_dev = NULL;
 static int ttns_remote_expanded = 0;
+static int ttns_seen_dev_epoch = 0;
 
 static Fl_My_Double_Window *ttns_cart_setup_win = NULL;
 static Fl_Input *ttns_cart_setup_path = NULL;
@@ -562,7 +565,59 @@ static void ttns_dev_cb(Fl_Widget *w, void *which)
         }
     }
 
+    cfg_capture_audio_device_names();
     ttns_audio_settings_changed();
+}
+
+static void ttns_ptt_remotes_cb(Fl_Widget *, void *)
+{
+    int on = (ttns_chk_ptt_remotes && ttns_chk_ptt_remotes->value()) ? 1 : 0;
+
+    ttns_ptt_remotes_set(on);
+    if (on)
+        print_info("PTT remotes — host and guests off-air (program not ducked)", 0);
+    else
+        print_info("PTT remotes off — voices back on-air", 0);
+}
+
+static void ttns_refresh_devices_timeout(void *)
+{
+    int r;
+
+    print_info("Rescanning audio devices…", 0);
+    r = snd_refresh_devices();
+    ttns_fill_cfg_audio_devices();
+    update_samplerates();
+    ttns_seen_dev_epoch = snd_device_list_epoch();
+    ttns_audio_reopen_busy = 0;
+    ttns_audio_reopen_pending = 0;
+
+    if (r == 0 && snd_audio_is_active())
+    {
+        ttns_audio_mark_applied();
+        print_info("Audio devices ready", 0);
+    }
+    else
+        print_info("Audio rescan failed — try another device in Settings", 1);
+
+    if (ttns_audio_reopen_queued)
+    {
+        ttns_audio_reopen_queued = 0;
+        ttns_apply_audio_settings();
+    }
+}
+
+static void ttns_refresh_dev_cb(Fl_Widget *, void *)
+{
+    if (ttns_audio_reopen_pending || ttns_audio_reopen_busy)
+    {
+        ttns_audio_reopen_queued = 1;
+        print_info("Device refresh queued…", 0);
+        return;
+    }
+    ttns_audio_reopen_pending = 1;
+    ttns_audio_reopen_busy = 1;
+    Fl::add_timeout(0.0, ttns_refresh_devices_timeout);
 }
 
 static void ttns_gain_cb(Fl_Widget *w, void *which)
@@ -633,10 +688,12 @@ static void ttns_remote_place_header(int y, int win_w)
     const int newcode_x = win_w - 8 - newcode_w;
     const int code_gap = 2;
     const int phone_w = 22;
+    const int ptt_w = 50;
     int code_w = 96;
     int code_x;
     const char *code_txt;
     int accept_x = 100;
+    int ptt_x;
 
     if (ttns_btn_remote_toggle)
         ttns_btn_remote_toggle->resize(8, y, 88, 24);
@@ -644,6 +701,9 @@ static void ttns_remote_place_header(int y, int win_w)
         ttns_chk_remote_accept->resize(accept_x, y, 72, 24);
     if (ttns_core_phone)
         ttns_core_phone->resize(accept_x + 74, y + 2, phone_w, 20);
+    ptt_x = accept_x + 74 + phone_w + 4;
+    if (ttns_chk_ptt_remotes)
+        ttns_chk_ptt_remotes->resize(ptt_x, y, ptt_w, 24);
     if (ttns_btn_remote_newcode)
         ttns_btn_remote_newcode->resize(newcode_x, y, newcode_w, 24);
     if (ttns_remote_room_lbl)
@@ -1377,6 +1437,14 @@ void ttns_ui_timer_tick(void)
 
     snd_recover_if_needed();
 
+    if (ttns_seen_dev_epoch != snd_device_list_epoch())
+    {
+        ttns_seen_dev_epoch = snd_device_list_epoch();
+        ttns_fill_cfg_audio_devices();
+        update_samplerates();
+        ttns_audio_mark_applied();
+    }
+
     ttns_meters_poll(&line_pk, &mic_pk, &cart_pk);
     if (ttns_slider_line)
         ttns_slider_line->set_peak_sample(line_pk);
@@ -1785,6 +1853,12 @@ void ttns_ui_init(flgui *g)
         ttns_chk_remote_accept->tooltip("Allow up to 4 remote co-hosts to join with the room code");
         ttns_chk_remote_accept->callback(ttns_remote_accept_cb);
 
+        ttns_chk_ptt_remotes = new Fl_Ttns_Check_Button(200, 0, 50, 24, "PTT");
+        ttns_style_check(ttns_chk_ptt_remotes);
+        ttns_chk_ptt_remotes->indicator(TTNS_CHECK_AFFIRM);
+        ttns_chk_ptt_remotes->tooltip("Talk to remotes only — host mic and remotes stay off-air; program is not ducked. Click again to put voices back on air.");
+        ttns_chk_ptt_remotes->callback(ttns_ptt_remotes_cb);
+
         /* Telephone LED: grey=core unreachable, yellow=reachable, green=remote live. */
         ttns_core_phone = new Fl_Box(174, 2, 22, 20, "\xE2\x98\x8E"); /* ☎ */
         ttns_core_phone->box(FL_NO_BOX);
@@ -1850,6 +1924,18 @@ void ttns_ui_init(flgui *g)
         fl_g->choice_cfg_ttns_mic->callback(ttns_dev_cb, NULL);
     if (fl_g->choice_cfg_ttns_monitor_out)
         fl_g->choice_cfg_ttns_monitor_out->callback(ttns_dev_cb, NULL);
+
+    if (fl_g->choice_cfg_dev && fl_g->choice_cfg_dev->parent())
+    {
+        Fl_Group *ag = (Fl_Group *)fl_g->choice_cfg_dev->parent();
+        ag->begin();
+        ttns_btn_refresh_dev = new Fl_Button(23, 214, 250, 16, "Refresh devices");
+        ttns_btn_refresh_dev->labelsize(10);
+        ttns_btn_refresh_dev->tooltip("Rescan USB/virtual audio devices. Causes a short gap if you are on air.");
+        ttns_theme_style_butt_button(ttns_btn_refresh_dev, 0);
+        ttns_btn_refresh_dev->callback(ttns_refresh_dev_cb);
+        ag->end();
+    }
 
     Fl::add_handler(ttns_global_key_handler);
 

@@ -148,6 +148,8 @@ typedef struct
     {
         int line_dev_num;
         int mic_dev_num;
+        char *line_dev_name; /* stable across unplug / PortAudio reshuffles */
+        char *mic_dev_name;
         float mic_gain;
         float line_gain;
         float cart_gain;
@@ -187,6 +189,8 @@ extern bool unsaved_changes;//is checked when closing butt and informs the user 
 int cfg_write_file(char *path); //Writes current config_t struct to path or cfg_path if path is NULL
 int cfg_set_values(char *path); //Reads config file from path or cfg_path if path is NULL and fills the config_t struct
 int cfg_create_default(void);   //Creates a default config file, if there isn't one yet
+void cfg_capture_audio_device_names(void);
+void cfg_match_audio_devices_by_name(void);
 
 #endif
 

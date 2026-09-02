@@ -219,14 +219,7 @@ void button_connect_cb(void)
 
     print_info(text_buf, 0);
 
-
-    //the user may not change the audio device while streaming
-    fl_g->choice_cfg_dev->deactivate();
-    if (fl_g->choice_cfg_ttns_mic)
-        fl_g->choice_cfg_ttns_mic->deactivate();
-    if (fl_g->choice_cfg_ttns_monitor_out)
-        fl_g->choice_cfg_ttns_monitor_out->deactivate();
-    //the sames applies to the codecs
+    /* Line/Mic/Monitor can be changed live (short gap). Lock codecs/rates. */
     fl_g->choice_cfg_codec->deactivate();
 
 

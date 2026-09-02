@@ -1,6 +1,6 @@
 # Remote dial-in co-host (TTNS Deck + TTNS Remote)
 
-Work lives on **`master`**. Current release: **`v0.1.16-ttns-remote.1`**.
+Work lives on **`master`**. Current release: **`v0.1.16-ttns-remote.2`**.
 
 End-user walkthrough: [`USER_GUIDE.md`](./USER_GUIDE.md).
 
@@ -41,6 +41,8 @@ Each remote hears a **personal mix-minus**:
 - Deck line (music), carts, Deck mic
 - **Other** remotes who are live
 - **Not** their own voice
+
+**PTT** on Deck (Remotes header) takes host mic and remotes **off the Icecast mix** while they still hear each other and the program bed. Ducking is disabled for that period so the audience does not hear the music pump.
 
 Latency is kept low for wired phones; Bluetooth (AirPods) uses a larger jitter cushion (~120–160 ms) and music-oriented Opus on the downlink so the bed stays continuous.
 
