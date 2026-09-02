@@ -4,7 +4,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VER="0.1.16-ttns-remote-dev.4"
+VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 OUT="$ROOT/dist/dj-testers"
 PREFIX="TTNS-Deck-${VER}"
 REMOTE_PREFIX="TTNS-Remote-${VER}"
@@ -28,12 +28,18 @@ fi
 
 mkdir -p "$OUT"
 rm -f "$OUT"/TTNS-Deck-*.zip "$OUT"/TTNS-Deck-*.tar.gz \
+      "$OUT"/TTNS-Deck-*.dmg "$OUT"/TTNS-Deck-*-setup.exe \
       "$OUT"/TTNS-Remote-*.zip 2>/dev/null || true
 
 cp "$STAGE/ttns-deck-arm64-macos.zip"     "$OUT/${PREFIX}-macos-arm64.zip"
 cp "$STAGE/ttns-deck-x86_64-macos.zip"    "$OUT/${PREFIX}-macos-x64.zip"
 cp "$STAGE/ttns-deck-linux-x86_64.tar.gz" "$OUT/${PREFIX}-linux-x64.tar.gz"
 cp "$STAGE/ttns-deck-win64.zip"           "$OUT/${PREFIX}-windows-x64.zip"
+
+for f in "$STAGE"/TTNS-Deck-*.dmg "$STAGE"/TTNS-Deck-*-setup.exe; do
+    [ -f "$f" ] || continue
+    cp "$f" "$OUT/"
+done
 
 # Optional standalone Remote zips (macOS CI / local). Linux/Windows ship remote inside Deck package.
 for arch in arm64 x86_64; do
@@ -53,29 +59,30 @@ cp "$ROOT/scripts/macos-clear-quarantine.sh" "$OUT/macos-clear-quarantine.sh"
 chmod +x "$OUT/macos-clear-quarantine.sh"
 
 cat > "$OUT/WHATS-IN-HERE.txt" <<EOF
-TTNS Deck + Remote crew test build: ${VER}
+TTNS Deck + Remote ${VER}
 
-Send each person the zip/tar.gz for their platform:
+Preferred (double-click) packages — send the file itself, not an extracted .app:
 
-  ${PREFIX}-macos-arm64.zip     Apple Silicon — TTNS Deck.app
-  ${PREFIX}-macos-x64.zip       Intel Mac — TTNS Deck.app
-  ${PREFIX}-linux-x64.tar.gz    Linux x86_64 (run-ttns-deck.sh / run-ttns-remote.sh)
-  ${PREFIX}-windows-x64.zip     Windows 10+ (Run TTNS Deck.bat; bin/ttns-remote.exe)
+  ${PREFIX}-macos-arm64.dmg     Apple Silicon — open, drag TTNS Deck to Applications
+  ${PREFIX}-macos-x64.dmg       Intel Mac
+  ${PREFIX}-windows-x64-setup.exe  Windows 10+ installer (Start Menu shortcuts)
+  ${PREFIX}-linux-x64.tar.gz    Linux x86_64
 
-macOS co-hosts (standalone Remote.app):
+Portable fallbacks:
 
-  ${REMOTE_PREFIX}-macos-arm64.zip   → TTNS Remote.app
-  ${REMOTE_PREFIX}-macos-x64.zip     → TTNS Remote.app
+  ${PREFIX}-macos-arm64.zip / ${PREFIX}-macos-x64.zip
+  ${PREFIX}-windows-x64.zip     Unzip → Run TTNS Deck.bat if they skip the installer
 
-macOS Gatekeeper: if “Apple could not verify…” / Move to Bin, see MACOS_GATEKEEPER.md
-  (Done → Privacy & Security → Open Anyway, or run macos-clear-quarantine.sh on the .app)
+macOS 12 Monterey (Apple Silicon only): look for *monterey12.dmg or *monterey12.zip
 
-Docs in this folder:
-  README-TESTERS.txt
-  USER_GUIDE.md
-  MACOS_GATEKEEPER.md
+Do NOT Dropbox/email the .app folder — macOS apps are folders and arrive as “Contents”.
 
-Each package includes legal/ (GPL + third-party license texts).
+macOS Gatekeeper: Done (not Move to Bin) → Privacy & Security → Open Anyway
+  (or macos-clear-quarantine.sh)
+
+Windows SmartScreen: More info → Run anyway
+
+Docs: README-TESTERS.txt  USER_GUIDE.md  MACOS_GATEKEEPER.md
 
 Built: $(date -u +"%Y-%m-%dT%H:%MZ")
 EOF

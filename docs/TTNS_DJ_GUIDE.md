@@ -4,19 +4,20 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Crew remote build:** `0.1.16-ttns-remote-dev.2` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Stable tag remains `v0.1.16-ttns-pre.7` — see [`RELEASE.md`](RELEASE.md).
+**Build:** `0.1.16-ttns-remote.1` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Older mixer-only tag: `v0.1.16-ttns-pre.7`.
 
 ---
 
 ## Install
 
-Download the build for your platform (GitHub Actions artifacts or release zip). Do **not** share the zip publicly — it contains Icecast source passwords.
+Download the build for your platform from [Releases](https://github.com/dom-robinson/ttns-butt/releases). Do **not** share packages publicly — they may contain Icecast source passwords.
 
 | Platform | Package | Run |
 |----------|---------|-----|
-| **macOS** | `ttns-deck-arm64-macos.zip` or `ttns-deck-x86_64-macos.zip` | Open **TTNS Deck.app** (right-click → Open if Gatekeeper blocks unsigned builds) |
+| **macOS** | `TTNS-Deck-…-macos-arm64.dmg` or `…-macos-x64.dmg` | Open → drag **TTNS Deck** to Applications |
+| **macOS 12 Monterey** | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | Apple Silicon only; other Mac DMGs will not launch |
 | **Linux** | `ttns-deck-linux-*.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
-| **Windows** | `ttns-deck-win64.zip` | Unzip → **Run TTNS Deck.bat** |
+| **Windows** | `TTNS-Deck-…-windows-x64-setup.exe` | Double-click the installer |
 
 First launch creates a config file:
 
@@ -125,8 +126,9 @@ Platform-specific deps: see [`README.TTNS.md`](../README.TTNS.md) and [`RELEASE.
 | Cart too loud | **Cart** fader and per-cart **Level** in setup |
 | MP3 cart crash (old build) | Use `v0.1.16-ttns-pre.1` or newer |
 | Carts silent | Supported format; right-click to re-assign |
-| macOS “unidentified developer” | Right-click app → Open |
-| Windows “libFLAC.dll / libfltk not found” | **Re-download** the latest `ttns-deck-win64.zip` (builds before `v0.1.16-ttns-pre.2` were missing DLLs). Unzip fully, run **Run TTNS Deck.bat** — do not copy only `ttns-deck.exe` |
+| macOS “unidentified developer” / could not verify | **Done**, then Privacy & Security → **Open Anyway** — [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md) |
+| Windows “libFLAC.dll / libfltk not found” | Use the **setup.exe**. If you use the portable zip, unzip fully — do not copy only `ttns-deck.exe` |
+| Deck quits when the music player stops (VB-Cable) | Use **v0.1.16-ttns-remote.1** or later |
 | Windows crash changing Line/Mic device | Fixed in `v0.1.16-ttns-pre.5` and later |
 | macOS crash changing Line/Mic device | Fixed in `v0.1.16-ttns-pre.6` and later |
 | Meters stuck / no audio after device change | Fixed in `v0.1.16-ttns-pre.7` — use latest build; wait for “Audio devices ready” in the log |

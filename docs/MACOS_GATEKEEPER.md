@@ -1,11 +1,11 @@
 # macOS Gatekeeper — opening unsigned TTNS apps
 
-Crew test builds are **not** Apple-notarized. After download, macOS often shows:
+Crew test builds are **not** Apple-notarized. After you open the **.dmg** (or unzip a portable zip), macOS often shows:
 
 > “Apple could not verify … is free of malware”  
 > with **Done** / **Move to Bin**
 
-That is normal for our zips. Do **not** Move to Bin.
+That is normal for unsigned DMGs. Do **not** Move to Bin.
 
 ## Fix (macOS Sequoia / recent macOS) — recommended
 
@@ -18,20 +18,21 @@ You only need this once per app (until you download a new copy).
 
 ## Fix — Terminal (fastest for ops)
 
-In Terminal, point at the unzipped apps (adjust the path):
+After dragging the apps to Applications:
+
+```bash
+xattr -cr /Applications/TTNS\ Deck.app
+xattr -cr /Applications/TTNS\ Remote.app
+```
+
+If you still have a portable zip instead of a DMG:
 
 ```bash
 xattr -cr ~/Downloads/TTNS\ Deck.app
 xattr -cr ~/Downloads/TTNS\ Remote.app
 ```
 
-Or clear quarantine on the whole unzip folder:
-
-```bash
-xattr -cr ~/Downloads/TTNS-Deck-folder
-```
-
-Then double-click the app again.
+Then open the app again.
 
 ## Older tip (sometimes still works)
 
@@ -49,6 +50,6 @@ Do **not** run the bare `ttns-remote` Unix binary from Terminal unless you are d
 
 ## Still blocked?
 
-- Confirm they unzipped fully (not running from inside the zip).
-- Confirm architecture: Apple Silicon → `macos-arm64`; Intel → `macos-x64`.
+- Confirm they opened the **.dmg** and dragged the app to Applications (do not send a raw `.app` via Dropbox).
+- Confirm architecture: Apple Silicon → `macos-arm64`; Intel → `macos-x64`; Monterey 12 → `monterey12`.
 - Ask them to send a screenshot of Privacy & Security after the block message appears.

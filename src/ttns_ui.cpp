@@ -1375,6 +1375,8 @@ void ttns_ui_timer_tick(void)
     int mic_pk = 0;
     int cart_pk = 0;
 
+    snd_recover_if_needed();
+
     ttns_meters_poll(&line_pk, &mic_pk, &cart_pk);
     if (ttns_slider_line)
         ttns_slider_line->set_peak_sample(line_pk);

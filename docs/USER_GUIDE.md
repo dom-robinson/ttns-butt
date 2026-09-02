@@ -1,10 +1,10 @@
 # TTNS Deck & TTNS Remote — User Guide
 
-**Build:** `0.1.16-ttns-remote-dev.4` (crew test build on branch `feature/remote-dial-in`)
+**Build:** `0.1.16-ttns-remote.1`
 
 This guide covers day-to-day use of **TTNS Deck** (the mixer / streamer) and **TTNS Remote** (the co-host dial-in app). Drop screenshots into `docs/images/user-guide/` using the filenames noted under each section.
 
-> **Ops note:** Do not redistribute installer zips publicly — packages may include Icecast mount credentials for show use.
+> **Ops note:** Do not redistribute installers publicly — packages may include Icecast mount credentials for show use.
 
 ---
 
@@ -38,34 +38,32 @@ Same Wi‑Fi/LAN is ideal for remotes. Over the internet, Deck and Remote use th
 
 ## Install
 
-| Platform | Package | How to run |
-|----------|---------|------------|
-| **macOS Apple Silicon** | `TTNS-Deck-…-macos-arm64.zip` | Unzip → open **TTNS Deck.app** |
-| **macOS Intel** | `TTNS-Deck-…-macos-x64.zip` | Same |
+Download from the [GitHub Release](https://github.com/dom-robinson/ttns-butt/releases). Send people the **installer file**, not an extracted app folder.
+
+| Platform | File | What to do |
+|----------|------|------------|
+| **macOS Apple Silicon** | `TTNS-Deck-…-macos-arm64.dmg` | Open → drag **TTNS Deck** to Applications → open |
+| **macOS Intel** | `TTNS-Deck-…-macos-x64.dmg` | Same |
+| **macOS 12 Monterey** (Apple Silicon) | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | Same; other Mac DMGs will not run on 12.x |
 | **Linux x86_64** | `TTNS-Deck-…-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
-| **Windows 10+** | `TTNS-Deck-…-windows-x64.zip` | Unzip fully → **Run TTNS Deck.bat** |
+| **Windows 10+** | `TTNS-Deck-…-windows-x64-setup.exe` | Double-click; Start Menu shortcuts. No admin needed |
 
-**TTNS Remote** (co-hosts):
+**TTNS Remote** (co-hosts) is on the same Mac disk image and in the Windows installer. Linux: `run-ttns-remote.sh`.
 
-| Platform | How to run |
-|----------|------------|
-| macOS | Unzip `TTNS-Remote-…-macos-*.zip` → open **TTNS Remote.app** |
-| Linux | `./ttns-deck-linux-*/run-ttns-remote.sh` |
-| Windows | `bin\ttns-remote.exe` (same unzip folder as Deck) |
+Settings and carts live in your user profile (`~/.buttrc` / `%USERPROFILE%\.buttrc`), so replacing the app/installer keeps your setup.
 
 ### macOS: “Apple could not verify…” / Move to Bin
 
-Builds are unsigned. Click **Done** (do not Move to Bin), then **System Settings → Privacy & Security → Open Anyway**, or run:
+Builds are unsigned. Click **Done** (do not Move to Bin), then **System Settings → Privacy & Security → Open Anyway**. Full steps: [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
 
-```bash
-xattr -cr /path/to/TTNS\ Deck.app
-xattr -cr /path/to/TTNS\ Remote.app
-```
+Do **not** send the `.app` via Dropbox or email — it is a folder and arrives as **Contents**. Send the `.dmg`.
 
-Full steps: [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
+### Windows SmartScreen
 
-<!-- Screenshot: Finder/Explorer showing unzipped package -->
-![Install package contents](images/user-guide/01-install-package.png)
+**More info → Run anyway** is normal for unsigned test builds.
+
+<!-- Screenshot: Finder showing the .dmg or the Windows setup.exe -->
+![Install package](images/user-guide/01-install-package.png)
 
 ---
 
@@ -305,8 +303,9 @@ Do **not** post logs or zips publicly (mount names / credentials).
 | Problem | What to try |
 |---------|-------------|
 | macOS “could not verify” / Move to Bin | **Done**, then Privacy & Security → **Open Anyway**, or `xattr -cr` the `.app` — see [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md) |
-| macOS “cannot be opened because of a problem” | Use **dev.4+** packages (dylibs bundled). Confirm arm64 vs Intel zip matches the Mac. |
-| Windows missing DLL | Unzip the **full** zip; run the `.bat` — do not copy only the `.exe` |
+| macOS “cannot be opened because of a problem” | Wrong chip (Intel vs Apple Silicon) or too-old macOS. Monterey 12 needs the **monterey12** DMG. |
+| Windows missing DLL | Use the **setup.exe**, or unzip the full portable zip — do not copy only the `.exe` |
+| Deck quits when the music player stops (VB-Cable / loopback) | Use **v0.1.16-ttns-remote.1** or later. Idle virtual cables are treated as silence. |
 | No ducking | Line and Mic must be different devices |
 | Remotes can’t find Deck on LAN | Same Wi‑Fi? Accept ticked? Try WAN (internet) path; check phone LED |
 | Remote connects but no audio | Monitor output on Deck; Remote headphones device; unmute R-slot on Deck |
@@ -322,7 +321,7 @@ Add PNGs under `docs/images/user-guide/`:
 
 | File | Shot |
 |------|------|
-| `01-install-package.png` | Unzipped handoff folder |
+| `01-install-package.png` | DMG / setup.exe download |
 | `02-deck-main.png` | Full Deck, Remotes collapsed |
 | `03-settings-audio.png` | Settings → Audio |
 | `04-mic-mute.png` | Mic live + muted |

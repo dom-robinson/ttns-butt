@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([ttns-deck], [0.1.16-ttns-remote-dev.4], [https://thethursdaynightshow.com])
+AC_INIT([ttns-deck], [0.1.16-ttns-remote.1], [https://thethursdaynightshow.com])
 AM_INIT_AUTOMAKE([subdir-objects foreign])
 
 AC_CONFIG_SRCDIR([config.h.in])
@@ -13,12 +13,19 @@ AC_PROG_CXX
 AC_PROG_OBJCXX
 AC_PROG_CC
 
-if test -d /opt/homebrew/include; then
-  CPPFLAGS="$CPPFLAGS -I/opt/homebrew/include"
-  LDFLAGS="$LDFLAGS -L/opt/homebrew/lib"
-fi
-if test -d /usr/local/lib; then
-  LDFLAGS="$LDFLAGS -L/usr/local/lib"
+AC_ARG_VAR([TTNS_DEP_PREFIX], [Optional prefix with third-party libraries (macOS 12 builds)])
+
+if test -n "$TTNS_DEP_PREFIX"; then
+  CPPFLAGS="-I${TTNS_DEP_PREFIX}/include $CPPFLAGS"
+  LDFLAGS="-L${TTNS_DEP_PREFIX}/lib $LDFLAGS"
+else
+  if test -d /opt/homebrew/include; then
+    CPPFLAGS="$CPPFLAGS -I/opt/homebrew/include"
+    LDFLAGS="$LDFLAGS -L/opt/homebrew/lib"
+  fi
+  if test -d /usr/local/lib; then
+    LDFLAGS="$LDFLAGS -L/usr/local/lib"
+  fi
 fi
 
 # Checks for libraries.
@@ -58,13 +65,17 @@ AC_CHECK_LIB([fdk-aac], [aacEncOpen], [],
 		[AC_MSG_ERROR([**** Could not find libfdk-aac     ****])]
 	    )
 
-# libcurl with WebSocket support (WAN dial-in via WRX)
-if test -d /opt/homebrew/opt/curl; then
-  CPPFLAGS="-I/opt/homebrew/opt/curl/include $CPPFLAGS"
-  LDFLAGS="-L/opt/homebrew/opt/curl/lib $LDFLAGS"
-elif test -d /usr/local/opt/curl; then
-  CPPFLAGS="-I/usr/local/opt/curl/include $CPPFLAGS"
-  LDFLAGS="-L/usr/local/opt/curl/lib $LDFLAGS"
+# libcurl with WebSocket support (WAN dial-in via WRX).
+# Homebrew curl is skipped when TTNS_DEP_PREFIX is set so macOS 12
+# builds do not pick up bottles compiled for the host OS.
+if test -z "$TTNS_DEP_PREFIX"; then
+  if test -d /opt/homebrew/opt/curl; then
+    CPPFLAGS="-I/opt/homebrew/opt/curl/include $CPPFLAGS"
+    LDFLAGS="-L/opt/homebrew/opt/curl/lib $LDFLAGS"
+  elif test -d /usr/local/opt/curl; then
+    CPPFLAGS="-I/usr/local/opt/curl/include $CPPFLAGS"
+    LDFLAGS="-L/usr/local/opt/curl/lib $LDFLAGS"
+  fi
 fi
 AC_CHECK_LIB([curl], [curl_ws_send], [],
 		[AC_CHECK_LIB([curl], [curl_easy_init],

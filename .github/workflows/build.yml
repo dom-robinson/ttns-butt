@@ -97,6 +97,21 @@ jobs:
           mingw32-make -C src -j2
       - name: Package
         run: bash scripts/build-windows.sh
+      - name: Windows setup.exe
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $ver = (Get-Content VERSION -Raw).Trim()
+          $pf86 = [Environment]::GetFolderPath('ProgramFilesX86')
+          $iscc = Join-Path $pf86 "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after Inno Setup install" }
+          & $iscc "/DMyAppVersion=$ver" "packaging\windows\ttns-deck.iss"
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit $LASTEXITCODE" }
+          $out = "dist\windows\TTNS-Deck-$ver-windows-x64-setup.exe"
+          if (-not (Test-Path $out)) { throw "Missing installer $out" }
       - uses: actions/upload-artifact@v4
         with:
           name: ttns-deck-windows-x64
@@ -118,28 +133,33 @@ jobs:
         run: |
           chmod +x scripts/stage-release-packages.sh
           ./scripts/stage-release-packages.sh release-packages release-artifacts
-      - name: Create GitHub pre-release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: true
+          prerelease: false
           generate_release_notes: true
           body: |
-            ## TTNS Deck preliminary release
+            ## TTNS Deck ${{ github.ref_name }}
 
-            DJ testing build. See [docs/TTNS_DJ_GUIDE.md](docs/TTNS_DJ_GUIDE.md) and [docs/RELEASE.md](docs/RELEASE.md).
+            Crew / DJ build. **Prefer the .dmg (Mac) or setup.exe (Windows)** — double-click, no unzip gymnastics.
 
-            Binary packages include `legal/` with GPL and third-party license texts ([docs/LICENSING.md](docs/LICENSING.md)).
-
-            | Platform | File |
-            |----------|------|
-            | macOS Apple Silicon | `ttns-deck-arm64-macos.zip` |
-            | macOS Intel | `ttns-deck-x86_64-macos.zip` |
+            | Platform | Download |
+            |----------|----------|
+            | macOS Apple Silicon | `TTNS-Deck-*-macos-arm64.dmg` — open, drag **TTNS Deck** to Applications |
+            | macOS Intel | `TTNS-Deck-*-macos-x64.dmg` |
+            | macOS 12 Monterey (Apple Silicon) | `TTNS-Deck-*-macos-arm64-monterey12.dmg` if attached |
+            | Windows 10+ | `TTNS-Deck-*-windows-x64-setup.exe` |
             | Linux x64 | `ttns-deck-linux-x86_64.tar.gz` |
-            | Windows x64 | `ttns-deck-win64.zip` |
 
-            **Unsigned macOS:** right-click app → Open the first time.
+            Portable zips (`ttns-deck-*-macos.zip`, `ttns-deck-win64.zip`) are also attached.
 
-            Config contains Icecast passwords — distribute only to TTNS DJs.
+            **macOS:** if “Apple could not verify…” click **Done**, then Privacy & Security → **Open Anyway**. Send the **.dmg file**, never the `.app` folder (Dropbox turns it into a `Contents` folder).
+
+            **Windows:** if SmartScreen appears: More info → Run anyway.
+
+            See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) and [docs/RELEASE.md](docs/RELEASE.md).
+
+            Packages include `legal/` (GPL + third-party notices). Icecast passwords may be in presets — distribute only to TTNS DJs.
           files: release-packages/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

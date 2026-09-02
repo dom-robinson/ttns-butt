@@ -27,4 +27,5 @@ butt
 src/butt
 src/ttns_remote
 dist/
+deps/
 build/

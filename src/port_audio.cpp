@@ -102,6 +102,11 @@ static int ttns_use_dual_mic = 0;
 static int ttns_use_shared_input = 0;
 static volatile int snd_audio_active = 0;
 static volatile int mic_capture_peak = 0;
+static volatile int snd_stopping = 0;
+static volatile int snd_stream_died = 0;
+static volatile int snd_line_null_input = 0;
+static int snd_line_idle_logged = 0;
+static double snd_last_recover_sec = 0;
 static struct ringbuf ttns_mic_rb;
 static struct ringbuf monitor_rb;
 static int ttns_mic_rb_inited = 0;
@@ -897,6 +902,16 @@ static void ttns_copy_line_to_stereo(short *line_stereo, const short *line_in,
 {
     int i;
 
+    if (!line_stereo || frameCount <= 0)
+        return;
+
+    /* VB-Cable / virtual devices often pass NULL input when the player stops. */
+    if (!line_in)
+    {
+        memset(line_stereo, 0, (size_t)frameCount * 2 * sizeof(short));
+        return;
+    }
+
     for (i = 0; i < frameCount; i++)
     {
         if (in_channels >= 2)
@@ -910,6 +925,13 @@ static void ttns_copy_line_to_stereo(short *line_stereo, const short *line_in,
             line_stereo[i * 2 + 1] = line_in[i];
         }
     }
+}
+
+static void snd_stream_finished_cb(void *userData)
+{
+    (void)userData;
+    if (!snd_stopping)
+        snd_stream_died = 1;
 }
 
 static void ttns_finish_mix_block(int frameCount, const short *line_stereo,
@@ -1033,6 +1055,36 @@ void snd_reinit(void)
     snd_stop_streams();
     snd_pause_after_stop();
     snd_open_stream();
+}
+
+void snd_recover_if_needed(void)
+{
+    double now;
+
+    if (snd_line_null_input)
+    {
+        if (!snd_line_idle_logged)
+        {
+            snd_line_idle_logged = 1;
+            print_info("Line input idle (player stopped / virtual cable silent) — keeping mix alive", 0);
+        }
+    }
+    else
+        snd_line_idle_logged = 0;
+
+    if (!snd_stream_died || !snd_audio_active || stream == NULL || snd_stopping)
+        return;
+
+    now = ttns_monotonic_sec();
+    if (snd_last_recover_sec > 0.0 && (now - snd_last_recover_sec) < 1.5)
+        return;
+    snd_last_recover_sec = now;
+    snd_stream_died = 0;
+
+    print_info("Audio device dropped — restarting input (settings kept)", 1);
+    snd_reinit();
+    if (snd_audio_is_active())
+        print_info("Audio devices ready", 0);
 }
 
 static void snd_abort_open(void)
@@ -1160,6 +1212,7 @@ static int snd_open_mic_capture(int samplerate)
         print_info(info_buf, 1);
         return 1;
     }
+    Pa_SetStreamFinishedCallback(mic_stream, snd_stream_finished_cb);
 
     if (ttns_mic_rb_start() != 0)
     {
@@ -1218,8 +1271,10 @@ int snd_reopen_mic_only(void)
 
 static void snd_stop_streams(void)
 {
+    snd_stopping = 1;
     snd_audio_active = 0;
     pa_new_frames = 0;
+    snd_stream_died = 0;
 
     if (monitor_stream != NULL)
     {
@@ -1253,6 +1308,7 @@ static void snd_stop_streams(void)
     ttns_use_shared_input = 0;
     mic_capture_peak = 0;
     ttns_meters_reset();
+    snd_stopping = 0;
 }
 
 static void snd_close_monitor(void)
@@ -1612,6 +1668,7 @@ int snd_open_stream(void)
         snd_abort_open();
         return 1;
     }
+    Pa_SetStreamFinishedCallback(stream, snd_stream_finished_cb);
 
     snd_audio_active = 0;
     ttns_use_dual_mic = 0;
@@ -2034,6 +2091,17 @@ int snd_callback(const void *input,
 
     if (frameCount > (unsigned long)pa_frames)
         frameCount = (unsigned long)pa_frames;
+
+    /* Virtual cables (VB-Cable) often deliver NULL input when the player
+     * stops. Treat as silence so carts/mic/stream keep running. */
+    if (!input)
+    {
+        snd_line_null_input = 1;
+        memset(ttns_line_buf, 0, (size_t)frameCount * 2 * sizeof(short));
+        input = ttns_line_buf;
+    }
+    else
+        snd_line_null_input = 0;
 
     if (ttns_use_dual_mic && mic_stream != NULL && ttns_mix_buf != NULL && ttns_mic_rb_inited)
     {

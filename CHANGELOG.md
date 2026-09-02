@@ -3,6 +3,27 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote.1] — Crew release (VB-Cable + one-click packages)
+
+**Tag:** `v0.1.16-ttns-remote.1` (on `master`)
+
+### Fixed
+
+- Line input no longer crashes when a virtual cable (VB-Cable, loopback) delivers **NULL** audio while the music player is stopped — treated as silence so carts, mic, and the Icecast stream keep running
+- If PortAudio aborts the input stream (device drop), Deck **reopens** the same devices without clearing Settings / carts
+
+### Added
+
+- macOS **.dmg** (drag TTNS Deck + TTNS Remote to Applications)
+- Windows **setup.exe** (Start Menu / desktop shortcuts; no admin required)
+- `scripts/build-macos12-app.sh` — Apple Silicon build for **macOS 12 Monterey** (Homebrew bottles on current macOS cannot run there)
+
+### Changed
+
+- DJ downloads: send the **.dmg** or **setup.exe** file. Do not send a raw `.app` via Dropbox/email (it arrives as a `Contents` folder).
+
+---
+
 ## [0.1.16-ttns-remote-dev.4] — Bundle Homebrew dylibs into macOS apps (dev)
 
 **Branch:** `feature/remote-dial-in`

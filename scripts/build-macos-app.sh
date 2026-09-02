@@ -5,7 +5,11 @@ set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/dist/macos/TTNS Deck.app"
 REMOTE_APP="$ROOT/dist/macos/TTNS Remote.app"
-VER="0.1.16-ttns-remote-dev.4"
+VER="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+ARCH="$(uname -m)"
+MIN_OS="${TTNS_MACOS_MIN_OS:-11.0}"
+DECK_ZIP_STEM="${TTNS_DECK_ZIP_STEM:-ttns-deck-${ARCH}-macos}"
+REMOTE_ZIP_STEM="${TTNS_REMOTE_ZIP_STEM:-ttns-remote-${ARCH}-macos}"
 
 cd "$ROOT"
 "$ROOT/scripts/generate-icons.sh" 2>/dev/null || true
@@ -54,7 +58,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
-    <string>11.0</string>
+    <string>${MIN_OS}</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
@@ -70,10 +74,9 @@ python3 "$ROOT/scripts/macos-bundle-dylibs.py" "$APP" "Contents/MacOS/ttns-deck-
 chmod +x "$ROOT/scripts/macos-codesign-app.sh"
 "$ROOT/scripts/macos-codesign-app.sh" "$APP"
 
-ARCH="$(uname -m)"
-OUT="$ROOT/dist/macos/ttns-deck-${ARCH}-macos.zip"
+OUT="$ROOT/dist/macos/${DECK_ZIP_STEM}.zip"
 rm -f "$OUT"
-COPYFILE_DISABLE=1 ditto -c -k --keepParent "$APP" "$OUT"
+COPYFILE_DISABLE=1 ditto -c -k --keepParent --norsrc --noextattr --noqtn "$APP" "$OUT"
 
 echo "Built: $APP"
 echo "Zip:   $OUT"
@@ -110,7 +113,7 @@ if [ -x "$ROOT/src/ttns_remote" ]; then
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
-    <string>11.0</string>
+    <string>${MIN_OS}</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
@@ -129,12 +132,18 @@ EOF
     python3 "$ROOT/scripts/macos-bundle-dylibs.py" "$REMOTE_APP" "Contents/MacOS/ttns-remote-bin"
     "$ROOT/scripts/macos-codesign-app.sh" "$REMOTE_APP"
 
-    REMOTE_ZIP="$ROOT/dist/macos/ttns-remote-${ARCH}-macos.zip"
+    REMOTE_ZIP="$ROOT/dist/macos/${REMOTE_ZIP_STEM}.zip"
     rm -f "$REMOTE_ZIP"
-    COPYFILE_DISABLE=1 ditto -c -k --keepParent "$REMOTE_APP" "$REMOTE_ZIP"
+    COPYFILE_DISABLE=1 ditto -c -k --keepParent --norsrc --noextattr --noqtn "$REMOTE_APP" "$REMOTE_ZIP"
     echo "Remote app: \"$REMOTE_APP\""
     echo "Remote zip: $REMOTE_ZIP"
 fi
+
+ARCH_LABEL="$ARCH"
+[ "$ARCH" = "x86_64" ] && ARCH_LABEL="x64"
+[ -n "$TTNS_MACOS_DMG_LABEL" ] && ARCH_LABEL="$TTNS_MACOS_DMG_LABEL"
+chmod +x "$ROOT/scripts/macos-make-dmg.sh"
+"$ROOT/scripts/macos-make-dmg.sh" "$ROOT/dist/macos" "$VER" "$ARCH_LABEL"
 
 echo ""
 echo "Unsigned builds from the internet need a Gatekeeper bypass — see docs/MACOS_GATEKEEPER.md"

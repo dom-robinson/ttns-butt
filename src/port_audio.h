@@ -63,6 +63,7 @@ void snd_stop_rec(void);
 void snd_reinit(void);
 int snd_reopen_mic_only(void);
 void snd_reopen_monitor(void);
+void snd_recover_if_needed(void);
 void snd_stop_input(void);
 int snd_audio_is_active(void);
 int snd_monitor_is_open(void);

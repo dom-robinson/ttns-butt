@@ -5,7 +5,7 @@ TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and
 | | |
 |---|---|
 | **Product name** | TTNS Deck |
-| **Version** | `0.1.16-ttns-remote-dev.4` (remote dial-in **dev** on `feature/remote-dial-in`) |
+| **Version** | `0.1.16-ttns-remote.1` |
 | **Upstream** | butt 0.1.16 |
 | **Repository** | [dom-robinson/ttns-butt](https://github.com/dom-robinson/ttns-butt) |
 | **User guide** | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) (Deck + Remote) |
@@ -16,12 +16,14 @@ TTNS fork of [BUTT](https://github.com/romansavrulin/butt) — live DJ mixer and
 
 ---
 
-## Preliminary release
+## Current release
 
-Tag **`v0.1.16-ttns-pre.7`** — current DJ testing build (frozen on `release/v0.1.16-ttns-pre.7`). Remote dial-in work does **not** replace it; see [`docs/REMOTE_DIALIN.md`](docs/REMOTE_DIALIN.md) for how to check out the release vs the feature branch.
+Tag **`v0.1.16-ttns-remote.1`** — Deck + Remote, VB-Cable idle crash fix, **.dmg** / **setup.exe** downloads.
+
+Older mixer-only freeze: **`v0.1.16-ttns-pre.7`**.
 
 ```bash
-git checkout v0.1.16-ttns-pre.7
+git checkout v0.1.16-ttns-remote.1
 ./scripts/build-release.sh
 ```
 
@@ -33,9 +35,9 @@ Licensing: GPL-2.0 fork of butt; see [`docs/LICENSING.md`](docs/LICENSING.md).
 
 | OS | Architectures | Package script |
 |----|---------------|----------------|
-| **macOS** 11+ | Apple Silicon (arm64), Intel (x86_64) | `scripts/build-macos-app.sh` |
+| **macOS** 12+ | Apple Silicon (arm64), Intel (x86_64) | `scripts/build-macos-app.sh` → `.dmg` + `.zip`. Monterey 12: `scripts/build-macos12-app.sh` |
 | **Linux** | x86_64, arm64 | `scripts/build-linux.sh` |
-| **Windows** 10+ | x64 | `scripts/build-windows.sh` (MSYS2) |
+| **Windows** 10+ | x64 | `scripts/build-windows.sh` + Inno Setup `setup.exe` |
 
 CI builds all targets: [`.github/workflows/build.yml`](.github/workflows/build.yml)
 

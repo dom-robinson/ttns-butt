@@ -70,11 +70,16 @@ def expand_rpath(dep: str, referrer: Path) -> Path | None:
     for c in candidates:
         if c.is_file():
             return c  # keep symlink path if possible
-    for root in ("/opt/homebrew", "/usr/local"):
-        lib = Path(root) / "lib" / name
+    extra_roots: list[Path] = []
+    env_prefix = os.environ.get("TTNS_DEP_PREFIX")
+    if env_prefix:
+        extra_roots.append(Path(env_prefix))
+    extra_roots.extend([Path("/opt/homebrew"), Path("/usr/local")])
+    for root in extra_roots:
+        lib = root / "lib" / name
         if lib.is_file():
             return lib
-        opt = Path(root) / "opt"
+        opt = root / "opt"
         if opt.is_dir():
             for d in opt.iterdir():
                 cand = d / "lib" / name

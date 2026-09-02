@@ -1,33 +1,36 @@
 # TTNS Deck — binary releases
 
-**Stable DJ tag:** `v0.1.16-ttns-pre.7` (on `ttns-mixer`)
+**Current tag:** `v0.1.16-ttns-remote.1` (on `master`) — Deck + Remote, VB-Cable idle fix, one-click Mac/Windows packages.
 
-**Crew remote test build:** `0.1.16-ttns-remote-dev.2` (branch `feature/remote-dial-in`) — Deck + TTNS Remote.
+Older mixer-only freeze: `v0.1.16-ttns-pre.7` on `ttns-mixer`.
 
 Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned separately.
 
 ---
 
-## Download
+## Download (what to send DJs)
 
-| Platform | CI artifact | Package contents |
-|----------|-------------|------------------|
-| **macOS Apple Silicon** | `ttns-deck-macos-arm64` | `TTNS Deck.app`, `ttns-deck-arm64-macos.zip`, `ttns-remote` |
-| **macOS Intel** | `ttns-deck-macos-x64` | same for Intel |
-| **Linux x86_64** | `ttns-deck-linux-x64` | `ttns-deck-linux-x86_64.tar.gz` (Deck + Remote launchers) |
-| **Windows x64** | `ttns-deck-windows-x64` | `ttns-deck-win64.zip` (`ttns-deck.exe` + `ttns-remote.exe`) |
+GitHub Releases: [dom-robinson/ttns-butt/releases](https://github.com/dom-robinson/ttns-butt/releases)
 
-Each package includes `legal/` (or `Resources/legal/` on macOS) with `COPYING`,
-`DISTRIBUTION_LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, and the Fraunhofer
-FDK-AAC license text.
+| Who | File | What they do |
+|-----|------|----------------|
+| **Mac (Apple Silicon, current macOS)** | `TTNS-Deck-…-macos-arm64.dmg` | Open the disk image, drag **TTNS Deck** to Applications, open it |
+| **Mac (Intel)** | `TTNS-Deck-…-macos-x64.dmg` | Same |
+| **Mac (Monterey 12, Apple Silicon)** | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | Same; current-OS DMGs will not launch on 12.x |
+| **Windows 10+** | `TTNS-Deck-…-windows-x64-setup.exe` | Double-click the installer (no admin). Shortcuts in Start Menu |
+| **Linux x86_64** | `ttns-deck-linux-x86_64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
 
-1. Open [Actions](https://github.com/dom-robinson/ttns-butt/actions) → latest workflow run on `feature/remote-dial-in`, `ttns-mixer`, or a release tag.
-2. Download the artifact for your OS, **or** use the [GitHub Release](https://github.com/dom-robinson/ttns-butt/releases) (four platform archives only).
-3. See [`USER_GUIDE.md`](USER_GUIDE.md) (full) or [`TTNS_DJ_GUIDE.md`](TTNS_DJ_GUIDE.md) (short).
+**TTNS Remote** is inside the same Mac DMG and the Windows installer.
 
-Tagged releases attach **only** the four platform zip/tar.gz files (not loose DLLs or
-app bundle internals). For Dropbox handoff to DJs, run
-`./scripts/package-dj-testers.sh /path/to/downloaded-ci-artifacts`.
+Send the **.dmg / .exe file**. Do **not** send a raw `.app` via Dropbox or email — macOS apps are folders, and recipients only see `Contents`.
+
+Portable zips (`ttns-deck-*-macos.zip`, `ttns-deck-win64.zip`) are still attached for ops.
+
+Each package includes `legal/` (or `Resources/legal/` on macOS) with `COPYING`, `DISTRIBUTION_LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, and the Fraunhofer FDK-AAC license.
+
+See [`USER_GUIDE.md`](USER_GUIDE.md) (full) or [`TTNS_DJ_GUIDE.md`](TTNS_DJ_GUIDE.md) (short).
+
+For a Dropbox folder of every OS, run `./scripts/package-dj-testers.sh /path/to/downloaded-ci-artifacts`.
 
 ---
 
@@ -45,16 +48,14 @@ All packages use the TTNS logo:
 Regenerate platform icons after logo changes:
 
 ```bash
-./scripts/generate-icons.sh   # macOS: writes .icns + .ico; Linux/CI: .ico via ImageMagick/Pillow
+./scripts/generate-icons.sh
 ```
 
-Commit updated `assets/ttns-deck.icns` and `assets/ttns-deck.ico` so Windows and offline macOS builds stay consistent.
+Commit updated `assets/ttns-deck.icns` and `assets/ttns-deck.ico`.
 
 ---
 
 ## Local packaging
-
-From a clean tree with dependencies installed:
 
 ```bash
 autoreconf -fi && ./configure && make -C src
@@ -63,9 +64,10 @@ autoreconf -fi && ./configure && make -C src
 
 | OS | Output |
 |----|--------|
-| macOS | `dist/macos/TTNS Deck.app`, `dist/macos/ttns-deck-$(uname -m)-macos.zip` |
+| macOS | `dist/macos/TTNS Deck.app`, `.zip`, `TTNS-Deck-<ver>-macos-<arch>.dmg` |
+| macOS 12 arm64 | `./scripts/build-macos12-app.sh` |
 | Linux | `dist/linux/ttns-deck-linux-$(uname -m).tar.gz` |
-| Windows (MSYS2 MinGW64) | `dist/windows/ttns-deck-win64.zip` |
+| Windows (MSYS2) | `dist/windows/ttns-deck-win64.zip`; with Inno Setup, `TTNS-Deck-<ver>-windows-x64-setup.exe` |
 
 ---
 
@@ -75,29 +77,28 @@ Workflow: [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 
 | Job | Runner | Notes |
 |-----|--------|-------|
-| `build-macos` | `macos-latest` (arm64), `macos-15-intel` (x64) | Homebrew deps; `generate-icons.sh` + `build-macos-app.sh` |
-| `build-linux` | `ubuntu-latest` | apt dev packages; `build-linux.sh` |
-| `build-windows` | `windows-latest` + MSYS2 MinGW64 | Pillow for `.ico` if ImageMagick missing; bundles MinGW DLLs; pacman install retries on mirror failures |
+| `build-macos` | `macos-latest` (arm64), `macos-15-intel` (x64) | Homebrew deps; `.app` + zip + **dmg**. Current macOS only (Homebrew bottles). |
+| `build-linux` | `ubuntu-latest` | apt; `build-linux.sh` |
+| `build-windows` | `windows-latest` + MSYS2 | DLL zip + **Inno Setup** `setup.exe` |
 
-Pushes to `master` / `ttns-mixer` / `feature/remote-dial-in` and tags `v*` trigger builds. Tags like `v0.1.16-ttns-pre.7` create a **pre-release** on GitHub with the four platform archives attached. Use **workflow_dispatch** for an on-demand rebuild.
+Pushes to `master` / `ttns-mixer` / `feature/remote-dial-in` and tags `v*` trigger builds. Tags create a **pre-release** with the packages above.
 
 ---
 
-## macOS code signing (ops)
+## macOS Gatekeeper (ops)
 
-CI builds are **unsigned**. DJs: right-click → **Open** the first time.
+CI builds are **unsigned**. DJs: **Done** (not Move to Bin) → Privacy & Security → **Open Anyway**. Details: [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
 
 For distribution outside the team:
 
 ```bash
 codesign --force --deep --sign "Developer ID Application: …" "dist/macos/TTNS Deck.app"
-xcrun notarytool submit dist/macos/ttns-deck-arm64-macos.zip --wait
 ```
 
 ---
 
-## Known gaps (preliminary)
+## Known gaps
 
-- Linux **arm64** tarball: build on arm64 runner or hardware (`build-linux.sh` already names arch).
-- Windows: requires full zip (DLLs bundled); do not ship bare `ttns-deck.exe`. `v0.1.16-ttns-pre.2` fixes missing `libFLAC.dll` / FLTK 1.4 DLLs in older Windows packages.
+- Default GitHub macOS builds need a **current** macOS (the runner’s Homebrew libs). Monterey testers need the **monterey12** DMG from `build-macos12-app.sh`.
+- Linux **arm64** tarball: build on arm64 hardware (`build-linux.sh` names the arch).
 - Intel macOS CI uses `macos-15-intel` (GitHub’s last x86_64 macOS image; retires ~2027).

@@ -1,16 +1,15 @@
 # Remote dial-in co-host (TTNS Deck + TTNS Remote)
 
-Work lives on branch **`feature/remote-dial-in`**. Current crew test version: **`0.1.16-ttns-remote-dev.2`**.
+Work lives on **`master`**. Current release: **`v0.1.16-ttns-remote.1`**.
 
 End-user walkthrough: [`USER_GUIDE.md`](./USER_GUIDE.md).
 
-## How to get back to the current release
+## How to get back to the mixer-only freeze
 
 | Ref | What |
 |-----|------|
 | Tag | `v0.1.16-ttns-pre.7` |
-| Branch | `release/v0.1.16-ttns-pre.7` |
-| Branch | `ttns-mixer` (still at pre.7 until remote work is merged) |
+| Branch | `release/v0.1.16-ttns-pre.7` / `ttns-mixer` |
 
 ```bash
 git checkout v0.1.16-ttns-pre.7

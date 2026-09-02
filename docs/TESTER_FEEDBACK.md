@@ -1,6 +1,6 @@
 # TTNS Deck — tester feedback guide
 
-**Build:** `0.1.16-ttns-remote-dev.4` (crew test — Deck + Remote)
+**Build:** `0.1.16-ttns-remote.1` (Deck + Remote)
 
 Thank you for testing. Please report issues with the **session log file** attached (see below).
 
@@ -13,18 +13,15 @@ macOS blocked after download? [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
 
 | Platform | Package | Run |
 |----------|---------|-----|
-| **macOS Apple Silicon** | `*-macos-arm64.zip` | Unzip → **TTNS Deck.app** |
-| **macOS Intel** | `*-macos-x64.zip` | Same |
+| **macOS Apple Silicon** | `*-macos-arm64.dmg` | Open → drag **TTNS Deck** to Applications |
+| **macOS Intel** | `*-macos-x64.dmg` | Same |
+| **macOS 12 Monterey** | `*-macos-arm64-monterey12.dmg` | Apple Silicon only |
 | **Linux** | `*-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
-| **Windows** | `*-windows-x64.zip` | Unzip → **Run TTNS Deck.bat** |
+| **Windows** | `*-windows-x64-setup.exe` | Double-click the installer |
 
-**TTNS Remote** (co-host):
+**TTNS Remote** is on the same Mac disk image / Windows installer.
 
-| Platform | Run |
-|----------|-----|
-| macOS | **TTNS Remote.app** from `TTNS-Remote-…-macos-*.zip` |
-| Linux | `./ttns-deck-linux-*/run-ttns-remote.sh` |
-| Windows | `bin\ttns-remote.exe` |
+Send the **.dmg or .exe file**, never a raw `.app` (Dropbox shows a `Contents` folder).
 
 ### macOS Gatekeeper (important)
 

@@ -172,6 +172,20 @@ bin\ttns-remote.exe %*
 EOF
 fi
 
+cat > "$STAGE/README-WINDOWS.txt" <<'EOF'
+TTNS Deck for Windows
+
+Preferred install: run TTNS-Deck-*-windows-x64-setup.exe
+  (Start Menu + desktop shortcuts; settings live in your user profile).
+
+Portable: unzip this folder, then double-click "Run TTNS Deck.bat"
+or bin\ttns-deck.exe. Keep the whole folder together (do not copy only the .exe).
+
+Co-host: Run TTNS Remote.bat (or bin\ttns-remote.exe).
+
+If Windows says "Windows protected your PC": More info → Run anyway.
+EOF
+
 mkdir -p "$DIST"
 rm -f "$ZIP"
 (cd "$DIST" && powershell -Command "Compress-Archive -Path 'ttns-deck-win64' -DestinationPath 'ttns-deck-win64.zip' -Force" 2>/dev/null) \
