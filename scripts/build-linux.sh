@@ -54,6 +54,41 @@ EOF
 chmod +x "$STAGE/run-ttns-deck.sh" "$STAGE/bin/ttns-deck"
 [ -x "$STAGE/bin/ttns-remote" ] && chmod +x "$STAGE/run-ttns-remote.sh"
 
+VER="$(tr -d '[:space:]' < "$ROOT/packaging/VERSION")"
+case "$ARCH" in
+    x86_64) NAMED_ARCH=x64 ;;
+    aarch64|arm64) NAMED_ARCH=arm64 ;;
+    *) NAMED_ARCH="$ARCH" ;;
+esac
+
 tar -czf "$TARBALL" -C "$DIST" "ttns-deck-linux-${ARCH}"
+NAMED_DECK="$DIST/TTNS-Deck-${VER}-linux-${NAMED_ARCH}.tar.gz"
+cp "$TARBALL" "$NAMED_DECK"
 echo "Built: $TARBALL"
+echo "Built: $NAMED_DECK"
 echo "Run:   tar xzf $TARBALL && ./ttns-deck-linux-${ARCH}/run-ttns-deck.sh"
+
+if [ -x "$STAGE/bin/ttns-remote" ]; then
+    RSTAGE="$DIST/ttns-remote-linux-${ARCH}"
+    RTARBALL="$DIST/ttns-remote-linux-${ARCH}.tar.gz"
+    rm -rf "$RSTAGE"
+    mkdir -p "$RSTAGE/bin" "$RSTAGE/share/ttns-remote/assets" "$RSTAGE/share/ttns-remote/legal"
+    "$ROOT/scripts/copy-distribution-licenses.sh" "$RSTAGE/share/ttns-remote/legal"
+    cp "$STAGE/bin/ttns-remote" "$RSTAGE/bin/ttns-remote"
+    cp "$ROOT/assets/ttns-logo.png" "$RSTAGE/share/ttns-remote/assets/"
+    [ -f "$ROOT/docs/USER_GUIDE.md" ] && cp "$ROOT/docs/USER_GUIDE.md" "$RSTAGE/" || true
+    cat > "$RSTAGE/run-ttns-remote.sh" <<'EOF'
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export PATH="$DIR/bin:$PATH"
+cd "$DIR" || exit 1
+exec "$DIR/bin/ttns-remote" "$@"
+EOF
+    chmod +x "$RSTAGE/run-ttns-remote.sh" "$RSTAGE/bin/ttns-remote"
+    tar -czf "$RTARBALL" -C "$DIST" "ttns-remote-linux-${ARCH}"
+    NAMED_REMOTE="$DIST/TTNS-Remote-${VER}-linux-${NAMED_ARCH}.tar.gz"
+    cp "$RTARBALL" "$NAMED_REMOTE"
+    echo "Built: $RTARBALL"
+    echo "Built: $NAMED_REMOTE"
+    echo "Run:   tar xzf $RTARBALL && ./ttns-remote-linux-${ARCH}/run-ttns-remote.sh"
+fi

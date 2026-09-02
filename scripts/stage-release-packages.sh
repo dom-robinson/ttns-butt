@@ -45,7 +45,12 @@ for search in $SEARCH_ROOTS; do
     [ -d "$search" ] || continue
     find "$search" -type f \( \
         -name 'TTNS-Deck-*.dmg' -o \
-        -name 'TTNS-Deck-*-windows-x64-setup.exe' \
+        -name 'TTNS-Remote-*.dmg' -o \
+        -name 'TTNS-Deck-*-windows-x64-setup.exe' -o \
+        -name 'TTNS-Remote-*-windows-x64-setup.exe' -o \
+        -name 'TTNS-Deck-*-linux-*.tar.gz' -o \
+        -name 'TTNS-Remote-*-linux-*.tar.gz' -o \
+        -name 'ttns-remote-linux-*.tar.gz' \
         \) 2>/dev/null | while read -r f; do
         base="$(basename "$f")"
         if [ ! -f "$OUT/$base" ]; then

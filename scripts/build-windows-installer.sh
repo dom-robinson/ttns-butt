@@ -32,3 +32,8 @@ fi
 
 "$ISCC" "/DMyAppVersion=$VER" "$ISS"
 echo "Installer: $ROOT/dist/windows/TTNS-Deck-${VER}-windows-x64-setup.exe"
+REMOTE_ISS="$ROOT/packaging/windows/ttns-remote.iss"
+if [ -f "$STAGE/bin/ttns-remote.exe" ] && [ -f "$REMOTE_ISS" ]; then
+    "$ISCC" "/DMyAppVersion=$VER" "$REMOTE_ISS"
+    echo "Installer: $ROOT/dist/windows/TTNS-Remote-${VER}-windows-x64-setup.exe"
+fi

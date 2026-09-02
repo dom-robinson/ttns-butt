@@ -4,7 +4,7 @@ Quick reference for presenters streaming to **decks.thethursdaynightshow.com**.
 
 Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
-**Build:** `0.1.16-ttns-remote.2` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Older mixer-only tag: `v0.1.16-ttns-pre.7`.
+**Build:** `0.1.16-ttns-remote.3` — full guide: [`USER_GUIDE.md`](USER_GUIDE.md). Older mixer-only tag: `v0.1.16-ttns-pre.7`.
 
 ---
 
@@ -12,12 +12,12 @@ Works on **macOS** (Apple Silicon and Intel), **Linux**, and **Windows 10+**.
 
 Download the build for your platform from [Releases](https://github.com/dom-robinson/ttns-butt/releases). Do **not** share packages publicly — they may contain Icecast source passwords.
 
-| Platform | Package | Run |
-|----------|---------|-----|
-| **macOS** | `TTNS-Deck-…-macos-arm64.dmg` or `…-macos-x64.dmg` | Open → drag **TTNS Deck** to Applications |
-| **macOS 12 Monterey** | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | Apple Silicon only; other Mac DMGs will not launch |
-| **Linux** | `ttns-deck-linux-*.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
-| **Windows** | `TTNS-Deck-…-windows-x64-setup.exe` | Double-click the installer |
+| Platform | Deck | Remote (co-host) |
+|----------|------|------------------|
+| **macOS** | `TTNS-Deck-…-macos-arm64.dmg` or `…-macos-x64.dmg` | `TTNS-Remote-…` matching dmg |
+| **macOS 12 Monterey** | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | `TTNS-Remote-…-macos-arm64-monterey12.dmg` |
+| **Linux** | `TTNS-Deck-…-linux-x64.tar.gz` | `TTNS-Remote-…-linux-x64.tar.gz` |
+| **Windows** | `TTNS-Deck-…-windows-x64-setup.exe` | `TTNS-Remote-…-windows-x64-setup.exe` |
 
 First launch creates a config file:
 

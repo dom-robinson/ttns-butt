@@ -1,6 +1,6 @@
 # TTNS Deck — binary releases
 
-**Current tag:** `v0.1.16-ttns-remote.2` (on `master`) — Refresh devices, PTT remotes, VB-Cable idle fix, one-click Mac/Windows packages.
+**Current tag:** `v0.1.16-ttns-remote.3` (on `master`) — standalone Deck and Remote installers for every platform.
 
 Packaging version is `packaging/VERSION` (kept out of the source root so it does not collide with C++ `<version>` on macOS). Keep it in sync with `configure.ac` `AC_INIT`.
 
@@ -14,19 +14,29 @@ Upstream BUTT is `0.1.16`; this fork adds the TTNS mixer UI and is versioned sep
 
 GitHub Releases: [dom-robinson/ttns-butt/releases](https://github.com/dom-robinson/ttns-butt/releases)
 
+### Deck (DJ / host)
+
 | Who | File | What they do |
 |-----|------|----------------|
 | **Mac (Apple Silicon, current macOS)** | `TTNS-Deck-…-macos-arm64.dmg` | Open the disk image, drag **TTNS Deck** to Applications, open it |
 | **Mac (Intel)** | `TTNS-Deck-…-macos-x64.dmg` | Same |
 | **Mac (Monterey 12, Apple Silicon)** | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | Same; current-OS DMGs will not launch on 12.x |
 | **Windows 10+** | `TTNS-Deck-…-windows-x64-setup.exe` | Double-click the installer (no admin). Shortcuts in Start Menu |
-| **Linux x86_64** | `ttns-deck-linux-x86_64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
+| **Linux x86_64** | `TTNS-Deck-…-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
 
-**TTNS Remote** is inside the same Mac DMG and the Windows installer.
+### Remote (co-host)
+
+| Who | File | What they do |
+|-----|------|----------------|
+| **Mac (Apple Silicon, current macOS)** | `TTNS-Remote-…-macos-arm64.dmg` | Open → drag **TTNS Remote** to Applications |
+| **Mac (Intel)** | `TTNS-Remote-…-macos-x64.dmg` | Same |
+| **Mac (Monterey 12, Apple Silicon)** | `TTNS-Remote-…-macos-arm64-monterey12.dmg` | Same; current-OS DMGs will not launch on 12.x |
+| **Windows 10+** | `TTNS-Remote-…-windows-x64-setup.exe` | Double-click (no admin) |
+| **Linux x86_64** | `TTNS-Remote-…-linux-x64.tar.gz` | `tar xzf … && ./ttns-remote-linux-*/run-ttns-remote.sh` |
 
 Send the **.dmg / .exe file**. Do **not** send a raw `.app` via Dropbox or email — macOS apps are folders, and recipients only see `Contents`.
 
-Portable zips (`ttns-deck-*-macos.zip`, `ttns-deck-win64.zip`) are still attached for ops.
+Handoff folder: `dist/dj-testers/` (latest Deck + Remote installers only). Portable zips stay on the GitHub release for ops.
 
 Each package includes `legal/` (or `Resources/legal/` on macOS) with `COPYING`, `DISTRIBUTION_LICENSE.txt`, `THIRD_PARTY_NOTICES.md`, and the Fraunhofer FDK-AAC license.
 
@@ -66,10 +76,10 @@ autoreconf -fi && ./configure && make -C src
 
 | OS | Output |
 |----|--------|
-| macOS | `dist/macos/TTNS Deck.app`, `.zip`, `TTNS-Deck-<ver>-macos-<arch>.dmg` |
-| macOS 12 arm64 | `./scripts/build-macos12-app.sh` |
-| Linux | `dist/linux/ttns-deck-linux-$(uname -m).tar.gz` |
-| Windows (MSYS2) | `dist/windows/ttns-deck-win64.zip`; with Inno Setup, `TTNS-Deck-<ver>-windows-x64-setup.exe` |
+| macOS | `dist/macos/TTNS Deck.app`, `TTNS Remote.app`, matching `.dmg` files |
+| macOS 12 arm64 | `./scripts/build-macos12-app.sh` → Deck + Remote monterey12 `.dmg` |
+| Linux | `TTNS-Deck-<ver>-linux-x64.tar.gz` and `TTNS-Remote-<ver>-linux-x64.tar.gz` |
+| Windows (MSYS2) | Inno Setup: `TTNS-Deck-<ver>-windows-x64-setup.exe` and `TTNS-Remote-<ver>-windows-x64-setup.exe` |
 
 ---
 

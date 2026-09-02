@@ -1,6 +1,6 @@
 # Remote dial-in co-host (TTNS Deck + TTNS Remote)
 
-Work lives on **`master`**. Current release: **`v0.1.16-ttns-remote.2`**.
+Work lives on **`master`**. Current release: **`v0.1.16-ttns-remote.3`**.
 
 End-user walkthrough: [`USER_GUIDE.md`](./USER_GUIDE.md).
 

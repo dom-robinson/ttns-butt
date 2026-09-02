@@ -109,9 +109,16 @@ jobs:
           }
           if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after Inno Setup install" }
           & $iscc "/DMyAppVersion=$ver" "packaging\windows\ttns-deck.iss"
-          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "ISCC Deck failed with exit $LASTEXITCODE" }
           $out = "dist\windows\TTNS-Deck-$ver-windows-x64-setup.exe"
           if (-not (Test-Path $out)) { throw "Missing installer $out" }
+          $remoteIss = "packaging\windows\ttns-remote.iss"
+          if (Test-Path $remoteIss) {
+            & $iscc "/DMyAppVersion=$ver" $remoteIss
+            if ($LASTEXITCODE -ne 0) { throw "ISCC Remote failed with exit $LASTEXITCODE" }
+            $rout = "dist\windows\TTNS-Remote-$ver-windows-x64-setup.exe"
+            if (-not (Test-Path $rout)) { throw "Missing installer $rout" }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: ttns-deck-windows-x64
@@ -145,15 +152,15 @@ jobs:
 
             **This build:** Settings → Audio → **Refresh devices** after plugging in an interface. **PTT** on the Remotes bar talks to guests off-air without ducking the music bed.
 
-            | Platform | Download |
-            |----------|----------|
-            | macOS Apple Silicon | `TTNS-Deck-*-macos-arm64.dmg` — open, drag **TTNS Deck** to Applications |
-            | macOS Intel | `TTNS-Deck-*-macos-x64.dmg` |
-            | macOS 12 Monterey (Apple Silicon) | `TTNS-Deck-*-macos-arm64-monterey12.dmg` if attached |
-            | Windows 10+ | `TTNS-Deck-*-windows-x64-setup.exe` |
-            | Linux x64 | `ttns-deck-linux-x86_64.tar.gz` |
+            | Platform | Deck | Remote (co-host) |
+            |----------|------|------------------|
+            | macOS Apple Silicon | `TTNS-Deck-*-macos-arm64.dmg` | `TTNS-Remote-*-macos-arm64.dmg` |
+            | macOS Intel | `TTNS-Deck-*-macos-x64.dmg` | `TTNS-Remote-*-macos-x64.dmg` |
+            | macOS 12 Monterey | `TTNS-Deck-*-macos-arm64-monterey12.dmg` | `TTNS-Remote-*-macos-arm64-monterey12.dmg` |
+            | Windows 10+ | `TTNS-Deck-*-windows-x64-setup.exe` | `TTNS-Remote-*-windows-x64-setup.exe` |
+            | Linux x64 | `TTNS-Deck-*-linux-x64.tar.gz` / `ttns-deck-linux-x86_64.tar.gz` | `TTNS-Remote-*-linux-x64.tar.gz` |
 
-            Portable zips (`ttns-deck-*-macos.zip`, `ttns-deck-win64.zip`) are also attached.
+            Open the **.dmg** and drag the app to Applications, or double-click the **.exe**. Send the file itself, never an extracted `.app`.
 
             **macOS:** if “Apple could not verify…” click **Done**, then Privacy & Security → **Open Anyway**. Send the **.dmg file**, never the `.app` folder (Dropbox turns it into a `Contents` folder).
 

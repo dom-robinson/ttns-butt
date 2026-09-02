@@ -1,6 +1,6 @@
 # TTNS Deck — tester feedback guide
 
-**Build:** `0.1.16-ttns-remote.2` (Deck + Remote)
+**Build:** `0.1.16-ttns-remote.3` (Deck + Remote)
 
 Thank you for testing. Please report issues with the **session log file** attached (see below).
 
@@ -11,15 +11,13 @@ macOS blocked after download? [`MACOS_GATEKEEPER.md`](MACOS_GATEKEEPER.md).
 
 ## Install
 
-| Platform | Package | Run |
-|----------|---------|-----|
-| **macOS Apple Silicon** | `*-macos-arm64.dmg` | Open → drag **TTNS Deck** to Applications |
-| **macOS Intel** | `*-macos-x64.dmg` | Same |
-| **macOS 12 Monterey** | `*-macos-arm64-monterey12.dmg` | Apple Silicon only |
-| **Linux** | `*-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
-| **Windows** | `*-windows-x64-setup.exe` | Double-click the installer |
-
-**TTNS Remote** is on the same Mac disk image / Windows installer.
+| Platform | Deck | Remote |
+|----------|------|--------|
+| **macOS Apple Silicon** | `TTNS-Deck-…-macos-arm64.dmg` | `TTNS-Remote-…-macos-arm64.dmg` |
+| **macOS Intel** | `TTNS-Deck-…-macos-x64.dmg` | `TTNS-Remote-…-macos-x64.dmg` |
+| **macOS 12 Monterey** | `TTNS-Deck-…-macos-arm64-monterey12.dmg` | `TTNS-Remote-…-macos-arm64-monterey12.dmg` |
+| **Linux** | `TTNS-Deck-…-linux-x64.tar.gz` | `TTNS-Remote-…-linux-x64.tar.gz` |
+| **Windows** | `TTNS-Deck-…-windows-x64-setup.exe` | `TTNS-Remote-…-windows-x64-setup.exe` |
 
 Send the **.dmg or .exe file**, never a raw `.app` (Dropbox shows a `Contents` folder).
 

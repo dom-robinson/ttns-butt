@@ -3,6 +3,21 @@
 All notable TTNS-specific changes to this fork are documented here.
 Upstream BUTT release notes remain in `NEWS`.
 
+## [0.1.16-ttns-remote.3] — Standalone Remote installers
+
+**Tag:** `v0.1.16-ttns-remote.3` (on `master`)
+
+### Added
+
+- Separate **TTNS Remote** installers for every platform (same naming as Deck):
+  - macOS `.dmg` (arm64, Intel, Monterey 12)
+  - Windows `setup.exe`
+  - Linux `tar.gz`
+
+Deck and Remote are no longer bundled on one Mac disk image. Co-hosts get the Remote installer only.
+
+---
+
 ## [0.1.16-ttns-remote.2] — Device hotplug + PTT remotes
 
 **Tag:** `v0.1.16-ttns-remote.2` (on `master`)

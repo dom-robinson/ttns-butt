@@ -52,14 +52,10 @@ make -C src -j"$JOBS"
 
 # Stage clearly named tester packages (do not confuse with the current-OS CI build).
 mkdir -p "$ROOT/dist/dj-testers"
-DECK_ZIP="$ROOT/dist/macos/ttns-deck-${ARCH}-macos12.zip"
-REMOTE_ZIP="$ROOT/dist/macos/ttns-remote-${ARCH}-macos12.zip"
 DECK_DMG="$ROOT/dist/macos/TTNS-Deck-${VER}-macos-arm64-monterey12.dmg"
-cp "$DECK_ZIP" "$ROOT/dist/dj-testers/TTNS-Deck-${VER}-macos-${ARCH}-monterey12.zip"
+REMOTE_DMG="$ROOT/dist/macos/TTNS-Remote-${VER}-macos-arm64-monterey12.dmg"
 [ -f "$DECK_DMG" ] && cp "$DECK_DMG" "$ROOT/dist/dj-testers/"
-if [ -f "$REMOTE_ZIP" ]; then
-    cp "$REMOTE_ZIP" "$ROOT/dist/dj-testers/TTNS-Remote-${VER}-macos-${ARCH}-monterey12.zip"
-fi
+[ -f "$REMOTE_DMG" ] && cp "$REMOTE_DMG" "$ROOT/dist/dj-testers/"
 
 python3 - <<PY
 import os, re, subprocess, sys
@@ -95,4 +91,6 @@ echo "Monterey Apple Silicon — prefer the .dmg (send the file, not the .app):"
 if [ -f "$DECK_DMG" ]; then
     echo "  $DECK_DMG"
 fi
-echo "  $ROOT/dist/dj-testers/TTNS-Deck-${VER}-macos-${ARCH}-monterey12.zip"
+if [ -f "$REMOTE_DMG" ]; then
+    echo "  $REMOTE_DMG"
+fi

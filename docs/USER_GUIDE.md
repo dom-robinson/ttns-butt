@@ -1,6 +1,6 @@
 # TTNS Deck & TTNS Remote — User Guide
 
-**Build:** `0.1.16-ttns-remote.2`
+**Build:** `0.1.16-ttns-remote.3`
 
 This guide covers day-to-day use of **TTNS Deck** (the mixer / streamer) and **TTNS Remote** (the co-host dial-in app). Drop screenshots into `docs/images/user-guide/` using the filenames noted under each section.
 
@@ -40,6 +40,8 @@ Same Wi‑Fi/LAN is ideal for remotes. Over the internet, Deck and Remote use th
 
 Download from the [GitHub Release](https://github.com/dom-robinson/ttns-butt/releases). Send people the **installer file**, not an extracted app folder.
 
+**Deck** (DJ / host):
+
 | Platform | File | What to do |
 |----------|------|------------|
 | **macOS Apple Silicon** | `TTNS-Deck-…-macos-arm64.dmg` | Open → drag **TTNS Deck** to Applications → open |
@@ -48,7 +50,7 @@ Download from the [GitHub Release](https://github.com/dom-robinson/ttns-butt/rel
 | **Linux x86_64** | `TTNS-Deck-…-linux-x64.tar.gz` | `tar xzf … && ./ttns-deck-linux-*/run-ttns-deck.sh` |
 | **Windows 10+** | `TTNS-Deck-…-windows-x64-setup.exe` | Double-click; Start Menu shortcuts. No admin needed |
 
-**TTNS Remote** (co-hosts) is on the same Mac disk image and in the Windows installer. Linux: `run-ttns-remote.sh`.
+**Remote** (co-host) — same platforms, `TTNS-Remote-…` instead of `TTNS-Deck-…`. Linux: `tar xzf … && ./ttns-remote-linux-*/run-ttns-remote.sh`.
 
 Settings and carts live in your user profile (`~/.buttrc` / `%USERPROFILE%\.buttrc`), so replacing the app/installer keeps your setup.
 
